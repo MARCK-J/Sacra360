@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\MARCK-J\TRABAJOS\GITHUB\Sacra360\BACKEND\venv
+set VIRTUAL_ENV=C:\Users\HP VICTUS\OneDrive\Documentos\GitHub\Sacra360\BACKEND\venv
 
 if not defined PROMPT set PROMPT=$P$G
 
