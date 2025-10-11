@@ -22,26 +22,6 @@ SACRA360_Backend/
 
 ## 🏢 **ARQUITECTURA DE MICROSERVICIOS SACRA360**
 
-### 📁 Estructura del Proyecto
-
-```
-BACKEND/
-├── main.py                 # Aplicación principal FastAPI
-├── app/
-│   ├── core/              # Configuración y base de datos
-│   │   ├── config.py      # Variables de configuración
-│   │   └── database.py    # Conexión SQLAlchemy
-│   ├── models/            # Modelos de base de datos
-│   ├── schemas/           # Esquemas Pydantic
-│   ├── api/               # Router principal de la API
-│   ├── ocr/               # Microservicio OCR (Tesseract + OpenCV)
-│   ├── htr/               # Microservicio HTR (CNN + LSTM)
-│   ├── ai_completion/     # Microservicio AI (BERT/RoBERTa)
-│   └── services/          # Servicios auxiliares (archivos, etc.)
-├── tests/                 # Pruebas unitarias e integración
-├── uploads/               # Almacenamiento local de archivos
-├── models/                # Modelos de ML pre-entrenados
-└── docker/                # Configuración Docker
 ```
 
 ### 🔧 Microservicios Implementados
