@@ -6,13 +6,13 @@ const navItems = [
   { to: '#', label: 'Revisión OCR', icon: 'document_scanner' },
   { to: '/registros', label: 'Registros', icon: 'menu_book' },
   { to: '/personas', label: 'Personas', icon: 'group' },
-  { to: '#', label: 'Libros', icon: 'import_contacts' },
+  { to: '/libros', label: 'Libros', icon: 'import_contacts' },
   { to: '#', label: 'Búsqueda', icon: 'search' },
   { to: '#', label: 'Certificados', icon: 'workspace_premium' },
   { to: '#', label: 'Duplicados', icon: 'control_point_duplicate' },
-  { to: '#', label: 'Usuarios', icon: 'manage_accounts' },
+  { to: '/usuarios', label: 'Usuarios', icon: 'manage_accounts' },
   { to: '/auditoria', label: 'Auditoría', icon: 'history' },
-  { to: '#', label: 'Reportes', icon: 'bar_chart' },
+  { to: '/reportes', label: 'Reportes', icon: 'bar_chart' },
 ]
 
 export default function Layout({ title, children }) {

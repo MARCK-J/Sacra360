@@ -5,6 +5,9 @@ import Registros from './pages/Registros'
 import Personas from './pages/Personas'
 import Auditoria from './pages/Auditoria'
 import Digitalizacion from './pages/Digitalizacion'
+import Libros from './pages/Libros'
+import Usuarios from './pages/Usuarios'
+import Reportes from './pages/Reportes'
 
 export default function App() {
   return (
@@ -15,6 +18,9 @@ export default function App() {
       <Route path="/personas" element={<Personas />} />
       <Route path="/auditoria" element={<Auditoria />} />
       <Route path="/digitalizacion" element={<Digitalizacion />} />
+      <Route path="/libros" element={<Libros />} />
+      <Route path="/usuarios" element={<Usuarios />} />
+      <Route path="/reportes" element={<Reportes />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
