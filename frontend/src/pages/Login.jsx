@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom'
+
 export default function Login() {
+  const navigate = useNavigate()
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-foreground-light dark:text-foreground-dark min-h-screen flex flex-col">
       <header className="border-b border-border-light dark:border-border-dark shadow-sm">
@@ -27,7 +30,7 @@ export default function Login() {
             <p className="mt-2 text-sm text-muted-light dark:text-muted-dark">Accede a tu cuenta para continuar</p>
           </div>
           <div className="bg-card-light dark:bg-card-dark p-8 shadow-xl rounded-lg border border-border-light dark:border-border-dark">
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); navigate('/Dashboard') }}>
               <div>
                 <label htmlFor="username" className="block text-sm font-medium text-muted-light dark:text-muted-dark">Usuario</label>
                 <div className="mt-1">
@@ -68,7 +71,7 @@ export default function Login() {
                 <button
                   type="submit"
                   className="w-full flex justify-center py-3 px-4 border border-transparent rounded shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  onclick="location.href='/Dashboard'"
+                  onClick={() => navigate('/dashboard')}
                 >
                   Iniciar Sesión
                 </button>  
