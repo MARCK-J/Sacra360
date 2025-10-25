@@ -7,7 +7,7 @@ import logging
 import time
 
 from .core.config import settings
-from .api import usuarios, personas, sacramentos, documentos, auditoria
+from .api import usuarios, personas, sacramentos, documentos, auditoria, instituciones
 
 # Configurar logging
 logging.basicConfig(
@@ -125,6 +125,7 @@ app.include_router(personas.router, prefix="/api/v1")
 app.include_router(sacramentos.router, prefix="/api/v1")
 app.include_router(documentos.router, prefix="/api/v1")
 app.include_router(auditoria.router, prefix="/api/v1")
+app.include_router(instituciones.router, prefix="/api/v1")
 
 
 # Endpoint de salud
@@ -176,6 +177,7 @@ async def api_info():
             "usuarios": "/api/v1/usuarios/",
             "personas": "/api/v1/personas/",
             "sacramentos": "/api/v1/sacramentos/",
+            "instituciones": "/api/v1/instituciones/",
             "documentos": "/api/v1/documentos/",
             "auditoria": "/api/v1/auditoria/",
             "health": "/health",
@@ -185,6 +187,7 @@ async def api_info():
             "Gestión de usuarios con roles parroquiales",
             "Registro y administración de personas",
             "Gestión completa de sacramentos (bautizo, confirmación, matrimonio)",
+            "Administración de instituciones parroquiales",
             "Digitalización y procesamiento OCR de documentos",
             "Sistema de auditoría y trazabilidad",
             "Autenticación JWT con roles",
