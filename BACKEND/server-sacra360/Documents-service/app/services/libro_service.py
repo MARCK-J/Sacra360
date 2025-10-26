@@ -1,3 +1,8 @@
+"""
+Servicio para la gestión de Libros
+Contiene la lógica de negocio para operaciones CRUD
+"""
+
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,7 +13,14 @@ from app.models import LibroModel
 from app.entities.libro import Libro
 from app.dto.libro_dto import LibroCreateDTO, LibroUpdateDTO
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class LibroService:
+    """Servicio para la gestión de libros"""
+
     @staticmethod
     def create(db: Session, dto: LibroCreateDTO) -> Libro:
         """Crear un nuevo libro"""
@@ -18,8 +30,7 @@ class LibroService:
                 nombre=dto.nombre,
                 fecha_inicio=dto.fecha_inicio,
                 fecha_fin=dto.fecha_fin,
-                observaciones=dto.observaciones,
-                active=dto.active
+                observaciones=dto.observaciones
             )
             
             # Guardar en base de datos
@@ -28,90 +39,94 @@ class LibroService:
             db.refresh(db_libro)
             
             # Convertir a entidad
-            return Libro.from_orm(db_libro)
+            return Libro(
+                id_libro=db_libro.id_libro,
+                nombre=db_libro.nombre,
+                fecha_inicio=db_libro.fecha_inicio,
+                fecha_fin=db_libro.fecha_fin,
+                observaciones=db_libro.observaciones
+            )
             
         except SQLAlchemyError as e:
             db.rollback()
+            logger.error(f"Error al crear libro: {e}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Error al crear libro: {str(e)}"
             )
 
     @staticmethod
-    def get(db: Session, libro_id: int) -> Libro:
+    def get_by_id(db: Session, libro_id: int) -> Libro:
         """Obtener un libro por ID"""
-        db_libro = db.query(LibroModel).filter(
-            LibroModel.id_libro == libro_id,
-            LibroModel.active == True
-        ).first()
-        
-        if not db_libro:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Libro con ID {libro_id} no encontrado"
+        try:
+            db_libro = db.query(LibroModel).filter(
+                LibroModel.id_libro == libro_id
+            ).first()
+            
+            if not db_libro:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Libro con ID {libro_id} no encontrado"
+                )
+            
+            return Libro(
+                id_libro=db_libro.id_libro,
+                nombre=db_libro.nombre,
+                fecha_inicio=db_libro.fecha_inicio,
+                fecha_fin=db_libro.fecha_fin,
+                observaciones=db_libro.observaciones
             )
-        
-        return Libro.from_orm(db_libro)
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Error al obtener libro: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno del servidor"
+            )
 
     @staticmethod
     def list(
         db: Session,
         skip: int = 0,
         limit: int = 20,
-        solo_activos: bool = True,
-        nombre: Optional[str] = None,
-        fecha_desde: Optional[date] = None,
-        fecha_hasta: Optional[date] = None
-    ) -> List[Libro]:
-        """Listar libros con filtros opcionales"""
-        query = db.query(LibroModel)
-        
-        # Filtrar por estado activo
-        if solo_activos:
-            query = query.filter(LibroModel.active == True)
-        
-        # Filtros de búsqueda
-        if nombre:
-            query = query.filter(LibroModel.nombre.ilike(f"%{nombre}%"))
-        
-        if fecha_desde:
-            query = query.filter(LibroModel.fecha_inicio >= fecha_desde)
-        
-        if fecha_hasta:
-            query = query.filter(LibroModel.fecha_fin <= fecha_hasta)
-        
-        # Aplicar paginación y orden
-        db_libros = query.order_by(LibroModel.fecha_inicio.desc(), LibroModel.nombre)\
-                         .offset(skip)\
-                         .limit(limit)\
-                         .all()
-        
-        return [Libro.from_orm(l) for l in db_libros]
-
-    @staticmethod
-    def count(
-        db: Session,
-        solo_activos: bool = True,
-        nombre: Optional[str] = None,
-        fecha_desde: Optional[date] = None,
-        fecha_hasta: Optional[date] = None
-    ) -> int:
-        """Contar libros que coinciden con los filtros"""
-        query = db.query(LibroModel)
-        
-        if solo_activos:
-            query = query.filter(LibroModel.active == True)
-        
-        if nombre:
-            query = query.filter(LibroModel.nombre.ilike(f"%{nombre}%"))
-        
-        if fecha_desde:
-            query = query.filter(LibroModel.fecha_inicio >= fecha_desde)
-        
-        if fecha_hasta:
-            query = query.filter(LibroModel.fecha_fin <= fecha_hasta)
-        
-        return query.count()
+        nombre: Optional[str] = None
+    ) -> tuple[List[Libro], int]:
+        """Listar libros con paginación y filtros opcionales"""
+        try:
+            query = db.query(LibroModel)
+            
+            # Filtro por nombre si se proporciona
+            if nombre:
+                query = query.filter(LibroModel.nombre.ilike(f"%{nombre}%"))
+            
+            # Obtener el total
+            total = query.count()
+            
+            # Aplicar paginación y orden
+            libros_db = query.order_by(LibroModel.fecha_inicio.desc())\
+                             .offset(skip)\
+                             .limit(limit)\
+                             .all()
+            
+            # Convertir a entidades
+            libros = []
+            for libro_db in libros_db:
+                libros.append(Libro(
+                    id_libro=libro_db.id_libro,
+                    nombre=libro_db.nombre,
+                    fecha_inicio=libro_db.fecha_inicio,
+                    fecha_fin=libro_db.fecha_fin,
+                    observaciones=libro_db.observaciones
+                ))
+            
+            return libros, total
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Error al listar libros: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno del servidor"
+            )
 
     @staticmethod
     def update(db: Session, libro_id: int, dto: LibroUpdateDTO) -> Libro:
@@ -119,8 +134,7 @@ class LibroService:
         try:
             # Buscar el libro
             db_libro = db.query(LibroModel).filter(
-                LibroModel.id_libro == libro_id,
-                LibroModel.active == True
+                LibroModel.id_libro == libro_id
             ).first()
             
             if not db_libro:
@@ -130,30 +144,41 @@ class LibroService:
                 )
             
             # Actualizar solo los campos proporcionados
-            update_data = dto.dict(exclude_unset=True, exclude_none=True)
-            for field, value in update_data.items():
-                setattr(db_libro, field, value)
+            if dto.nombre is not None:
+                db_libro.nombre = dto.nombre
+            if dto.fecha_inicio is not None:
+                db_libro.fecha_inicio = dto.fecha_inicio
+            if dto.fecha_fin is not None:
+                db_libro.fecha_fin = dto.fecha_fin
+            if dto.observaciones is not None:
+                db_libro.observaciones = dto.observaciones
             
             # Guardar cambios
             db.commit()
             db.refresh(db_libro)
             
-            return Libro.from_orm(db_libro)
+            return Libro(
+                id_libro=db_libro.id_libro,
+                nombre=db_libro.nombre,
+                fecha_inicio=db_libro.fecha_inicio,
+                fecha_fin=db_libro.fecha_fin,
+                observaciones=db_libro.observaciones
+            )
             
         except SQLAlchemyError as e:
             db.rollback()
+            logger.error(f"Error al actualizar libro: {e}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Error al actualizar libro: {str(e)}"
             )
 
     @staticmethod
-    def soft_delete(db: Session, libro_id: int) -> bool:
-        """Desactivar un libro (soft delete)"""
+    def delete(db: Session, libro_id: int) -> bool:
+        """Eliminar un libro"""
         try:
             db_libro = db.query(LibroModel).filter(
-                LibroModel.id_libro == libro_id,
-                LibroModel.active == True
+                LibroModel.id_libro == libro_id
             ).first()
             
             if not db_libro:
@@ -162,17 +187,18 @@ class LibroService:
                     detail=f"Libro con ID {libro_id} no encontrado"
                 )
             
-            # Marcar como inactivo
-            db_libro.active = False
+            # Eliminar registro
+            db.delete(db_libro)
             db.commit()
             
             return True
             
         except SQLAlchemyError as e:
             db.rollback()
+            logger.error(f"Error al eliminar libro: {e}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Error al desactivar libro: {str(e)}"
+                detail=f"Error al eliminar libro: {str(e)}"
             )
 
     @staticmethod
@@ -180,33 +206,31 @@ class LibroService:
         db: Session,
         nombre: str,
         skip: int = 0,
-        limit: int = 20,
-        solo_activos: bool = True
+        limit: int = 20
     ) -> List[Libro]:
         """Búsqueda específica por nombre del libro"""
-        return LibroService.list(
+        libros, _ = LibroService.list(
             db=db,
             skip=skip,
             limit=limit,
-            solo_activos=solo_activos,
             nombre=nombre
         )
+        return libros
 
     @staticmethod
-    def list_by_date_range(
-        db: Session,
-        fecha_desde: Optional[date] = None,
-        fecha_hasta: Optional[date] = None,
-        skip: int = 0,
-        limit: int = 20,
-        solo_activos: bool = True
-    ) -> List[Libro]:
-        """Listar libros por rango de fechas"""
-        return LibroService.list(
-            db=db,
-            skip=skip,
-            limit=limit,
-            solo_activos=solo_activos,
-            fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta
-        )
+    def count(db: Session, nombre: Optional[str] = None) -> int:
+        """Contar libros que coinciden con los filtros"""
+        try:
+            query = db.query(LibroModel)
+            
+            if nombre:
+                query = query.filter(LibroModel.nombre.ilike(f"%{nombre}%"))
+            
+            return query.count()
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Error al contar libros: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno del servidor"
+            )

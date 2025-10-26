@@ -18,15 +18,17 @@ class LibroModel(Base):
     __tablename__ = "libros"
     
     id_libro = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nombre = Column(String(200), nullable=False)  # Aumenté el límite
+    nombre = Column(String(50), nullable=False)
     fecha_inicio = Column(Date, nullable=False)
     fecha_fin = Column(Date, nullable=False)
     observaciones = Column(Text, nullable=True)
+
+class TipoSacramentoModel(Base):
+    __tablename__ = "tipos_sacramentos"
     
-    # Campos adicionales para control
-    active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    id_tipo = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    nombre = Column(String(50), nullable=False, unique=True)
+    descripcion = Column(Text, nullable=True)
 
 # Exportar los modelos para facilitar las importaciones
-__all__ = ["PersonaModel", "LibroModel"]
+__all__ = ["PersonaModel", "LibroModel", "TipoSacramentoModel"]

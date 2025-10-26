@@ -14,10 +14,11 @@ import os
 # Importar routers
 from app.controllers.persona_controller import router as persona_router
 from app.controllers.libro_controller import router as libro_router
+from app.controllers.tipo_sacramento_controller import router as tipo_sacramento_router
 
 # Importar configuración de base de datos y modelos
 from app.database import engine, Base
-from app.models import PersonaModel, LibroModel
+from app.models import PersonaModel, LibroModel, TipoSacramentoModel
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -83,6 +84,7 @@ async def health_check():
 # Incluir routers
 app.include_router(persona_router, prefix="/api/v1")
 app.include_router(libro_router, prefix="/api/v1")
+app.include_router(tipo_sacramento_router, prefix="/api/v1")
 
 # Manejador de errores global
 @app.exception_handler(Exception)

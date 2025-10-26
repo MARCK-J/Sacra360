@@ -38,7 +38,7 @@ def get_libro(
     db: Session = Depends(get_db)
 ):
     """Obtener un libro específico por su ID"""
-    libro = LibroService.get(db, libro_id)
+    libro = LibroService.get_by_id(db, libro_id)
     return LibroResponseDTO.model_validate(libro)
 
 @router.get("/", 
@@ -48,46 +48,45 @@ def get_libro(
 def list_libros(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(20, ge=1, le=100, description="Número máximo de registros a retornar"),
-    solo_activos: bool = Query(True, description="Solo mostrar libros activos"),
     nombre: Optional[str] = Query(None, description="Filtrar por nombre (búsqueda parcial)"),
-    fecha_desde: Optional[date] = Query(None, description="Filtrar por fecha de inicio desde"),
-    fecha_hasta: Optional[date] = Query(None, description="Filtrar por fecha de fin hasta"),
     db: Session = Depends(get_db)
 ):
     """
     Listar libros con filtros opcionales.
     
-    Soporta paginación y múltiples filtros de búsqueda por nombre y rango de fechas.
+    Soporta paginación y filtro de búsqueda por nombre.
     """
-    libros = LibroService.list(
+    libros, total = LibroService.list(
         db=db,
         skip=skip,
         limit=limit,
-        solo_activos=solo_activos,
-        nombre=nombre,
-        fecha_desde=fecha_desde,
-        fecha_hasta=fecha_hasta
+        nombre=nombre
     )
-    return [LibroResponseDTO.model_validate(l) for l in libros]
+    
+    response_data = []
+    for libro in libros:
+        response_data.append(LibroResponseDTO(
+            id_libro=libro.id_libro,
+            nombre=libro.nombre,
+            fecha_inicio=libro.fecha_inicio,
+            fecha_fin=libro.fecha_fin,
+            observaciones=libro.observaciones
+        ))
+    
+    return response_data
 
 @router.get("/count/total",
             response_model=dict,
             summary="Contar libros",
             description="Cuenta el total de libros que coinciden con los filtros")
 def count_libros(
-    solo_activos: bool = Query(True, description="Solo contar libros activos"),
     nombre: Optional[str] = Query(None, description="Filtrar por nombre"),
-    fecha_desde: Optional[date] = Query(None, description="Filtrar por fecha de inicio desde"),
-    fecha_hasta: Optional[date] = Query(None, description="Filtrar por fecha de fin hasta"),
     db: Session = Depends(get_db)
 ):
     """Contar libros que coinciden con los filtros especificados"""
     total = LibroService.count(
         db=db,
-        solo_activos=solo_activos,
-        nombre=nombre,
-        fecha_desde=fecha_desde,
-        fecha_hasta=fecha_hasta
+        nombre=nombre
     )
     return {"total": total}
 
@@ -110,18 +109,18 @@ def update_libro(
 
 @router.delete("/{libro_id}",
                status_code=status.HTTP_204_NO_CONTENT,
-               summary="Desactivar libro",
-               description="Desactiva un libro (soft delete)")
+               summary="Eliminar libro",
+               description="Elimina un libro de forma permanente")
 def delete_libro(
     libro_id: int,
     db: Session = Depends(get_db)
 ):
     """
-    Desactivar un libro (soft delete).
+    Eliminar un libro de forma permanente.
     
-    El libro no se elimina físicamente, solo se marca como inactivo.
+    El libro se elimina físicamente de la base de datos.
     """
-    LibroService.soft_delete(db, libro_id)
+    LibroService.delete(db, libro_id)
     return
 
 @router.get("/search/by-name",
