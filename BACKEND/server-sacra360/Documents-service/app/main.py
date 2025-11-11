@@ -36,8 +36,8 @@ app.add_middleware(
 # Security
 security = HTTPBearer()
 
-# Importar routers (se crearán posteriormente)
-# from .routers import documents_router, sacraments_router
+# Importar routers (se implementan a continuación)
+from .routers import sacraments_router, parishes_router, stats_router
 
 @app.get("/")
 async def root():
@@ -59,9 +59,12 @@ async def health_check():
         "timestamp": "2024-01-01T00:00:00Z"
     }
 
-# Incluir routers cuando se implementen
+# Incluir routers
+# Documents router puede añadirse aquí si se desarrolla posteriormente
 # app.include_router(documents_router.router, prefix="/api/v1/documents", tags=["Documents"])
-# app.include_router(sacraments_router.router, prefix="/api/v1/sacraments", tags=["Sacraments"])
+app.include_router(sacraments_router.router, prefix="/api/v1", tags=["Sacraments"])
+app.include_router(parishes_router.router, prefix="/api/v1", tags=["Parishes"])
+app.include_router(stats_router.router, prefix="/api/v1", tags=["Stats"])
 
 if __name__ == "__main__":
     uvicorn.run(

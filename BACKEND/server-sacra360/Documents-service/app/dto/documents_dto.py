@@ -284,6 +284,24 @@ class DocumentStatsDTO(BaseModel):
     last_updated: datetime
 
 
+# DTOs para Parroquias
+class ParishCreateDTO(BaseModel):
+    """DTO para crear una parroquia"""
+    name: str = Field(..., min_length=1, max_length=200)
+    address: str = Field(..., max_length=500)
+    priest_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+
+class ParishDTO(ParishCreateDTO):
+    """DTO de respuesta para parroquia"""
+    id: str
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
 # DTOs para respuestas de API
 class DocumentResponseDTO(BaseModel):
     """DTO para respuesta de documento"""
