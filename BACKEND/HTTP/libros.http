@@ -1,0 +1,323 @@
+### ===================================
+### DOCUMENTOS SERVICE - LIBROS API
+### Puerto: 8002
+### ===================================
+
+@baseUrl = http://localhost:8002/api/v1
+
+### -----------------------------------
+### 1. HEALTH CHECK
+### -----------------------------------
+GET {{baseUrl}}/../../health
+Content-Type: application/json
+
+### -----------------------------------
+### 2. INFO DEL SERVICIO
+### -----------------------------------
+GET http://localhost:8002/
+Content-Type: application/json
+
+### -----------------------------------
+### 3. CREAR LIBRO
+### -----------------------------------
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Bautismos 2020-2025",
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2025-12-31",
+  "observaciones": "Libro principal para registros de bautismos"
+}
+
+### -----------------------------------
+### 4. CREAR LIBRO SIN OBSERVACIONES
+### -----------------------------------
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Matrimonios 2022-2027",
+  "fecha_inicio": "2022-01-01",
+  "fecha_fin": "2027-12-31"
+}
+
+### -----------------------------------
+### 5. CREAR LIBRO CON FECHAS INVÁLIDAS (fecha_fin antes que fecha_inicio)
+### -----------------------------------
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro con fechas incorrectas",
+  "fecha_inicio": "2025-01-01",
+  "fecha_fin": "2020-01-01",
+  "observaciones": "Este debe fallar por fechas incorrectas"
+}
+
+### -----------------------------------
+### 6. CREAR LIBRO CON NOMBRE MUY LARGO (debe fallar)
+### -----------------------------------
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Este es un nombre de libro extremadamente largo que supera los doscientos caracteres permitidos en el campo nombre y por tanto debe generar un error de validación al intentar crear el registro en la base de datos porque excede la longitud máxima permitida para este campo específico",
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2025-12-31"
+}
+
+### -----------------------------------
+### 7. OBTENER LIBRO POR ID
+### -----------------------------------
+GET {{baseUrl}}/libros/1
+Content-Type: application/json
+
+### -----------------------------------
+### 8. OBTENER LIBRO INEXISTENTE
+### -----------------------------------
+GET {{baseUrl}}/libros/999
+Content-Type: application/json
+
+### -----------------------------------
+### 9. LISTAR TODOS LOS LIBROS (primera página)
+### -----------------------------------
+GET {{baseUrl}}/libros/
+Content-Type: application/json
+
+### -----------------------------------
+### 10. LISTAR LIBROS CON PAGINACIÓN
+### -----------------------------------
+GET {{baseUrl}}/libros/?skip=0&limit=5
+Content-Type: application/json
+
+### -----------------------------------
+### 11. LISTAR LIBROS INCLUYENDO INACTIVOS
+### -----------------------------------
+GET {{baseUrl}}/libros/?solo_activos=false
+Content-Type: application/json
+
+### -----------------------------------
+### 12. FILTRAR POR NOMBRE
+### -----------------------------------
+GET {{baseUrl}}/libros/?nombre=Bautismos
+Content-Type: application/json
+
+### -----------------------------------
+### 13. FILTRAR POR FECHA DE INICIO
+### -----------------------------------
+GET {{baseUrl}}/libros/?fecha_desde=2020-01-01
+Content-Type: application/json
+
+### -----------------------------------
+### 14. FILTRAR POR FECHA DE FIN
+### -----------------------------------
+GET {{baseUrl}}/libros/?fecha_hasta=2025-12-31
+Content-Type: application/json
+
+### -----------------------------------
+### 15. FILTRAR POR RANGO DE FECHAS
+### -----------------------------------
+GET {{baseUrl}}/libros/?fecha_desde=2020-01-01&fecha_hasta=2025-12-31
+Content-Type: application/json
+
+### -----------------------------------
+### 16. FILTROS COMBINADOS
+### -----------------------------------
+GET {{baseUrl}}/libros/?nombre=Libro&fecha_desde=2020-01-01&limit=10
+Content-Type: application/json
+
+### -----------------------------------
+### 17. CONTAR LIBROS TOTAL
+### -----------------------------------
+GET {{baseUrl}}/libros/count/total
+Content-Type: application/json
+
+### -----------------------------------
+### 18. CONTAR LIBROS CON FILTROS
+### -----------------------------------
+GET {{baseUrl}}/libros/count/total?nombre=Bautismos&solo_activos=true
+Content-Type: application/json
+
+### -----------------------------------
+### 19. BUSCAR POR NOMBRE ESPECÍFICO
+### -----------------------------------
+GET {{baseUrl}}/libros/search/by-name?nombre=Bautismos
+Content-Type: application/json
+
+### -----------------------------------
+### 20. BUSCAR POR NOMBRE CON PAGINACIÓN
+### -----------------------------------
+GET {{baseUrl}}/libros/search/by-name?nombre=Libro&skip=0&limit=5
+Content-Type: application/json
+
+### -----------------------------------
+### 21. FILTRAR POR RANGO DE FECHAS ESPECÍFICO
+### -----------------------------------
+GET {{baseUrl}}/libros/filter/date-range?fecha_desde=2020-01-01&fecha_hasta=2025-12-31
+Content-Type: application/json
+
+### -----------------------------------
+### 22. FILTRAR SOLO POR FECHA DESDE
+### -----------------------------------
+GET {{baseUrl}}/libros/filter/date-range?fecha_desde=2022-01-01
+Content-Type: application/json
+
+### -----------------------------------
+### 23. FILTRAR SOLO POR FECHA HASTA
+### -----------------------------------
+GET {{baseUrl}}/libros/filter/date-range?fecha_hasta=2024-12-31
+Content-Type: application/json
+
+### -----------------------------------
+### 24. ACTUALIZAR LIBRO COMPLETO
+### -----------------------------------
+PUT {{baseUrl}}/libros/1
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Bautismos Actualizado 2020-2025",
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2025-12-31",
+  "observaciones": "Libro principal actualizado con nuevas observaciones"
+}
+
+### -----------------------------------
+### 25. ACTUALIZAR LIBRO PARCIAL
+### -----------------------------------
+PUT {{baseUrl}}/libros/1
+Content-Type: application/json
+
+{
+  "observaciones": "Observaciones actualizadas parcialmente"
+}
+
+### -----------------------------------
+### 26. ACTUALIZAR SOLO FECHAS
+### -----------------------------------
+PUT {{baseUrl}}/libros/1
+Content-Type: application/json
+
+{
+  "fecha_inicio": "2020-06-01",
+  "fecha_fin": "2026-05-31"
+}
+
+### -----------------------------------
+### 27. ACTUALIZAR LIBRO INEXISTENTE
+### -----------------------------------
+PUT {{baseUrl}}/libros/999
+Content-Type: application/json
+
+{
+  "nombre": "Libro que no existe"
+}
+
+### -----------------------------------
+### 28. DESACTIVAR LIBRO (SOFT DELETE)
+### -----------------------------------
+DELETE {{baseUrl}}/libros/1
+Content-Type: application/json
+
+### -----------------------------------
+### 29. INTENTAR DESACTIVAR LIBRO INEXISTENTE
+### -----------------------------------
+DELETE {{baseUrl}}/libros/999
+Content-Type: application/json
+
+### -----------------------------------
+### 30. VERIFICAR LIBRO DESACTIVADO
+### -----------------------------------
+GET {{baseUrl}}/libros/1
+Content-Type: application/json
+
+### -----------------------------------
+### 31. LISTAR INCLUYENDO DESACTIVADOS
+### -----------------------------------
+GET {{baseUrl}}/libros/?solo_activos=false
+Content-Type: application/json
+
+### -----------------------------------
+### CASOS EXTREMOS Y VALIDACIONES
+### -----------------------------------
+
+### 32. CREAR LIBRO CON CAMPOS REQUERIDOS FALTANTES (debe fallar)
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2025-12-31"
+}
+
+### -----------------------------------
+### 33. CREAR LIBRO CON FECHA EN FORMATO INCORRECTO (debe fallar)
+### -----------------------------------
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro con fecha incorrecta",
+  "fecha_inicio": "01/01/2020",
+  "fecha_fin": "2025-12-31"
+}
+
+### -----------------------------------
+### 34. CREAR LIBRO CON OBSERVACIONES MUY LARGAS (debe fallar)
+### -----------------------------------
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro con observaciones largas",
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2025-12-31",
+  "observaciones": "Esta es una observación extremadamente larga que supera los quinientos caracteres permitidos en el campo observaciones y por tanto debe generar un error de validación al intentar crear el registro en la base de datos porque excede la longitud máxima permitida para este campo específico del modelo de libro sacramental que hemos definido en nuestra aplicación web para la gestión de documentos del arzobispado y sus diferentes parroquias distribuidas en toda la región metropolitana del país donde se encuentra ubicada la sede principal de la institución religiosa católica"
+}
+
+### -----------------------------------
+### 35. ACTUALIZAR CON FECHAS INVÁLIDAS (debe fallar)
+### -----------------------------------
+PUT {{baseUrl}}/libros/2
+Content-Type: application/json
+
+{
+  "fecha_inicio": "2025-01-01",
+  "fecha_fin": "2020-01-01"
+}
+
+### -----------------------------------
+### 36. CREAR VARIOS LIBROS PARA TESTING
+### -----------------------------------
+
+### Libro de Confirmaciones
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Confirmaciones 2021-2026",
+  "fecha_inicio": "2021-01-01",
+  "fecha_fin": "2026-12-31",
+  "observaciones": "Registro de confirmaciones parroquiales"
+}
+
+### Libro de Defunciones
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Defunciones 2020-2030",
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2030-12-31",
+  "observaciones": "Registro de defunciones y actas de defunción"
+}
+
+### Libro de Primeras Comuniones
+POST {{baseUrl}}/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Primeras Comuniones 2022-2027",
+  "fecha_inicio": "2022-01-01",
+  "fecha_fin": "2027-12-31"
+}

@@ -1,0 +1,224 @@
+### ===================================
+### DOCUMENTOS SERVICE - TESTING COMPLETO
+### Puerto: 8002
+### ===================================
+
+@baseUrl = http://localhost:8002
+
+### -----------------------------------
+### VERIFICACIONES INICIALES
+### -----------------------------------
+
+### 1. Health Check del Servicio
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### 2. Información del Servicio
+GET {{baseUrl}}/
+Content-Type: application/json
+
+### 3. Documentación Swagger (abrir en navegador)
+# GET {{baseUrl}}/docs
+
+### -----------------------------------
+### FLUJO COMPLETO DE TESTING
+### -----------------------------------
+
+### 4. Crear primera persona
+POST {{baseUrl}}/api/v1/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Juan Carlos",
+  "apellidos": "García López",
+  "fecha_nacimiento": "1990-05-15",
+  "lugar_nacimiento": "Ciudad de México",
+  "estado_civil": "soltero",
+  "ocupacion": "Ingeniero"
+}
+
+### 5. Crear segundo persona
+POST {{baseUrl}}/api/v1/personas/
+Content-Type: application/json
+
+{
+  "nombres": "María Elena",
+  "apellidos": "Rodríguez Martínez",
+  "fecha_nacimiento": "1985-08-22",
+  "estado_civil": "casado"
+}
+
+### 6. Crear primer libro
+POST {{baseUrl}}/api/v1/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Bautismos 2020-2025",
+  "fecha_inicio": "2020-01-01",
+  "fecha_fin": "2025-12-31",
+  "observaciones": "Libro principal para registros de bautismos"
+}
+
+### 7. Crear segundo libro
+POST {{baseUrl}}/api/v1/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro de Matrimonios 2022-2027",
+  "fecha_inicio": "2022-01-01",
+  "fecha_fin": "2027-12-31"
+}
+
+### 8. Listar todas las personas
+GET {{baseUrl}}/api/v1/personas/
+Content-Type: application/json
+
+### 9. Listar todos los libros
+GET {{baseUrl}}/api/v1/libros/
+Content-Type: application/json
+
+### 10. Contar personas
+GET {{baseUrl}}/api/v1/personas/count/total
+Content-Type: application/json
+
+### 11. Contar libros
+GET {{baseUrl}}/api/v1/libros/count/total
+Content-Type: application/json
+
+### 12. Obtener persona por ID
+GET {{baseUrl}}/api/v1/personas/1
+Content-Type: application/json
+
+### 13. Obtener libro por ID
+GET {{baseUrl}}/api/v1/libros/1
+Content-Type: application/json
+
+### 14. Buscar personas por nombre
+GET {{baseUrl}}/api/v1/personas/search/by-name?nombres=Juan
+Content-Type: application/json
+
+### 15. Buscar libros por nombre
+GET {{baseUrl}}/api/v1/libros/search/by-name?nombre=Bautismos
+Content-Type: application/json
+
+### 16. Actualizar persona
+PUT {{baseUrl}}/api/v1/personas/1
+Content-Type: application/json
+
+{
+  "estado_civil": "casado",
+  "ocupacion": "Ingeniero Senior"
+}
+
+### 17. Actualizar libro
+PUT {{baseUrl}}/api/v1/libros/1
+Content-Type: application/json
+
+{
+  "observaciones": "Libro principal actualizado con nuevas observaciones"
+}
+
+### 18. Filtrar personas por estado civil
+GET {{baseUrl}}/api/v1/personas/filter/estado-civil/casado
+Content-Type: application/json
+
+### 19. Filtrar libros por rango de fechas
+GET {{baseUrl}}/api/v1/libros/filter/date-range?fecha_desde=2020-01-01&fecha_hasta=2025-12-31
+Content-Type: application/json
+
+### -----------------------------------
+### TESTING DE ERRORES Y VALIDACIONES
+### -----------------------------------
+
+### 20. Error: Persona con nombres inválidos
+POST {{baseUrl}}/api/v1/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Juan123",
+  "apellidos": "García",
+  "fecha_nacimiento": "1990-01-01",
+  "estado_civil": "soltero"
+}
+
+### 21. Error: Libro con fechas incorrectas
+POST {{baseUrl}}/api/v1/libros/
+Content-Type: application/json
+
+{
+  "nombre": "Libro con fechas incorrectas",
+  "fecha_inicio": "2025-01-01",
+  "fecha_fin": "2020-01-01"
+}
+
+### 22. Error: Obtener persona inexistente
+GET {{baseUrl}}/api/v1/personas/999
+Content-Type: application/json
+
+### 23. Error: Obtener libro inexistente
+GET {{baseUrl}}/api/v1/libros/999
+Content-Type: application/json
+
+### -----------------------------------
+### TESTING DE SOFT DELETE
+### -----------------------------------
+
+### 24. Desactivar persona
+DELETE {{baseUrl}}/api/v1/personas/2
+Content-Type: application/json
+
+### 25. Verificar persona desactivada (debe dar error 404)
+GET {{baseUrl}}/api/v1/personas/2
+Content-Type: application/json
+
+### 26. Listar incluyendo personas inactivas
+GET {{baseUrl}}/api/v1/personas/?solo_activos=false
+Content-Type: application/json
+
+### 27. Desactivar libro
+DELETE {{baseUrl}}/api/v1/libros/2
+Content-Type: application/json
+
+### 28. Verificar libro desactivado (debe dar error 404)
+GET {{baseUrl}}/api/v1/libros/2
+Content-Type: application/json
+
+### 29. Listar incluyendo libros inactivos
+GET {{baseUrl}}/api/v1/libros/?solo_activos=false
+Content-Type: application/json
+
+### -----------------------------------
+### TESTING DE PAGINACIÓN Y FILTROS
+### -----------------------------------
+
+### 30. Paginación personas
+GET {{baseUrl}}/api/v1/personas/?skip=0&limit=1
+Content-Type: application/json
+
+### 31. Filtros combinados personas
+GET {{baseUrl}}/api/v1/personas/?nombres=Juan&estado_civil=casado
+Content-Type: application/json
+
+### 32. Paginación libros
+GET {{baseUrl}}/api/v1/libros/?skip=0&limit=1
+Content-Type: application/json
+
+### 33. Filtros combinados libros
+GET {{baseUrl}}/api/v1/libros/?nombre=Libro&fecha_desde=2020-01-01
+Content-Type: application/json
+
+### -----------------------------------
+### TESTING FINAL
+### -----------------------------------
+
+### 34. Verificación final - Health Check
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### 35. Verificación final - Conteo total
+GET {{baseUrl}}/api/v1/personas/count/total
+Content-Type: application/json
+
+### 36. Verificación final - Conteo total libros
+GET {{baseUrl}}/api/v1/libros/count/total
+Content-Type: application/json
