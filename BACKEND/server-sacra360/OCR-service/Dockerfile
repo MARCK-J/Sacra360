@@ -35,9 +35,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código de la aplicación
 COPY . .
 
-# Crear directorio para uploads temporales
-RUN mkdir -p /app/uploads
-
 # Exponer puerto
 EXPOSE 8003
 

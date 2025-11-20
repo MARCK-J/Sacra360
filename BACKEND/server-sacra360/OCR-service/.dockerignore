@@ -1,52 +1,40 @@
-# Archivos y directorios a ignorar en Docker
+# Archivos y directorios a ignorar por Docker
+
+# Archivos de Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git
-.mypy_cache
-.pytest_cache
-.hypothesis
+*.so
+.pytest_cache/
 
-# IDEs
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Temporal files
-*.tmp
-*.temp
-
-# Environment variables
+# Archivos de entorno
 .env
 .env.local
-.env.production
+.env.*.local
 
-# Uploads de prueba
-uploads/*.jpg
-uploads/*.png
-uploads/*.pdf
-
-# Logs
+# Archivos de logs
 *.log
-logs/
+
+# Archivos temporales
+.tmp/
+temp/
+
+# Documentación de desarrollo
+*.md
+!README.md
+
+# Archivos git
+.git/
+.gitignore
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

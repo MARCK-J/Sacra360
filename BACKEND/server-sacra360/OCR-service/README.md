@@ -1,240 +1,155 @@
 # OCR Service - Sacra360
 
-Microservicio especializado en reconocimiento óptico de caracteres (OCR) para documentos sacramentales.
+Microservicio de OCR para procesamiento de documentos sacramentales con integración a MinIO.
 
-## 🎯 Descripción
+## 🚀 **Características**
 
-Este microservicio procesa imágenes de registros sacramentales (confirmaciones, bautizos, matrimonios) y extrae información estructurada usando algoritmos OCR optimizados. Integra el algoritmo desarrollado anteriormente en Google Colab con las capas de microservicio.
+- **Procesamiento OCR**: Extracción de texto de imágenes y PDFs
+- **Integración MinIO**: Almacenamiento automático de archivos
+- **Base de Datos**: PostgreSQL para persistencia
+- **API REST**: FastAPI con documentación automática
+- **Docker**: Despliegue containerizado completo
 
-## ✨ Características Principales
+## 📋 **Requisitos**
 
-- **OCR Optimizado**: Algoritmo específico para registros sacramentales en formato tabular
-- **Múltiples Formatos**: Soporte para JPG, PNG y PDF
-- **Extracción Estructurada**: Identifica campos específicos (nombres, fechas, lugares)
-- **Alta Precisión**: Correcciones post-OCR basadas en patrones observados
-- **Almacenamiento BD**: Guarda resultados en PostgreSQL
-- **API REST**: Endpoints FastAPI para integración completa
+- Docker y Docker Compose
+- 4GB RAM mínimo
+- Puertos 8003, 5432, 9000, 9001 disponibles
 
-## 🏗️ Arquitectura
+## ⚡ **Inicio Rápido**
 
-```
-OCR-service/
-├── app/
-│   ├── main.py                 # FastAPI app principal
-│   ├── controllers/
-│   │   └── ocr_controller.py   # Endpoints REST
-│   ├── services/
-│   │   ├── ocr_service.py      # Lógica OCR principal
-│   │   └── database_service.py # Operaciones BD
-│   ├── dto/
-│   │   └── ocr_dto.py         # DTOs Pydantic
-│   ├── entities/
-│   │   └── ocr_entity.py      # Modelos SQLAlchemy
-│   ├── routers/
-│   │   └── ocr_router.py      # Configuración routing
-│   └── utils/
-│       └── config.py          # Configuración
-├── requirements.txt
-├── run_service.py            # Script ejecución
-└── test_service.py          # Tests básicos
-```
-
-## 📋 Requisitos Previos
-
-### Sistema
 ```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install tesseract-ocr tesseract-ocr-spa
-
-# Windows (con Chocolatey)
-choco install tesseract
-
-# macOS (con Homebrew)  
-brew install tesseract
-```
-
-### Python
-```bash
-# Instalar dependencias
-pip install -r requirements.txt
-```
-
-### Base de Datos
-- PostgreSQL con tablas: `documento_digitalizado`, `ocr_resultado`
-
-## 🚀 Ejecutar el Servicio
-
-### Método 1: Script directo
-```bash
+# Clonar y navegar
 cd OCR-service
-python run_service.py
+
+# Levantar servicios
+docker-compose up -d
+
+# Verificar servicios
+docker-compose ps
 ```
 
-### Método 2: Uvicorn directo
+## 🔗 **Endpoints**
+
+- **API OCR**: http://localhost:8003
+- **Documentación**: http://localhost:8003/docs
+- **MinIO Console**: http://localhost:9001 (admin/password123)
+- **PostgreSQL**: localhost:5432
+
+## 📡 **API Principal**
+
+### Procesar Documento
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
-```
-
-### Método 3: Docker (futuro)
-```bash
-docker-compose up ocr-service
-```
-
-## 🔗 Endpoints Principales
-
-### Procesar Imagen OCR
-```http
 POST /api/v1/ocr/procesar
 Content-Type: multipart/form-data
 
-archivo: [imagen.jpg]
-libros_id: 1
-tipo_sacramento: 2
-guardar_en_bd: true
-```
-
-### Obtener Resultados
-```http
-GET /api/v1/ocr/documento/{documento_id}
+{
+  "archivo": [archivo imagen/PDF],
+  "libros_id": 1,
+  "tipo_sacramento": 2,
+  "guardar_en_bd": true
+}
 ```
 
 ### Health Check
-```http
-GET /api/v1/health
-```
-
-## 📊 Ejemplo de Uso
-
-```python
-import requests
-
-# Procesar imagen
-with open('registro_confirmacion.jpg', 'rb') as f:
-    response = requests.post(
-        'http://localhost:8003/api/v1/ocr/procesar',
-        files={'archivo': f},
-        data={
-            'libros_id': 1,
-            'tipo_sacramento': 2,
-            'guardar_en_bd': True
-        }
-    )
-
-resultado = response.json()
-print(f"Tuplas extraídas: {resultado['total_tuplas']}")
-print(f"Calidad general: {resultado['calidad_general']:.2f}")
-```
-
-## 🧪 Testing
-
 ```bash
-# Test básico del servicio
-python test_service.py
-
-# Verificar health
-curl http://localhost:8003/api/v1/health
-
-# Ver documentación
-# Abrir: http://localhost:8003/docs
+GET /api/v1/ocr/health
 ```
 
-## ⚙️ Configuración
+## 🏗️ **Arquitectura**
 
-### Variables de Entorno
-```bash
+```
+OCR-Service/
+├── app/
+│   ├── main.py              # FastAPI app
+│   ├── controllers/         # Endpoints REST
+│   ├── services/           # Lógica de negocio
+│   │   ├── ocr_service.py  # Procesamiento OCR
+│   │   ├── minio_service.py # Gestión de archivos
+│   │   └── database_service.py # Base de datos
+│   ├── dto/                # Modelos de datos
+│   ├── entities/           # Entidades de BD
+│   └── utils/              # Utilidades
+├── docker-compose.yml      # Orquestación
+├── Dockerfile             # Imagen OCR
+└── requirements.txt       # Dependencias Python
+```
+
+## 🛠️ **Configuración**
+
+### Variables de Entorno (docker-compose.yml)
+```yaml
 # Base de datos
-DATABASE_URL=postgresql://user:pass@localhost:5432/sacra360
+DATABASE_URL: postgresql://postgres:password@postgres:5432/sacra360
 
-# Tesseract
-TESSERACT_PATH=/usr/bin/tesseract  # Opcional
+# MinIO
+MINIO_ENDPOINT: minio:9000
+MINIO_ACCESS_KEY: admin
+MINIO_SECRET_KEY: password123
+MINIO_BUCKET: sacra360-documents
 
-# Servicio
-PORT=8003
-HOST=0.0.0.0
-LOG_LEVEL=info
+# OCR
+TESSERACT_PATH: /usr/bin/tesseract
+LOG_LEVEL: INFO
 ```
 
-### Configuración OCR
-- **Idioma**: Español (spa)
-- **Modelos**: Tesseract OEM 3
-- **PSM**: Adaptativo según tipo de celda
-- **Correcciones**: Post-procesamiento específico
+## 📊 **Monitoreo**
 
-## 🏗️ Integración Desarrollada
+```bash
+# Logs del servicio
+docker-compose logs -f ocr-service
 
-### Desde Google Colab Original
-- ✅ Algoritmo de detección de líneas
-- ✅ Segmentación de tuplas individuales  
-- ✅ Extracción por celdas
-- ✅ Correcciones post-OCR específicas
-- ✅ Métricas de calidad
+# Estado de contenedores
+docker-compose ps
 
-### A Microservicio
-- ✅ Arquitectura FastAPI
-- ✅ DTOs Pydantic
-- ✅ Persistencia PostgreSQL
-- ✅ Endpoints REST
-- ✅ Logging estructurado
-- ✅ Manejo de errores
-
-## 🔍 Algoritmo OCR
-
-### Pipeline de Procesamiento
-1. **Preprocesado**: Binarización adaptativa
-2. **Detección de Grid**: Líneas horizontales/verticales
-3. **Segmentación**: Identificación de tuplas válidas
-4. **Extracción**: OCR por celda individual
-5. **Corrección**: Post-procesamiento específico
-6. **Validación**: Métricas de calidad
-
-### Correcciones Específicas
-```python
-# Lugares comunes
-"SAN PEDRORO" → "SAN PEDRO"
-"NUESTRA SRA O" → "NUESTRA SEÑORA"
-
-# Nombres
-"JMOSELIN" → "JHOSELIN"  
-"MURANDA" → "MIRANDA"
-
-# Años
-"200" → "2004"
-"208" → "2008"
+# Recursos utilizados
+docker stats
 ```
 
-## 📈 Métricas de Calidad
+## 🔧 **Desarrollo**
 
-- **Calidad General**: % celdas con contenido válido
-- **Tuplas Alta Calidad**: Tuplas con >70% campos completos
-- **Tiempo Procesamiento**: Duración total del proceso
-- **Confianza por Campo**: Score individual OCR
+### Estructura del Servicio
+- **OCR Engine**: Tesseract con optimizaciones
+- **Procesamiento**: OpenCV para preprocesamiento
+- **Storage**: MinIO para archivos, PostgreSQL para metadata
+- **API**: FastAPI con validación automática
 
-## ⚠️ Consideraciones
+### Flujo de Procesamiento
+1. Recepción de archivo vía API
+2. Subida automática a MinIO
+3. Procesamiento OCR con Tesseract
+4. Extracción estructurada de datos
+5. Almacenamiento en PostgreSQL
+6. Respuesta con resultados y métricas
 
-### Limitaciones Actuales
-- Optimizado para registros de confirmación
-- Requiere imágenes de buena calidad
-- Asume estructura tabular específica
+## 🐳 **Docker**
 
-### Mejoras Futuras  
-- Soporte para más tipos de sacramento
-- Entrenamiento con modelos custom
-- Validación inteligente de campos
-- Interfaz web de corrección
+### Servicios
+- **ocr-service**: Aplicación FastAPI
+- **postgres**: Base de datos PostgreSQL 15
+- **minio**: Object storage con consola web
 
-## 🤝 Contribución
+### Volúmenes Persistentes
+- `postgres_data`: Datos de PostgreSQL
+- `minio_data`: Archivos de MinIO
 
-1. Fork del repositorio
-2. Crear branch para feature
-3. Implementar cambios
-4. Agregar tests
-5. Submit pull request
+### Red
+- `sacra360_network`: Red interna para comunicación
 
-## 📞 Soporte
+## 📈 **Rendimiento**
 
-Para problemas con el OCR Service:
-- Verificar logs en `/api/v1/health`
-- Revisar configuración Tesseract
-- Validar formato de imagen
-- Consultar documentación en `/docs`
+- **Tiempo típico**: 10-15 segundos por documento
+- **Formatos soportados**: JPG, PNG, PDF
+- **Resolución óptima**: 300-600 DPI
+- **Tamaño máximo**: 50MB por archivo
+
+## 🔐 **Seguridad**
+
+- Variables de entorno para credenciales
+- Red interna aislada
+- MinIO con autenticación
+- PostgreSQL con usuario dedicado
+
+## 📞 **Soporte**
+
+Para issues y desarrollo, ver documentación completa en `/docs` del proyecto principal.

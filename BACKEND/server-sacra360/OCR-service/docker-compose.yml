@@ -58,8 +58,6 @@ services:
     depends_on:
       - postgres
       - minio
-    volumes:
-      - ./uploads:/app/uploads  # Para archivos temporales
     networks:
       - sacra360_network
     restart: unless-stopped
