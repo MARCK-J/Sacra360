@@ -1,0 +1,73 @@
+# Docker Compose para OCR Service - Sacra360
+# Incluye OCR service + PostgreSQL para testing
+
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: sacra360_postgres
+    environment:
+      POSTGRES_DB: sacra360
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - sacra360_network
+
+  # Servicio Minio (Object Storage)
+  minio:
+    image: minio/minio:latest
+    container_name: sacra360_minio
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+      MINIO_DEFAULT_BUCKETS: sacra360-documents
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - sacra360_network
+    restart: unless-stopped
+
+  # Servicio OCR
+  ocr-service:
+    build: .
+    container_name: sacra360_ocr_service
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/sacra360
+      TESSERACT_PATH: /usr/bin/tesseract
+      SERVICE_PORT: 8003
+      LOG_LEVEL: INFO
+      # Variables de Minio
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password123
+      MINIO_BUCKET: sacra360-documents
+      MINIO_SECURE: "false"
+    depends_on:
+      - postgres
+      - minio
+    volumes:
+      - ./uploads:/app/uploads  # Para archivos temporales
+    networks:
+      - sacra360_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  sacra360_network:
+    driver: bridge

@@ -4,97 +4,124 @@ Microservicio especializado en reconocimiento óptico de caracteres (OCR)
 Puerto: 8003
 """
 
-from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
-from typing import Optional, List
 import logging
+from datetime import datetime
+
+# Importar configuración y routers
+from .utils.config import settings
+from .routers.ocr_router import api_router
 
 # Configuración de logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, settings.log_level),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Inicializar FastAPI
 app = FastAPI(
-    title="OCR Service - Sacra360",
-    description="Microservicio especializado en reconocimiento óptico de caracteres para documentos sacramentales",
-    version="1.0.0",
+    title=settings.service_name,
+    description="Microservicio especializado en reconocimiento óptico de caracteres para documentos sacramentales. "
+               "Procesa imágenes de registros de confirmación, bautizo y otros sacramentos, "
+               "extrayendo información estructurada con alta precisión.",
+    version=settings.service_version,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "OCR",
+            "description": "Endpoints para procesamiento de imágenes con OCR"
+        },
+        {
+            "name": "Health",
+            "description": "Endpoints de monitoreo y salud del servicio"
+        }
+    ]
 )
 
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios permitidos
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Security
-security = HTTPBearer()
-
-# Importar routers (se crearán posteriormente)
-# from .routers import ocr_router
+# Incluir routers
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
     """Endpoint raíz del servicio"""
     return {
-        "service": "OCR Service",
-        "version": "1.0.0",
+        "service": settings.service_name,
+        "version": settings.service_version,
         "status": "running",
-        "port": 8003,
-        "description": "Microservicio especializado en reconocimiento óptico de caracteres",
-        "capabilities": [
-            "text_extraction",
-            "image_preprocessing",
-            "document_analysis", 
-            "multiple_languages",
-            "batch_processing"
-        ]
-    }
-
-@app.get("/health")
-async def health_check():
-    """Health check del servicio"""
-    return {
-        "status": "healthy",
-        "service": "ocr-service",
-        "timestamp": "2024-01-01T00:00:00Z",
-        "dependencies": {
-            "tesseract": "available",
-            "opencv": "available",
-            "pillow": "available"
+        "port": settings.service_port,
+        "description": "Microservicio especializado en reconocimiento óptico de caracteres para documentos sacramentales",
+        "timestamp": datetime.utcnow(),
+        "docs_url": "/docs",
+        "health_check": "/api/v1/health",
+        "endpoints": {
+            "procesar_imagen": "/api/v1/ocr/procesar",
+            "obtener_documento": "/api/v1/ocr/documento/{documento_id}",
+            "validar_campo": "/api/v1/ocr/validar-campo/{ocr_id}",
+            "test": "/api/v1/ocr/test"
         }
     }
 
-@app.get("/capabilities")
-async def get_capabilities():
-    """Obtener capacidades del servicio OCR"""
+@app.get("/status")
+async def service_status():
+    """Status detallado del servicio"""
+    try:
+        return {
+            "service": settings.service_name,
+            "version": settings.service_version,
+            "status": "healthy",
+            "timestamp": datetime.utcnow(),
+            "config": {
+                "ocr_language": settings.ocr_language,
+                "max_file_size_mb": settings.max_file_size // (1024 * 1024),
+                "supported_file_types": settings.allowed_file_types
+            },
+            "capabilities": [
+                "OCR de registros de confirmación",
+                "Extracción de tuplas estructuradas", 
+                "Correcciones automáticas de errores comunes",
+                "Métricas de calidad automáticas",
+                "Almacenamiento en base de datos",
+                "Validación de campos extraídos"
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error en status check: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
+# Manejo de errores globales
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Manejo global de excepciones"""
+    logger.error(f"Error no manejado: {str(exc)}")
     return {
-        "supported_formats": ["pdf", "jpg", "jpeg", "png", "tiff", "bmp"],
-        "supported_languages": ["spa", "eng", "lat"],  # Español, Inglés, Latín
-        "max_file_size": "10MB",
-        "batch_limit": 50,
-        "preprocessing_options": [
-            "deskew",
-            "noise_removal", 
-            "contrast_enhancement",
-            "binarization"
-        ]
+        "error": "Error interno del servidor",
+        "detail": str(exc),
+        "timestamp": datetime.utcnow(),
+        "service": settings.service_name
     }
 
-# Incluir routers cuando se implementen
-# app.include_router(ocr_router.router, prefix="/api/v1/ocr", tags=["OCR"])
-
 if __name__ == "__main__":
+    logger.info(f"Iniciando {settings.service_name} v{settings.service_version}")
     uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8003,
+        "app.main:app",
+        host="0.0.0.0", 
+        port=settings.service_port,
         reload=True,
-        log_level="info"
+        log_level=settings.log_level.lower()
     )
