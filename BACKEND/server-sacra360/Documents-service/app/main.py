@@ -16,7 +16,7 @@ from app.controllers.persona_controller import router as persona_router
 from app.controllers.libro_controller import router as libro_router
 from app.controllers.tipo_sacramento_controller import router as tipo_sacramento_router
 from app.controllers.digitalizacion_controller import router as digitalizacion_router
-from app.controllers.validacion_controller_simple import router as validacion_router
+from app.controllers.validacion_controller import router as validacion_router
 
 # Importar configuración de base de datos y modelos
 from app.database import engine, Base

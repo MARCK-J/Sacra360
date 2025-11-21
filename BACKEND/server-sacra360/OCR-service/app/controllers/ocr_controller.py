@@ -344,12 +344,12 @@ async def procesar_documento_desde_bd(
                 detail=f"Error descargando archivo: {str(e)}"
             )
         
-        # Procesar OCR
-        resultado = ocr_service.procesar_imagen(
+        # Procesar OCR usando el método correcto para documentos existentes
+        resultado = ocr_service.procesar_imagen_interno(
             imagen_bytes=archivo_bytes,
+            documento_id=documento_id,
             libros_id=documento.libros_id,
             tipo_sacramento=documento.tipo_sacramento,
-            guardar_en_bd=True,
             db_service=db_service
         )
         

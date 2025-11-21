@@ -156,6 +156,61 @@ async def list_documents(
             detail=f"Error listando documentos: {str(e)}"
         )
 
+@router.get("/documentos-pendientes")
+async def get_documentos_pendientes(db: Session = Depends(get_db)):
+    """
+    Obtiene documentos con tuplas OCR pendientes de validación
+    """
+    try:
+        from sqlalchemy import text
+        
+        query = text("""
+            SELECT DISTINCT 
+                d.id_documento,
+                d.nombre_archivo,
+                d.libros_id,
+                d.tipo_sacramento,
+                d.imagen_url,
+                d.fecha_procesamiento,
+                COUNT(o.id_ocr) as total_tuplas,
+                SUM(CASE WHEN o.estado_validacion = 'pendiente' THEN 1 ELSE 0 END) as tuplas_pendientes,
+                SUM(CASE WHEN o.estado_validacion = 'validado' THEN 1 ELSE 0 END) as tuplas_validadas
+            FROM documento_digitalizado d
+            INNER JOIN ocr_resultado o ON d.id_documento = o.documento_id
+            WHERE o.estado_validacion = 'pendiente'
+            GROUP BY d.id_documento, d.nombre_archivo, d.libros_id, d.tipo_sacramento, 
+                     d.imagen_url, d.fecha_procesamiento
+            ORDER BY d.fecha_procesamiento DESC
+        """)
+        
+        result = db.execute(query)
+        documentos = []
+        
+        for row in result:
+            documentos.append({
+                "id": row[0],  # id en lugar de id_documento para el frontend
+                "id_documento": row[0],
+                "nombre_archivo": row[1] or f"Documento_{row[0]}",
+                "libro_id": row[2],
+                "tipo_sacramento": row[3],
+                "imagen_url": row[4],
+                "fecha_procesamiento": row[5].isoformat() if row[5] else None,
+                "fecha": row[5].strftime("%Y-%m-%d %H:%M") if row[5] else None,
+                "total_tuplas": row[6],
+                "tuplas_pendientes": row[7],
+                "tuplas_validadas": row[8],
+                "progreso": int((row[8] / row[6] * 100)) if row[6] > 0 else 0
+            })
+        
+        return documentos
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo documentos pendientes: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error: {str(e)}"
+        )
+
 @router.post("/procesar/{documento_id}")
 async def process_existing_document(
     documento_id: int,

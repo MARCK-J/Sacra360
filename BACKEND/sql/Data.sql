@@ -1,0 +1,1 @@
+INSERT INTO libros (titulo, autor, anio_publicacion)

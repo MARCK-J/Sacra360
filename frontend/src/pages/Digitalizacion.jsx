@@ -1,43 +1,28 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
-import ValidacionOCRModal from '../components/ValidacionOCRModal'
 
 export default function Digitalizacion() {
+  const navigate = useNavigate()
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
-  const [processingQueue, setProcessingQueue] = useState([])
+  const [uploadedFiles, setUploadedFiles] = useState([])
+  const [dragActive, setDragActive] = useState(false)
   const [formData, setFormData] = useState({
     sacramento: 0,
-    libro: 0,
-    parroquia: '',
-    provincia: '',
-    ano: '',
-    binarizacion: false,
-    deskew: false,
-    denoise: false
+    libro: 0
   })
 
-  // Estados para datos del servidor
   const [libros, setLibros] = useState([])
   const [loadingLibros, setLoadingLibros] = useState(true)
 
-  // Estados para el modal de validación
-  const [validacionModal, setValidacionModal] = useState({
-    isOpen: false,
-    documentoId: null,
-    nombreArchivo: '',
-    tipoSacramento: ''
-  })
-
   useEffect(() => {
-    // Cargar libros desde la API
     fetchLibros()
   }, [])
 
   const fetchLibros = async () => {
     try {
       setLoadingLibros(true)
-      // TODO: Reemplazar con endpoint real
       const response = await fetch('http://localhost:8002/api/v1/libros')
       if (response.ok) {
         const data = await response.json()
@@ -45,11 +30,10 @@ export default function Digitalizacion() {
       }
     } catch (error) {
       console.error('Error cargando libros:', error)
-      // Datos de ejemplo mientras no esté el backend completo
       setLibros([
-        { id: 1, nombre: 'Libro de Confirmaciones 2023' },
-        { id: 2, nombre: 'Libro de Bautizos 2023' },
-        { id: 3, nombre: 'Libro de Matrimonios 2023' }
+        { id: 1, nombre: 'Bautismos 2024 Updated' },
+        { id: 2, nombre: 'Bautismos 2024' },
+        { id: 4, nombre: 'Matrimonios 2024' }
       ])
     } finally {
       setLoadingLibros(false)
@@ -57,30 +41,31 @@ export default function Digitalizacion() {
   }
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : 
-               (name === 'sacramento' || name === 'libro') ? parseInt(value) || 0 : value
+      [name]: name === 'sacramento' || name === 'libro' ? parseInt(value) || 0 : value
     }))
   }
 
-  const handleDragOver = (e) => {
+  const handleDrag = (e) => {
     e.preventDefault()
     e.stopPropagation()
-  }
-
-  const handleDragLeave = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
+    }
   }
 
   const handleDrop = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    const droppedFiles = Array.from(e.dataTransfer.files)
-    handleFiles(droppedFiles)
+    setDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFiles(e.dataTransfer.files)
+    }
   }
 
   const handleFileInput = (e) => {
@@ -89,21 +74,20 @@ export default function Digitalizacion() {
   }
 
   const handleFiles = (newFiles) => {
-    // Validar archivos
-    const validFiles = newFiles.filter(file => {
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
-      const maxSize = 50 * 1024 * 1024 // 50MB
-      
+    const validFiles = Array.from(newFiles).filter(file => {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+      const maxSize = 50 * 1024 * 1024
+
       if (!validTypes.includes(file.type)) {
-        alert(`Archivo ${file.name} no es un tipo válido. Solo JPG, PNG y PDF.`)
+        alert(`Archivo ${file.name} no es válido. Solo PDF, JPG, PNG.`)
         return false
       }
-      
+
       if (file.size > maxSize) {
-        alert(`Archivo ${file.name} es demasiado grande. Máximo 50MB.`)
+        alert(`Archivo ${file.name} es muy grande. Máximo 50MB.`)
         return false
       }
-      
+
       return true
     })
 
@@ -115,47 +99,24 @@ export default function Digitalizacion() {
   }
 
   const uploadFiles = async () => {
-    if (files.length === 0) {
-      alert('Selecciona al menos un archivo')
-      return
-    }
-
-    if (!formData.libro || formData.libro === 0) {
-      alert('Selecciona un libro')
-      return
-    }
-
-    if (!formData.sacramento || formData.sacramento === 0) {
-      alert('Selecciona un tipo de sacramento')
+    if (files.length === 0 || formData.sacramento === 0 || formData.libro === 0) {
+      alert('Por favor, selecciona archivos, sacramento y libro')
       return
     }
 
     setUploading(true)
+    const newUploadedFiles = []
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        
-        // Agregar a cola de procesamiento
-        const queueItem = {
-          id: Date.now() + i,
-          filename: file.name,
-          status: 'uploading',
-          progress: 0
-        }
-        
-        setProcessingQueue(prev => [...prev, queueItem])
-
-        // Crear FormData
+      for (const file of files) {
         const uploadData = new FormData()
         uploadData.append('archivo', file)
-        uploadData.append('libro_id', formData.libro)
         uploadData.append('tipo_sacramento', formData.sacramento)
+        uploadData.append('libro_id', formData.libro)
         uploadData.append('institucion_id', '1')
         uploadData.append('procesar_automaticamente', 'true')
 
         try {
-          // Subir archivo
           const response = await fetch('http://localhost:8002/api/v1/digitalizacion/upload', {
             method: 'POST',
             body: uploadData
@@ -163,437 +124,224 @@ export default function Digitalizacion() {
 
           if (response.ok) {
             const result = await response.json()
-            
-            // Actualizar estado en cola
-            setProcessingQueue(prev => prev.map(item => 
-              item.id === queueItem.id 
-                ? { 
-                    ...item, 
-                    status: result.ocr_procesado ? 'completed' : 'processing',
-                    progress: result.ocr_procesado ? 100 : 50,
-                    documentId: result.documento_id,
-                    ocrResult: result.ocr_resultado
-                  }
-                : item
-            ))
-
-            // Si OCR completado, abrir modal de validación
-            if (result.ocr_procesado && result.documento_id) {
-              const tipoSacramentoNombre = getTipoSacramentoNombre(formData.sacramento)
-              setValidacionModal({
-                isOpen: true,
-                documentoId: result.documento_id,
-                nombreArchivo: file.name,
-                tipoSacramento: tipoSacramentoNombre
-              })
-            }
-
-            console.log('Archivo subido exitosamente:', result)
+            newUploadedFiles.push({
+              ...result,
+              fileName: file.name,
+              status: 'uploaded',
+              timestamp: new Date().toLocaleString()
+            })
           } else {
             const errorText = await response.text()
-            console.error('Error uploading file:', file.name, 'Status:', response.status, 'Error:', errorText)
-            throw new Error(`Error ${response.status}: ${errorText}`)
+            newUploadedFiles.push({
+              fileName: file.name,
+              status: 'error',
+              timestamp: new Date().toLocaleString(),
+              error: `Error ${response.status}: ${errorText}`
+            })
           }
         } catch (error) {
-          console.error('Error subiendo archivo:', error)
-          
-          // Actualizar estado en cola con error
-          setProcessingQueue(prev => prev.map(item => 
-            item.id === queueItem.id 
-              ? { ...item, status: 'error', progress: 0, error: error.message }
-              : item
-          ))
+          newUploadedFiles.push({
+            fileName: file.name,
+            status: 'error',
+            timestamp: new Date().toLocaleString(),
+            error: error.message
+          })
         }
       }
 
-      // Limpiar archivos después de subir
+      setUploadedFiles(prev => [...prev, ...newUploadedFiles])
       setFiles([])
-      
+      setFormData({ sacramento: 0, libro: 0 })
+
+      // Redirección automática si todo fue exitoso
+      if (newUploadedFiles.length > 0 && newUploadedFiles.every(f => f.status === 'uploaded')) {
+        setTimeout(() => {
+          navigate('/revision-ocr')
+        }, 1500)
+      }
+
     } catch (error) {
-      console.error('Error general:', error)
       alert('Error procesando archivos: ' + error.message)
     } finally {
       setUploading(false)
     }
   }
 
-  const getSacramentoId = (sacramento) => {
-    // Ya no necesitamos mapeo ya que usamos IDs directos
-    return sacramento
-  }
-
-  const getTipoSacramentoNombre = (id) => {
-    const tipos = {
-      1: 'Bautizo',
-      2: 'Confirmación',
-      4: 'Matrimonio',
-      5: 'Defunción'
-    }
-    return tipos[id] || 'Desconocido'
-  }
-
-  const cerrarValidacionModal = () => {
-    setValidacionModal({
-      isOpen: false,
-      documentoId: null,
-      nombreArchivo: '',
-      tipoSacramento: ''
-    })
-  }
-
-  const manejarValidacionCompleta = async (documentoId) => {
-    console.log('Validación completada para documento:', documentoId)
-    
-    // Actualizar estado en cola para mostrar que fue validado
-    setProcessingQueue(prev => prev.map(item => 
-      item.documentId === documentoId 
-        ? { ...item, status: 'validated', progress: 100 }
-        : item
-    ))
-    
-    // Aquí podrías hacer llamadas adicionales para actualizar el estado del documento
-    // o navegar a otra pantalla
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'uploading': return 'bg-blue-100 text-blue-800 dark:bg-primary/20 dark:text-blue-300'
-      case 'processing': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-      case 'validated': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-      case 'error': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'uploading': return 'Subiendo'
-      case 'processing': return 'Procesando OCR'
-      case 'completed': return 'OCR Completado'
-      case 'validated': return 'Validado'
-      case 'error': return 'Error'
-      default: return 'Desconocido'
-    }
-  }
   return (
     <Layout title="Digitalización de Documentos">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Metadatos</h3>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="sacramento" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sacramento *</label>
-                <select 
-                  id="sacramento" 
-                  name="sacramento"
-                  value={formData.sacramento}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value={0}>Seleccione el sacramento</option>
-                  <option value={1}>Bautizo</option>
-                  <option value={2}>Confirmación</option>
-                  <option value={4}>Matrimonio</option>
-                  <option value={5}>Defunción</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="libro" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Libro *</label>
-                <select 
-                  id="libro" 
-                  name="libro"
-                  value={formData.libro}
-                  onChange={handleInputChange}
-                  required
-                  disabled={loadingLibros}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-                >
-                  <option value={0}>
-                    {loadingLibros ? 'Cargando libros...' : 'Seleccione el libro'}
-                  </option>
-                  {libros.map(libro => (
-                    <option key={libro.id} value={libro.id}>
-                      {libro.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="parroquia" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parroquia</label>
-                <select 
-                  id="parroquia" 
-                  name="parroquia"
-                  value={formData.parroquia}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">Seleccione la parroquia</option>
-                  <option value="1">San Miguel Arcángel</option>
-                  <option value="2">Sagrado Corazón</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="provincia" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Provincia</label>
-                <select 
-                  id="provincia" 
-                  name="provincia"
-                  value={formData.provincia}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">Seleccione la provincia</option>
-                  <option value="santa-fe">Santa Fe</option>
-                  <option value="cordoba">Córdoba</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="ano" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Año</label>
-                <select 
-                  id="ano" 
-                  name="ano"
-                  value={formData.ano}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">Seleccione el año</option>
-                  {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Preprocesamiento</h3>
-            <div className="space-y-3">
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  name="binarizacion"
-                  checked={formData.binarizacion}
-                  onChange={handleInputChange}
-                  className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" 
-                />
-                <span className="ml-3 text-gray-700 dark:text-gray-300">Binarización</span>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Formulario de Metadatos */}
+        <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Información del Documento</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Sacramento *
               </label>
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  name="deskew"
-                  checked={formData.deskew}
-                  onChange={handleInputChange}
-                  className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" 
-                />
-                <span className="ml-3 text-gray-700 dark:text-gray-300">Deskew</span>
-              </label>
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  name="denoise"
-                  checked={formData.denoise}
-                  onChange={handleInputChange}
-                  className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" 
-                />
-                <span className="ml-3 text-gray-700 dark:text-gray-300">Denoise</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Carga de Documentos</h3>
-            
-            {/* Zona de arrastrar y soltar */}
-            <div 
-              className="flex items-center justify-center w-full"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <label 
-                htmlFor="dropzone-file" 
-                className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+              <select
+                name="sacramento"
+                value={formData.sacramento}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <span className="material-symbols-outlined text-4xl mb-4 text-gray-500 dark:text-gray-400">cloud_upload</span>
-                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold">Arrastra y suelta</span> o haz clic para subir
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG, PNG (MAX. 50MB)</p>
-                </div>
-                <input 
-                  id="dropzone-file" 
-                  type="file" 
-                  multiple 
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileInput}
-                  className="hidden" 
-                />
+                <option value={0}>Seleccionar sacramento</option>
+                <option value={1}>Bautismo</option>
+                <option value={2}>Confirmación</option>
+                <option value={4}>Matrimonio</option>
+                <option value={5}>Defunción</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Libro *
               </label>
+              <select
+                name="libro"
+                value={formData.libro}
+                onChange={handleInputChange}
+                disabled={loadingLibros}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              >
+                <option value={0}>
+                  {loadingLibros ? 'Cargando...' : 'Seleccionar libro'}
+                </option>
+                {libros.map((libro) => (
+                  <option key={libro.id_libro} value={libro.id_libro}>
+                    {libro.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
-
-            {/* Lista de archivos seleccionados */}
-            {files.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Archivos seleccionados ({files.length})
-                </h4>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {file.name}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ({(file.size / 1024 / 1024).toFixed(1)} MB)
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                
-                <button
-                  onClick={uploadFiles}
-                  disabled={uploading}
-                  className="mt-4 w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {uploading ? 'Subiendo...' : 'Procesar Documentos'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Cola de procesamiento */}
-          <div className="bg-white dark:bg-background-dark rounded-lg shadow overflow-hidden">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white p-6">Cola de Procesamiento</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                  <tr>
-                    <th scope="col" className="px-6 py-3">Documento</th>
-                    <th scope="col" className="px-6 py-3">Estado</th>
-                    <th scope="col" className="px-6 py-3">Progreso</th>
-                    <th scope="col" className="px-6 py-3">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {processingQueue.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                        No hay documentos en proceso
-                      </td>
-                    </tr>
-                  ) : (
-                    processingQueue.map((item) => (
-                      <tr key={item.id} className="bg-white dark:bg-background-dark border-b dark:border-gray-700">
-                        <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                          {item.filename}
-                        </th>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                            {getStatusText(item.status)}
-                          </span>
-                          {item.error && (
-                            <div className="text-xs text-red-500 mt-1">{item.error}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                              <div 
-                                className={`h-2.5 rounded-full transition-all duration-300 ${
-                                  item.status === 'completed' ? 'bg-green-500' : 
-                                  item.status === 'error' ? 'bg-red-500' : 'bg-primary'
-                                }`}
-                                style={{ width: `${item.progress}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                              {item.progress}%
-                            </span>
-                          </div>
-                          {item.ocrResult && (
-                            <div className="text-xs text-green-600 mt-1">
-                              OCR: {item.ocrResult.total_tuplas || 0} tuplas extraídas
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {item.status === 'completed' && item.documentId && (
-                            <button 
-                              onClick={() => {
-                                const tipoSacramentoNombre = getTipoSacramentoNombre(formData.sacramento)
-                                setValidacionModal({
-                                  isOpen: true,
-                                  documentoId: item.documentId,
-                                  nombreArchivo: item.filename,
-                                  tipoSacramento: tipoSacramentoNombre
-                                })
-                              }}
-                              className="text-blue-600 hover:text-blue-800 text-xs"
-                            >
-                              Validar OCR
-                            </button>
-                          )}
-                          {item.status === 'validated' && (
-                            <span className="text-green-600 text-xs">
-                              ✓ Validado
-                            </span>
-                          )}
-                          {item.status === 'error' && (
-                            <button className="text-red-600 hover:text-red-800 text-xs">
-                              Reintentar
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Botón temporal para probar validación */}
-          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow mt-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Prueba de Validación</h3>
-            <button
-              onClick={() => {
-                setValidacionModal({
-                  isOpen: true,
-                  documentoId: 11,
-                  nombreArchivo: 'documento_prueba_11.png',
-                  tipoSacramento: 'Bautismo'
-                })
-              }}
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Abrir Validación Documento 11
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Modal de Validación OCR */}
-      <ValidacionOCRModal
-        isOpen={validacionModal.isOpen}
-        onClose={cerrarValidacionModal}
-        documentoId={validacionModal.documentoId}
-        nombreArchivo={validacionModal.nombreArchivo}
-        tipoSacramento={validacionModal.tipoSacramento}
-        onValidacionCompleta={manejarValidacionCompleta}
-      />
+        {/* Zona de Carga */}
+        <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Subir Documentos</h3>
+
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 dark:border-gray-700'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <div className="text-gray-600 dark:text-gray-400">
+              <p className="text-lg font-medium mb-2">
+                Arrastra archivos aquí o
+              </p>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleFileInput}
+                className="hidden"
+                id="file-upload"
+                disabled={uploading}
+              />
+              <label
+                htmlFor="file-upload"
+                className="inline-block px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 cursor-pointer"
+              >
+                Seleccionar archivos
+              </label>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Soporta PDF, JPG, PNG (máx. 50MB cada uno)
+              </p>
+            </div>
+          </div>
+
+          {/* Lista de archivos seleccionados */}
+          {files.length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Archivos seleccionados ({files.length})
+              </h4>
+              <div className="space-y-2">
+                {files.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+                    <div>
+                      <span className="font-medium text-gray-900 dark:text-white">{file.name}</span>
+                      <span className="text-gray-500 ml-2 text-sm">
+                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700"
+                      disabled={uploading}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={uploadFiles}
+                disabled={uploading}
+                className={`w-full mt-4 py-3 px-4 rounded-md text-white font-medium ${
+                  uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'
+                }`}
+              >
+                {uploading ? 'Subiendo archivos...' : `Subir ${files.length} archivo(s)`}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Lista de archivos procesados */}
+        {uploadedFiles.length > 0 && (
+          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Documentos Procesados</h3>
+              <button
+                onClick={() => navigate('/revision-ocr')}
+                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
+              >
+                <span>Ir a Revisión OCR</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-3">
+              {uploadedFiles.map((file, index) => (
+                <div key={index} className="border rounded-lg p-4 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">{file.fileName}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{file.timestamp}</p>
+                      {file.documento_id && (
+                        <p className="text-xs text-gray-500">ID: {file.documento_id}</p>
+                      )}
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        file.status === 'uploaded'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                      }`}
+                    >
+                      {file.status === 'uploaded' ? 'Subido' : 'Error'}
+                    </span>
+                  </div>
+                  {file.error && (
+                    <p className="text-xs text-red-600 mt-2">{file.error}</p>
+                  )}
+                  {file.mensaje && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">{file.mensaje}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </Layout>
   )
 }

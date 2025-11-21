@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/digitalizacion', label: 'Digitalización', icon: 'cloud_upload' },
-  { to: '#', label: 'Revisión OCR', icon: 'document_scanner' },
+  { to: '/revision-ocr', label: 'Revisión OCR', icon: 'document_scanner' },
   { to: '/registros', label: 'Registros', icon: 'menu_book' },
   { to: '/personas', label: 'Personas', icon: 'group' },
   { to: '/libros', label: 'Libros', icon: 'import_contacts' },
