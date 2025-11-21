@@ -122,6 +122,9 @@ CREATE TABLE ocr_resultado (
     confianza decimal(4,3)  NOT NULL,
     fuente_modelo varchar(100)  NOT NULL,
     validado boolean  NOT NULL,
+    tupla_numero int  NOT NULL DEFAULT 1,
+    estado_validacion varchar(20)  NOT NULL DEFAULT 'pendiente',
+    sacramento_id int  NULL,
     CONSTRAINT ocr_resultado_pk PRIMARY KEY (id_ocr)
 );
 
@@ -172,6 +175,19 @@ CREATE TABLE usuarios (
     fecha_creacion date  NOT NULL,
     activo boolean  NOT NULL,
     CONSTRAINT Usuarios_pk PRIMARY KEY (id_usuario)
+);
+
+-- Table: validacion_tuplas
+CREATE TABLE validacion_tuplas (
+    id_validacion serial  NOT NULL,
+    documento_id int  NOT NULL,
+    tupla_numero int  NOT NULL,
+    estado varchar(20)  NOT NULL DEFAULT 'pendiente',
+    usuario_validador_id int  NULL,
+    fecha_validacion timestamp  NULL,
+    sacramento_registrado_id int  NULL,
+    observaciones text  NULL,
+    CONSTRAINT validacion_tuplas_pk PRIMARY KEY (id_validacion)
 );
 
 -- foreign keys
@@ -283,6 +299,38 @@ ALTER TABLE sacramentos ADD CONSTRAINT sacramentos_usuarios
 ALTER TABLE usuarios ADD CONSTRAINT usuarios_Roles
     FOREIGN KEY (rol_id)
     REFERENCES Roles (id_rol)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ocr_resultado_sacramentos (table: ocr_resultado)
+ALTER TABLE ocr_resultado ADD CONSTRAINT ocr_resultado_sacramentos
+    FOREIGN KEY (sacramento_id)
+    REFERENCES sacramentos (id_sacramento)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: validacion_tuplas_documento (table: validacion_tuplas)
+ALTER TABLE validacion_tuplas ADD CONSTRAINT validacion_tuplas_documento
+    FOREIGN KEY (documento_id)
+    REFERENCES documento_digitalizado (id_documento)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: validacion_tuplas_usuario (table: validacion_tuplas)
+ALTER TABLE validacion_tuplas ADD CONSTRAINT validacion_tuplas_usuario
+    FOREIGN KEY (usuario_validador_id)
+    REFERENCES usuarios (id_usuario)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: validacion_tuplas_sacramento (table: validacion_tuplas)
+ALTER TABLE validacion_tuplas ADD CONSTRAINT validacion_tuplas_sacramento
+    FOREIGN KEY (sacramento_registrado_id)
+    REFERENCES sacramentos (id_sacramento)  
     NOT DEFERRABLE 
     INITIALLY IMMEDIATE
 ;

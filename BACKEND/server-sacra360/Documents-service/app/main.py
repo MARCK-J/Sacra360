@@ -15,10 +15,18 @@ import os
 from app.controllers.persona_controller import router as persona_router
 from app.controllers.libro_controller import router as libro_router
 from app.controllers.tipo_sacramento_controller import router as tipo_sacramento_router
+from app.controllers.digitalizacion_controller import router as digitalizacion_router
+from app.controllers.validacion_controller_simple import router as validacion_router
 
 # Importar configuración de base de datos y modelos
 from app.database import engine, Base
 from app.models import PersonaModel, LibroModel, TipoSacramentoModel
+from app.models.documento_model import DocumentoDigitalizadoModel
+from app.models.validacion_model import ValidacionTupla
+from app.models.correccion_model import CorreccionDocumento
+from app.models.ocr_model import OCRResultado
+# from app.models.sacramento_model import Sacramento  # Comentado temporalmente
+# from app.models.usuario_model import Usuario  # Comentado temporalmente
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -85,6 +93,8 @@ async def health_check():
 app.include_router(persona_router, prefix="/api/v1")
 app.include_router(libro_router, prefix="/api/v1")
 app.include_router(tipo_sacramento_router, prefix="/api/v1")
+app.include_router(digitalizacion_router)  # Ya incluye su propio prefix
+app.include_router(validacion_router, prefix="/api/v1/validacion", tags=["validacion"])
 
 # Manejador de errores global
 @app.exception_handler(Exception)
