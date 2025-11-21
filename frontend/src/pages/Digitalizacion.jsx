@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
+import ValidacionOCRModal from '../components/ValidacionOCRModal'
 
 export default function Digitalizacion() {
   const [files, setFiles] = useState([])
@@ -19,6 +20,14 @@ export default function Digitalizacion() {
   // Estados para datos del servidor
   const [libros, setLibros] = useState([])
   const [loadingLibros, setLoadingLibros] = useState(true)
+
+  // Estados para el modal de validación
+  const [validacionModal, setValidacionModal] = useState({
+    isOpen: false,
+    documentoId: null,
+    nombreArchivo: '',
+    tipoSacramento: ''
+  })
 
   useEffect(() => {
     // Cargar libros desde la API
@@ -168,6 +177,17 @@ export default function Digitalizacion() {
                 : item
             ))
 
+            // Si OCR completado, abrir modal de validación
+            if (result.ocr_procesado && result.documento_id) {
+              const tipoSacramentoNombre = getTipoSacramentoNombre(formData.sacramento)
+              setValidacionModal({
+                isOpen: true,
+                documentoId: result.documento_id,
+                nombreArchivo: file.name,
+                tipoSacramento: tipoSacramentoNombre
+              })
+            }
+
             console.log('Archivo subido exitosamente:', result)
           } else {
             const errorText = await response.text()
@@ -202,11 +222,45 @@ export default function Digitalizacion() {
     return sacramento
   }
 
+  const getTipoSacramentoNombre = (id) => {
+    const tipos = {
+      1: 'Bautizo',
+      2: 'Confirmación',
+      4: 'Matrimonio',
+      5: 'Defunción'
+    }
+    return tipos[id] || 'Desconocido'
+  }
+
+  const cerrarValidacionModal = () => {
+    setValidacionModal({
+      isOpen: false,
+      documentoId: null,
+      nombreArchivo: '',
+      tipoSacramento: ''
+    })
+  }
+
+  const manejarValidacionCompleta = async (documentoId) => {
+    console.log('Validación completada para documento:', documentoId)
+    
+    // Actualizar estado en cola para mostrar que fue validado
+    setProcessingQueue(prev => prev.map(item => 
+      item.documentId === documentoId 
+        ? { ...item, status: 'validated', progress: 100 }
+        : item
+    ))
+    
+    // Aquí podrías hacer llamadas adicionales para actualizar el estado del documento
+    // o navegar a otra pantalla
+  }
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'uploading': return 'bg-blue-100 text-blue-800 dark:bg-primary/20 dark:text-blue-300'
       case 'processing': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
       case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+      case 'validated': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
       case 'error': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
       default: return 'bg-gray-100 text-gray-800'
     }
@@ -216,7 +270,8 @@ export default function Digitalizacion() {
     switch (status) {
       case 'uploading': return 'Subiendo'
       case 'processing': return 'Procesando OCR'
-      case 'completed': return 'Completado'
+      case 'completed': return 'OCR Completado'
+      case 'validated': return 'Validado'
       case 'error': return 'Error'
       default: return 'Desconocido'
     }
@@ -476,9 +531,25 @@ export default function Digitalizacion() {
                         </td>
                         <td className="px-6 py-4">
                           {item.status === 'completed' && item.documentId && (
-                            <button className="text-blue-600 hover:text-blue-800 text-xs">
-                              Ver resultados
+                            <button 
+                              onClick={() => {
+                                const tipoSacramentoNombre = getTipoSacramentoNombre(formData.sacramento)
+                                setValidacionModal({
+                                  isOpen: true,
+                                  documentoId: item.documentId,
+                                  nombreArchivo: item.filename,
+                                  tipoSacramento: tipoSacramentoNombre
+                                })
+                              }}
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                            >
+                              Validar OCR
                             </button>
+                          )}
+                          {item.status === 'validated' && (
+                            <span className="text-green-600 text-xs">
+                              ✓ Validado
+                            </span>
                           )}
                           {item.status === 'error' && (
                             <button className="text-red-600 hover:text-red-800 text-xs">
@@ -493,8 +564,36 @@ export default function Digitalizacion() {
               </table>
             </div>
           </div>
+
+          {/* Botón temporal para probar validación */}
+          <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow mt-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Prueba de Validación</h3>
+            <button
+              onClick={() => {
+                setValidacionModal({
+                  isOpen: true,
+                  documentoId: 11,
+                  nombreArchivo: 'documento_prueba_11.png',
+                  tipoSacramento: 'Bautismo'
+                })
+              }}
+              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Abrir Validación Documento 11
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Modal de Validación OCR */}
+      <ValidacionOCRModal
+        isOpen={validacionModal.isOpen}
+        onClose={cerrarValidacionModal}
+        documentoId={validacionModal.documentoId}
+        nombreArchivo={validacionModal.nombreArchivo}
+        tipoSacramento={validacionModal.tipoSacramento}
+        onValidacionCompleta={manejarValidacionCompleta}
+      />
     </Layout>
   )
 }

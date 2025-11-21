@@ -127,6 +127,13 @@ class DigitalizacionService:
                 response.total_tuplas = ocr_resultado.get('total_tuplas', 0)
                 response.calidad_general = ocr_resultado.get('calidad_general', 0)
                 response.tiempo_ocr = ocr_resultado.get('tiempo_procesamiento', 0)
+                
+                # Crear registros de validación para las tuplas OCR
+                await self._crear_registros_validacion(
+                    documento_id=documento_id,
+                    total_tuplas=ocr_resultado.get('total_tuplas', 0),
+                    db=db
+                )
             
             return response
             
@@ -241,6 +248,36 @@ class DigitalizacionService:
         except Exception as e:
             logger.error(f"Error procesando OCR: {e}")
             return None
+    
+    async def _crear_registros_validacion(
+        self,
+        documento_id: int,
+        total_tuplas: int,
+        db: Session
+    ) -> None:
+        """Crea registros de validación para cada tupla del documento"""
+        try:
+            from app.models.validacion_model import ValidacionTupla
+            
+            logger.info(f"Creando {total_tuplas} registros de validación para documento {documento_id}")
+            
+            # Crear un registro de validación para cada tupla
+            for tupla_numero in range(1, total_tuplas + 1):
+                validacion = ValidacionTupla(
+                    documento_id=documento_id,
+                    tupla_numero=tupla_numero,
+                    estado='pendiente'
+                )
+                db.add(validacion)
+            
+            db.commit()
+            logger.info(f"Registros de validación creados exitosamente")
+            
+        except Exception as e:
+            logger.error(f"Error creando registros de validación: {e}")
+            db.rollback()
+            # No lanzamos excepción para no interrumpir el flujo principal
+            # pero registramos el error
     
     async def obtener_estado_procesamiento(
         self, 
