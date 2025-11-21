@@ -48,6 +48,36 @@ class DatabaseService:
         self.db.refresh(documento)
         return documento
     
+    def actualizar_documento_ocr(self, documento_id: int, ocr_texto: str, 
+                                modelo_fuente: str, confianza: float):
+        """Actualiza un documento existente con resultados OCR"""
+        documento = self.db.query(self.DocumentoDigitalizado).filter(
+            self.DocumentoDigitalizado.id_documento == documento_id
+        ).first()
+        
+        if documento:
+            documento.ocr_texto = ocr_texto
+            documento.modelo_fuente = modelo_fuente
+            documento.confianza = confianza
+            documento.fecha_procesamiento = datetime.utcnow()
+            self.db.commit()
+            self.db.refresh(documento)
+            return documento
+        else:
+            raise Exception(f"Documento {documento_id} no encontrado")
+    
+    def guardar_resultado_ocr(self, documento_id: int, campo: str, valor_extraido: str,
+                            confianza: float, fuente_modelo: str, validado: bool = False) -> 'OcrResultado':
+        """Alias para mantener compatibilidad"""
+        return self.guardar_campo_ocr(
+            documento_id=documento_id,
+            campo=campo,
+            valor_extraido=valor_extraido,
+            confianza=confianza,
+            fuente_modelo=fuente_modelo,
+            validado=validado
+        )
+    
     def guardar_campo_ocr(self, documento_id: int, campo: str, valor_extraido: str,
                          confianza: float, fuente_modelo: str, validado: bool = False) -> 'OcrResultado':
         """Guarda un campo OCR individual en la base de datos"""

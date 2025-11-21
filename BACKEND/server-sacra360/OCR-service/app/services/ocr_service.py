@@ -137,6 +137,106 @@ class OcrService:
                 error=str(e)
             )
     
+    def procesar_imagen_interno(self, imagen_bytes: bytes, documento_id: int,
+                               libros_id: int, tipo_sacramento: int = 2,
+                               db_service: Optional[DatabaseService] = None) -> OcrProcessResponse:
+        """
+        Procesa una imagen con OCR para un documento ya existente en BD
+        No sube a MinIO, solo actualiza los resultados OCR
+        """
+        inicio_tiempo = time.time()
+        
+        try:
+            # Convertir bytes a imagen OpenCV
+            img_array = np.frombuffer(imagen_bytes, np.uint8)
+            img_bgr = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            
+            if img_bgr is None:
+                raise ValueError("No se pudo decodificar la imagen")
+            
+            orig_h, orig_w = img_bgr.shape[:2]
+            
+            # Ejecutar pipeline de OCR
+            tuplas_procesadas = self._ejecutar_pipeline_ocr(img_bgr, orig_h, orig_w)
+            
+            # Calcular métricas de calidad
+            calidad_general, tuplas_alta_calidad = self._calcular_metricas_calidad(tuplas_procesadas)
+            
+            # Actualizar documento existente en base de datos
+            if db_service:
+                self._actualizar_documento_existente(
+                    documento_id=documento_id,
+                    tuplas_procesadas=tuplas_procesadas,
+                    calidad_general=calidad_general,
+                    db_service=db_service
+                )
+            
+            # Convertir a formato de respuesta
+            tuplas_response = self._convertir_a_response_format(tuplas_procesadas)
+            
+            tiempo_total = time.time() - inicio_tiempo
+            
+            return OcrProcessResponse(
+                success=True,
+                documento_id=documento_id,
+                total_tuplas=len(tuplas_procesadas),
+                tuplas=tuplas_response,
+                calidad_general=calidad_general,
+                tuplas_alta_calidad=tuplas_alta_calidad,
+                modelo_utilizado=self.modelo_fuente,
+                tiempo_procesamiento=tiempo_total,
+                fecha_procesamiento=datetime.utcnow(),
+                message=f"OCR procesado exitosamente. {len(tuplas_procesadas)} tuplas extraídas."
+            )
+            
+        except Exception as e:
+            tiempo_total = time.time() - inicio_tiempo
+            return OcrProcessResponse(
+                success=False,
+                documento_id=documento_id,
+                total_tuplas=0,
+                tuplas=[],
+                calidad_general=0.0,
+                tuplas_alta_calidad=0,
+                modelo_utilizado=self.modelo_fuente,
+                tiempo_procesamiento=tiempo_total,
+                fecha_procesamiento=datetime.utcnow(),
+                message="Error durante el procesamiento OCR interno",
+                error=str(e)
+            )
+    
+    def _actualizar_documento_existente(self, documento_id: int, tuplas_procesadas: List[Dict],
+                                       calidad_general: float, db_service: DatabaseService):
+        """Actualiza un documento existente con los resultados del OCR"""
+        
+        # Crear texto OCR consolidado
+        ocr_texto = json.dumps({
+            "total_tuplas": len(tuplas_procesadas),
+            "calidad_general": calidad_general,
+            "tuplas": tuplas_procesadas
+        }, ensure_ascii=False, indent=2)
+        
+        # Actualizar documento existente
+        db_service.actualizar_documento_ocr(
+            documento_id=documento_id,
+            ocr_texto=ocr_texto,
+            modelo_fuente=self.modelo_fuente,
+            confianza=calidad_general
+        )
+        
+        # Guardar resultados OCR individuales
+        for tupla in tuplas_procesadas:
+            for campo, info in tupla.get('campos', {}).items():
+                if isinstance(info, dict) and 'valor' in info:
+                    db_service.guardar_resultado_ocr(
+                        documento_id=documento_id,
+                        campo=campo,
+                        valor_extraido=str(info['valor']),
+                        confianza=info.get('confianza', 0) / 100.0,  # Convertir a decimal
+                        fuente_modelo=self.modelo_fuente,
+                        validado=False
+                    )
+    
     def _ejecutar_pipeline_ocr(self, img_bgr: np.ndarray, orig_h: int, orig_w: int) -> List[Dict]:
         """
         Ejecuta el pipeline completo de OCR manteniendo la lógica desarrollada
