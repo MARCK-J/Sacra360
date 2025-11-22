@@ -148,18 +148,23 @@ async def validar_tupla(
     Valida una tupla OCR, registra en personas y sacramentos.
     
     Args:
-        validacion_data: Datos de validación con campos corregidos
+        validacion_data: Datos de validación con campos corregidos e institucion_id
         
     Returns:
         Estado de la validación, IDs creados y siguiente tupla
     """
     try:
+        # Validar que se haya proporcionado la institución
+        if not validacion_data.institucion_id:
+            raise ValueError("Debe seleccionar una institución/parroquia")
+        
         # Llamar al servicio que registra en personas y sacramentos
         resultado = await validacion_service.validar_tupla_json(
             documento_id=validacion_data.documento_id,
             tupla_numero=validacion_data.tupla_numero,
             campos_corregidos=validacion_data.datos_validados,
             usuario_id=validacion_data.usuario_validador_id,
+            institucion_id=validacion_data.institucion_id,
             db=db
         )
         
@@ -383,4 +388,51 @@ async def validar_tupla_json(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al validar tupla: {str(e)}"
+        )
+
+@router.get(
+    "/instituciones",
+    summary="Obtener lista de instituciones/parroquias",
+    description="Obtiene todas las instituciones y parroquias registradas en el sistema"
+)
+async def obtener_instituciones(db: Session = Depends(get_db)):
+    """
+    Obtiene la lista de todas las instituciones/parroquias disponibles.
+    
+    Returns:
+        Lista de instituciones con id, nombre, dirección, teléfono y email
+    """
+    try:
+        query = text("""
+            SELECT 
+                id_institucion,
+                nombre,
+                direccion,
+                telefono,
+                email
+            FROM InstitucionesParroquias
+            ORDER BY nombre
+        """)
+        
+        result = db.execute(query)
+        instituciones = []
+        
+        for row in result:
+            instituciones.append({
+                "id_institucion": row[0],
+                "nombre": row[1],
+                "direccion": row[2],
+                "telefono": row[3],
+                "email": row[4]
+            })
+        
+        return {
+            "total": len(instituciones),
+            "instituciones": instituciones
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener instituciones: {str(e)}"
         )

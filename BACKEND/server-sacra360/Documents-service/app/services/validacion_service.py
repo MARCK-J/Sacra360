@@ -578,6 +578,7 @@ class ValidacionService:
         tupla_numero: int,
         campos_corregidos: Dict[str, Any],
         usuario_id: int,
+        institucion_id: int,
         db: Session
     ) -> Dict[str, Any]:
         """
@@ -588,6 +589,7 @@ class ValidacionService:
             tupla_numero: Número de tupla
             campos_corregidos: Diccionario con campos validados/corregidos
             usuario_id: ID del usuario que valida
+            institucion_id: ID de la institución/parroquia seleccionada
             db: Sesión de base de datos
             
         Returns:
@@ -697,7 +699,7 @@ class ValidacionService:
                 "persona_id": persona_id,
                 "tipo_id": tipo_sacramento or 1,
                 "usuario_id": usuario_id,
-                "institucion_id": 1,
+                "institucion_id": institucion_id,
                 "libro_id": libro_id,
                 "fecha_sacramento": fecha_sacramento
             })
