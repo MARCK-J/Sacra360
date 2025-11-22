@@ -43,6 +43,7 @@ class ValidacionRequest(BaseModel):
     tupla_numero: int
     tupla_id_ocr: Optional[int] = None
     usuario_validador_id: int
+    institucion_id: Optional[int] = None
     correcciones: List[CorreccionCampo] = []
     datos_validados: Optional[Dict[str, Any]] = None
     observaciones: Optional[str] = None
@@ -54,6 +55,7 @@ class ValidacionRequest(BaseModel):
                 "documento_id": 1,
                 "tupla_numero": 1,
                 "usuario_validador_id": 1,
+                "institucion_id": 1,
                 "datos_validados": {
                     "nombre_confirmando": "Juan Pérez García",
                     "dia_nacimiento": "15",

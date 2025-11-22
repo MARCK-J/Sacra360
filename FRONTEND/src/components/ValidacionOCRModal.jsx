@@ -27,13 +27,41 @@ const ValidacionOCRModal = ({
   const [observaciones, setObservaciones] = useState('');
   const [modoEdicion, setModoEdicion] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
+  const [instituciones, setInstituciones] = useState([]);
+  const [institucionSeleccionada, setInstitucionSeleccionada] = useState(null);
 
   // Efecto para cargar tuplas cuando se abre el modal
   useEffect(() => {
     if (isOpen && documentoId) {
       cargarTuplasPendientes();
+      cargarInstituciones();
     }
   }, [isOpen, documentoId]);
+
+  /**
+   * Carga las instituciones/parroquias disponibles
+   */
+  const cargarInstituciones = async () => {
+    try {
+      const response = await fetch('http://localhost:8002/api/v1/validacion/instituciones');
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar instituciones');
+      }
+
+      const data = await response.json();
+      setInstituciones(data.instituciones || []);
+      
+      // Seleccionar la primera institución por defecto si existe
+      if (data.instituciones && data.instituciones.length > 0) {
+        setInstitucionSeleccionada(data.instituciones[0].id_institucion);
+      }
+      
+      console.log('Instituciones cargadas:', data.instituciones);
+    } catch (err) {
+      console.error('Error al cargar instituciones:', err);
+    }
+  };
 
   /**
    * Carga las tuplas pendientes de validación
@@ -102,7 +130,7 @@ const ValidacionOCRModal = ({
                              'dia_bautismo', 'mes_bautismo', 'ano_bautismo'];
     
     // Campos alfabéticos (nombres)
-    const camposAlfabeticos = ['nombre_confirmando', 'padres', 'padrinos', 'parroquia_bautismo'];
+    const camposAlfabeticos = ['nombre_confirmando', 'padres', 'padrinos'];
 
     if (camposNumericos.includes(nombreCampo)) {
       // Solo permitir números
@@ -154,6 +182,12 @@ const ValidacionOCRModal = ({
   const validarTupla = async (accion) => {
     if (!tuplas[tuplaActual]) return;
 
+    // Validar que se haya seleccionado una institución
+    if (!institucionSeleccionada) {
+      setError('Debe seleccionar una Institución/Parroquia antes de validar');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     const tupla = tuplas[tuplaActual];
@@ -171,6 +205,7 @@ const ValidacionOCRModal = ({
       tupla_numero: tupla.tupla_numero,
       tupla_id_ocr: tupla.id_ocr,
       usuario_validador_id: 1, // TODO: Obtener del contexto de usuario
+      institucion_id: institucionSeleccionada,
       datos_validados: datosValidados,
       observaciones,
       accion // 'aprobar', 'corregir', 'rechazar'
@@ -261,7 +296,6 @@ const ValidacionOCRModal = ({
     'dia_nacimiento',
     'mes_nacimiento',
     'ano_nacimiento',
-    'parroquia_bautismo',
     'dia_bautismo',
     'mes_bautismo',
     'ano_bautismo',
@@ -289,7 +323,6 @@ const ValidacionOCRModal = ({
       'dia_nacimiento': 'Día de Nacimiento',
       'mes_nacimiento': 'Mes de Nacimiento',
       'ano_nacimiento': 'Año de Nacimiento',
-      'parroquia_bautismo': 'PARROQUIA DE BAUTISMO',
       'dia_bautismo': 'Día de Bautismo',
       'mes_bautismo': 'Mes de Bautismo',
       'ano_bautismo': 'Año de Bautismo',
@@ -308,7 +341,6 @@ const ValidacionOCRModal = ({
       'dia_nacimiento': 'Día (1-31)',
       'mes_nacimiento': 'Mes (1-12)',
       'ano_nacimiento': 'Año (ej: 1990)',
-      'parroquia_bautismo': 'Nombre de la parroquia',
       'dia_bautismo': 'Día (1-31)',
       'mes_bautismo': 'Mes (1-12)',
       'ano_bautismo': 'Año (ej: 1990)',
@@ -444,6 +476,31 @@ const ValidacionOCRModal = ({
                 style={{ width: `${progreso}%` }}
               />
             </div>
+          </div>
+
+          {/* Selector de Institución/Parroquia */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-blue-100 mb-2">
+              🏛️ Institución/Parroquia *
+            </label>
+            <select
+              value={institucionSeleccionada || ''}
+              onChange={(e) => setInstitucionSeleccionada(parseInt(e.target.value))}
+              className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={loading || instituciones.length === 0}
+            >
+              <option value="">Seleccione una institución...</option>
+              {instituciones.map((inst) => (
+                <option key={inst.id_institucion} value={inst.id_institucion}>
+                  {inst.nombre} {inst.direccion ? `- ${inst.direccion}` : ''}
+                </option>
+              ))}
+            </select>
+            {!institucionSeleccionada && (
+              <p className="text-xs text-yellow-200 mt-1">
+                ⚠️ Debe seleccionar una institución para poder validar
+              </p>
+            )}
           </div>
         </div>
 
