@@ -224,18 +224,35 @@ class OcrService:
             confianza=calidad_general
         )
         
-        # Guardar resultados OCR individuales
-        for tupla in tuplas_procesadas:
-            for campo, info in tupla.get('campos', {}).items():
-                if isinstance(info, dict) and 'valor' in info:
-                    db_service.guardar_resultado_ocr(
-                        documento_id=documento_id,
-                        campo=campo,
-                        valor_extraido=str(info['valor']),
-                        confianza=info.get('confianza', 0) / 100.0,  # Convertir a decimal
-                        fuente_modelo=self.modelo_fuente,
-                        validado=False
-                    )
+        # Guardar cada tupla completa como un registro JSON
+        campos_nombres = [
+            "nombre_confirmando", "dia_nacimiento", "mes_nacimiento", "ano_nacimiento",
+            "parroquia_bautismo", "dia_bautismo", "mes_bautismo", "ano_bautismo",
+            "padres", "padrinos"
+        ]
+        
+        for i, tupla in enumerate(tuplas_procesadas):
+            tupla_numero = i + 1
+            
+            # Construir objeto JSON con todos los campos de la tupla
+            datos_tupla = {}
+            for j, valor in enumerate(tupla['celdas']):
+                if j < len(campos_nombres):
+                    datos_tupla[campos_nombres[j]] = valor
+            
+            # Calcular confianza de la tupla
+            valores_no_vacios = [v for v in tupla['celdas'] if v.strip()]
+            confianza_tupla = len(valores_no_vacios) / len(tupla['celdas']) if len(tupla['celdas']) > 0 else 0.0
+            
+            # Guardar tupla completa
+            db_service.guardar_resultado_ocr(
+                documento_id=documento_id,
+                tupla_numero=tupla_numero,
+                datos_ocr=datos_tupla,
+                confianza=confianza_tupla,
+                fuente_modelo=self.modelo_fuente,
+                validado=False
+            )
     
     def _ejecutar_pipeline_ocr(self, img_bgr: np.ndarray, orig_h: int, orig_w: int) -> List[Dict]:
         """
@@ -677,21 +694,35 @@ class OcrService:
             "padres", "padrinos"
         ]
         
+        # Guardar cada tupla completa como un registro JSON
         for i, tupla in enumerate(tuplas):
+            tupla_numero = i + 1
+            
+            # Construir objeto JSON con todos los campos de la tupla
+            datos_tupla = {}
+            campos_nombres = [
+                "nombre_confirmando", "dia_nacimiento", "mes_nacimiento", "ano_nacimiento",
+                "parroquia_bautismo", "dia_bautismo", "mes_bautismo", "ano_bautismo",
+                "padres", "padrinos"
+            ]
+            
             for j, valor in enumerate(tupla['celdas']):
-                if j < len(campos_confirmacion):
-                    campo_nombre = f"{campos_confirmacion[j]}_tupla_{i+1}"
-                    
-                    # Calcular confianza individual (simplificada)
-                    confianza_individual = 1.0 if valor.strip() else 0.0
-                    
-                    db_service.guardar_campo_ocr(
-                        documento_id=documento.id_documento,
-                        campo=campo_nombre,
-                        valor_extraido=valor,
-                        confianza=confianza_individual,
-                        fuente_modelo=self.modelo_fuente
-                    )
+                if j < len(campos_nombres):
+                    datos_tupla[campos_nombres[j]] = valor
+            
+            # Calcular confianza de la tupla (simplificada)
+            valores_no_vacios = [v for v in tupla['celdas'] if v.strip()]
+            confianza_tupla = len(valores_no_vacios) / len(tupla['celdas']) if len(tupla['celdas']) > 0 else 0.0
+            
+            # Guardar tupla completa como un registro
+            db_service.guardar_resultado_ocr(
+                documento_id=documento.id_documento,
+                tupla_numero=tupla_numero,
+                datos_ocr=datos_tupla,
+                confianza=confianza_tupla,
+                fuente_modelo=self.modelo_fuente,
+                validado=False
+            )
         
         return documento.id_documento
     

@@ -100,6 +100,10 @@ CREATE TABLE documento_digitalizado (
     modelo_fuente varchar(100)  NOT NULL,
     confianza decimal(4,3)  NOT NULL,
     fecha_procesamiento timestamp  NOT NULL,
+    nombre_archivo varchar(255)  NULL,
+    fecha_subida timestamp  NULL DEFAULT NOW(),
+    estado_procesamiento varchar(50)  NOT NULL DEFAULT 'pendiente',
+    fecha_validacion timestamp  NULL,
     CONSTRAINT documento_digitalizado_pk PRIMARY KEY (id_documento)
 );
 
@@ -117,14 +121,14 @@ CREATE TABLE libros (
 CREATE TABLE ocr_resultado (
     id_ocr serial  NOT NULL,
     documento_id int  NOT NULL,
-    campo varchar(50)  NOT NULL,
-    valor_extraido text  NOT NULL,
+    tupla_numero int  NOT NULL,
+    datos_ocr jsonb  NOT NULL,
     confianza decimal(4,3)  NOT NULL,
     fuente_modelo varchar(100)  NOT NULL,
-    validado boolean  NOT NULL,
-    tupla_numero int  NOT NULL DEFAULT 1,
+    validado boolean  NOT NULL DEFAULT false,
     estado_validacion varchar(20)  NOT NULL DEFAULT 'pendiente',
     sacramento_id int  NULL,
+    fecha_validacion timestamp  NULL,
     CONSTRAINT ocr_resultado_pk PRIMARY KEY (id_ocr)
 );
 

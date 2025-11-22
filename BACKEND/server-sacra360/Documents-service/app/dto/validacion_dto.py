@@ -41,8 +41,10 @@ class ValidacionRequest(BaseModel):
     """Request para validar una tupla con posibles correcciones"""
     documento_id: int
     tupla_numero: int
+    tupla_id_ocr: Optional[int] = None
     usuario_validador_id: int
     correcciones: List[CorreccionCampo] = []
+    datos_validados: Optional[Dict[str, Any]] = None
     observaciones: Optional[str] = None
     accion: str = Field(..., description="'aprobar', 'corregir', 'rechazar'")
     
@@ -52,16 +54,14 @@ class ValidacionRequest(BaseModel):
                 "documento_id": 1,
                 "tupla_numero": 1,
                 "usuario_validador_id": 1,
-                "correcciones": [
-                    {
-                        "id_ocr": 123,
-                        "valor_original": "Juan",
-                        "valor_corregido": "José",
-                        "comentario": "Nombre mal leído por OCR"
-                    }
-                ],
-                "observaciones": "Registro con datos incompletos",
-                "accion": "corregir"
+                "datos_validados": {
+                    "nombre_confirmando": "Juan Pérez García",
+                    "dia_nacimiento": "15",
+                    "mes_nacimiento": "6",
+                    "ano_nacimiento": "1990"
+                },
+                "observaciones": "Registro validado",
+                "accion": "aprobar"
             }
         }
 

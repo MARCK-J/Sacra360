@@ -16,7 +16,18 @@ logger = logging.getLogger(__name__)
 class MinioService:
     """Servicio para gestionar archivos en MinIO Object Storage"""
     
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
     def __init__(self):
+        if self._initialized:
+            return
+            
         # Configuración desde variables de entorno
         self.endpoint = os.getenv('MINIO_ENDPOINT', 'localhost:9000')
         self.access_key = os.getenv('MINIO_ACCESS_KEY', 'admin')
@@ -25,15 +36,19 @@ class MinioService:
         self.secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
         
         # Inicializar cliente MinIO
-        self.client = Minio(
-            endpoint=self.endpoint,
-            access_key=self.access_key,
-            secret_key=self.secret_key,
-            secure=self.secure
-        )
-        
-        # Asegurar que el bucket existe
-        self._ensure_bucket_exists()
+        self.client = None
+        MinioService._initialized = True
+    
+    def _ensure_connection(self):
+        """Inicializar conexión MinIO solo cuando se necesite"""
+        if self.client is None:
+            self.client = Minio(
+                endpoint=self.endpoint,
+                access_key=self.access_key,
+                secret_key=self.secret_key,
+                secure=self.secure
+            )
+            self._ensure_bucket_exists()
     
     def _ensure_bucket_exists(self):
         """Crear el bucket si no existe"""
@@ -59,6 +74,7 @@ class MinioService:
         Returns:
             Dict con información del archivo subido
         """
+        self._ensure_connection()
         try:
             # Generar nombre único para el archivo
             file_extension = os.path.splitext(file_name)[1]
@@ -106,8 +122,9 @@ class MinioService:
             object_name: Nombre del objeto en MinIO
             
         Returns:
-            Contenido del archivo en bytes o None si no existe
+            Contenido del archivo en bytes o None si hay error
         """
+        self._ensure_connection()
         try:
             response = self.client.get_object(self.bucket_name, object_name)
             data = response.read()
@@ -131,6 +148,7 @@ class MinioService:
         Returns:
             True si se eliminó exitosamente, False en caso contrario
         """
+        self._ensure_connection()
         try:
             self.client.remove_object(self.bucket_name, object_name)
             logger.info(f"Archivo eliminado exitosamente: {object_name}")
@@ -142,15 +160,16 @@ class MinioService:
     
     def get_presigned_url(self, object_name: str, expires_hours: int = 24) -> Optional[str]:
         """
-        Generar URL presignada para acceso temporal
+        Generar URL firmada temporalmente para acceso directo al archivo
         
         Args:
             object_name: Nombre del objeto en MinIO
-            expires_hours: Horas de validez de la URL (default: 24)
+            expires_hours: Horas de validez de la URL (default 24)
             
         Returns:
-            URL presignada o None si hay error
+            URL firmada o None si hay error
         """
+        self._ensure_connection()
         try:
             expires = timedelta(hours=expires_hours)
             url = self.client.presigned_get_object(
@@ -207,14 +226,15 @@ class MinioService:
     
     def get_file_info(self, object_name: str) -> Optional[Dict[str, Any]]:
         """
-        Obtener información del archivo
+        Obtener información de un archivo en MinIO
         
         Args:
             object_name: Nombre del objeto en MinIO
             
         Returns:
-            Diccionario con información del archivo o None si no existe
+            Dict con información del archivo o None si hay error
         """
+        self._ensure_connection()
         try:
             stat = self.client.stat_object(self.bucket_name, object_name)
             

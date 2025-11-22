@@ -5,6 +5,7 @@ import Registros from './pages/Registros'
 import Personas from './pages/Personas'
 import Auditoria from './pages/Auditoria'
 import Digitalizacion from './pages/Digitalizacion'
+import RevisionOCR from './pages/RevisionOCR'
 import Libros from './pages/Libros'
 import Usuarios from './pages/Usuarios'
 import Reportes from './pages/Reportes'
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/personas" element={<Personas />} />
       <Route path="/auditoria" element={<Auditoria />} />
       <Route path="/digitalizacion" element={<Digitalizacion />} />
+      <Route path="/revision-ocr" element={<RevisionOCR />} />
       <Route path="/libros" element={<Libros />} />
       <Route path="/usuarios" element={<Usuarios />} />
       <Route path="/reportes" element={<Reportes />} />

@@ -517,6 +517,238 @@ class ValidacionService:
         else:
             return "pendiente"
     
+    async def obtener_tuplas_pendientes_json(self, documento_id: int, db: Session) -> List[Dict[str, Any]]:
+        """
+        Obtiene todas las tuplas pendientes en formato JSON (nueva estructura)
+        
+        Args:
+            documento_id: ID del documento digitalizado
+            db: Sesión de base de datos
+            
+        Returns:
+            Lista de tuplas con datos_ocr parseados
+        """
+        try:
+            query = text("""
+                SELECT 
+                    o.id_ocr,
+                    o.tupla_numero,
+                    o.datos_ocr,
+                    o.confianza,
+                    o.estado_validacion,
+                    d.nombre_archivo,
+                    d.libros_id
+                FROM ocr_resultado o
+                JOIN documento_digitalizado d ON o.documento_id = d.id_documento
+                WHERE o.documento_id = :doc_id
+                AND o.estado_validacion = 'pendiente'
+                ORDER BY o.tupla_numero
+            """)
+            
+            result = db.execute(query, {"doc_id": documento_id})
+            tuplas_raw = result.fetchall()
+            
+            if not tuplas_raw:
+                return []
+            
+            tuplas = []
+            for row in tuplas_raw:
+                import json
+                datos_json = json.loads(row[2]) if isinstance(row[2], str) else row[2]
+                
+                tuplas.append({
+                    "id_ocr": row[0],
+                    "tupla_numero": row[1],
+                    "datos_ocr": datos_json,
+                    "confianza": float(row[3]),
+                    "estado_validacion": row[4],
+                    "nombre_archivo": row[5],
+                    "libro_id": row[6]
+                })
+            
+            return tuplas
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo tuplas JSON: {str(e)}")
+            raise
+
+    async def validar_tupla_json(
+        self, 
+        documento_id: int,
+        tupla_numero: int,
+        campos_corregidos: Dict[str, Any],
+        usuario_id: int,
+        db: Session
+    ) -> Dict[str, Any]:
+        """
+        Valida una tupla con estructura JSON y registra en personas y sacramentos
+        
+        Args:
+            documento_id: ID del documento
+            tupla_numero: Número de tupla
+            campos_corregidos: Diccionario con campos validados/corregidos
+            usuario_id: ID del usuario que valida
+            db: Sesión de base de datos
+            
+        Returns:
+            Diccionario con IDs creados y estado
+        """
+        try:
+            # 1. Obtener tupla y datos del documento
+            tupla_query = text("""
+                SELECT o.id_ocr, o.datos_ocr, d.libros_id, d.tipo_sacramento
+                FROM ocr_resultado o
+                JOIN documento_digitalizado d ON o.documento_id = d.id_documento
+                WHERE o.documento_id = :doc_id 
+                AND o.tupla_numero = :tupla_num
+                AND o.estado_validacion = 'pendiente'
+            """)
+            
+            tupla = db.execute(tupla_query, {
+                "doc_id": documento_id,
+                "tupla_num": tupla_numero
+            }).fetchone()
+            
+            if not tupla:
+                raise ValueError("Tupla no encontrada o ya validada")
+            
+            id_ocr, datos_ocr, libro_id, tipo_sacramento = tupla
+            
+            # 2. Parsear nombre completo
+            nombre_completo = campos_corregidos.get("nombre_confirmando", "").strip()
+            partes = nombre_completo.split()
+            
+            if len(partes) >= 3:
+                apellido_paterno = partes[0]
+                apellido_materno = partes[1]
+                nombres = " ".join(partes[2:])
+            elif len(partes) == 2:
+                apellido_paterno = partes[0]
+                apellido_materno = ""
+                nombres = partes[1]
+            else:
+                nombres = nombre_completo
+                apellido_paterno = ""
+                apellido_materno = ""
+            
+            # 3. Construir fecha de nacimiento
+            try:
+                dia_nac = int(campos_corregidos.get("dia_nacimiento", 1))
+                mes_nac = int(campos_corregidos.get("mes_nacimiento", 1))
+                ano_nac = int(campos_corregidos.get("ano_nacimiento", 2000))
+                fecha_nacimiento = f"{ano_nac:04d}-{mes_nac:02d}-{dia_nac:02d}"
+            except:
+                fecha_nacimiento = "2000-01-01"
+            
+            # 4. Construir fecha del sacramento
+            try:
+                dia_baut = int(campos_corregidos.get("dia_bautismo", 1))
+                mes_baut = int(campos_corregidos.get("mes_bautismo", 1))
+                ano_baut = int(campos_corregidos.get("ano_bautismo", 2000))
+                fecha_sacramento = f"{ano_baut:04d}-{mes_baut:02d}-{dia_baut:02d}"
+            except:
+                fecha_sacramento = "2000-01-01"
+            
+            # 5. Procesar nombres de padres
+            padres_texto = campos_corregidos.get("padres", "No especificado")
+            nombre_padre = padres_texto[:100] if padres_texto else "No especificado"
+            nombre_madre = padres_texto[100:200] if len(padres_texto) > 100 else "No especificado"
+            
+            # 6. Insertar en tabla personas
+            insert_persona = text("""
+                INSERT INTO personas (
+                    nombres, apellido_paterno, apellido_materno,
+                    fecha_nacimiento, lugar_nacimiento,
+                    nombre_padre, nombre_madre
+                ) VALUES (
+                    :nombres, :ap_paterno, :ap_materno,
+                    :fecha_nac, :lugar_nac,
+                    :padre, :madre
+                )
+                RETURNING id_persona
+            """)
+            
+            result_persona = db.execute(insert_persona, {
+                "nombres": nombres,
+                "ap_paterno": apellido_paterno,
+                "ap_materno": apellido_materno,
+                "fecha_nac": fecha_nacimiento,
+                "lugar_nac": campos_corregidos.get("parroquia_bautismo", "No especificado")[:100],
+                "padre": nombre_padre,
+                "madre": nombre_madre
+            })
+            
+            persona_id = result_persona.fetchone()[0]
+            logger.info(f"Persona creada con ID: {persona_id}")
+            
+            # 7. Insertar en tabla sacramentos
+            insert_sacramento = text("""
+                INSERT INTO sacramentos (
+                    persona_id, tipo_id, usuario_id, institucion_id, libro_id,
+                    fecha_sacramento, fecha_registro, fecha_actualizacion
+                ) VALUES (
+                    :persona_id, :tipo_id, :usuario_id, :institucion_id, :libro_id,
+                    :fecha_sacramento, NOW(), NOW()
+                )
+                RETURNING id_sacramento
+            """)
+            
+            result_sacramento = db.execute(insert_sacramento, {
+                "persona_id": persona_id,
+                "tipo_id": tipo_sacramento or 1,
+                "usuario_id": usuario_id,
+                "institucion_id": 1,
+                "libro_id": libro_id,
+                "fecha_sacramento": fecha_sacramento
+            })
+            
+            sacramento_id = result_sacramento.fetchone()[0]
+            logger.info(f"Sacramento creado con ID: {sacramento_id}")
+            
+            # 8. Marcar tupla como validada
+            update_ocr = text("""
+                UPDATE ocr_resultado
+                SET estado_validacion = 'validado',
+                    validado = true,
+                    sacramento_id = :sacramento_id,
+                    fecha_validacion = NOW()
+                WHERE id_ocr = :id_ocr
+            """)
+            
+            db.execute(update_ocr, {
+                "sacramento_id": sacramento_id,
+                "id_ocr": id_ocr
+            })
+            
+            db.commit()
+            logger.info(f"Tupla {tupla_numero} validada exitosamente")
+            
+            # 9. Verificar si hay más tuplas pendientes
+            query_siguiente = text("""
+                SELECT tupla_numero
+                FROM ocr_resultado
+                WHERE documento_id = :doc_id
+                AND estado_validacion = 'pendiente'
+                ORDER BY tupla_numero
+                LIMIT 1
+            """)
+            
+            siguiente = db.execute(query_siguiente, {"doc_id": documento_id}).fetchone()
+            siguiente_tupla = siguiente[0] if siguiente else None
+            
+            return {
+                "success": True,
+                "persona_id": persona_id,
+                "sacramento_id": sacramento_id,
+                "siguiente_tupla": siguiente_tupla,
+                "message": f"Tupla {tupla_numero} validada. Persona {persona_id}, Sacramento {sacramento_id}"
+            }
+            
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error validando tupla JSON: {str(e)}")
+            raise
+
     async def _registrar_sacramentos_validados(self, documento_id: int, db: Session):
         """
         Registra sacramentos basado en los datos OCR validados

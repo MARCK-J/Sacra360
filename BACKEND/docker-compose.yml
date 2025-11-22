@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: lolsito101
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/Database.sql:/docker-entrypoint-initdb.d/Database.sql
@@ -109,7 +109,7 @@ services:
       dockerfile: Dockerfile
     container_name: sacra360_documents_service
     environment:
-      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - POSTGRES_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
       - REDIS_URL=redis://redis:6379
       - AUTH_SERVICE_URL=http://auth-service:8001
       - FILES_SERVICE_URL=http://files-service:8007
@@ -129,11 +129,17 @@ services:
       dockerfile: Dockerfile
     container_name: sacra360_ocr_service
     environment:
-      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - DATABASE_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
+      - POSTGRES_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
       - REDIS_URL=redis://redis:6379
       - AUTH_SERVICE_URL=http://auth-service:8001
       - FILES_SERVICE_URL=http://files-service:8007
       - TESSERACT_CONFIG_PATH=/app/tesseract_configs
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_BUCKET=sacra360-documents
+      - MINIO_SECURE=false
     ports:
       - "8003:8003"
     volumes:
@@ -141,7 +147,7 @@ services:
     depends_on:
       - postgres
       - redis
-      - auth-service
+      - minio
     networks:
       - sacra360_network
 

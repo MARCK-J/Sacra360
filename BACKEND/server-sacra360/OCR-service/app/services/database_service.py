@@ -66,25 +66,13 @@ class DatabaseService:
         else:
             raise Exception(f"Documento {documento_id} no encontrado")
     
-    def guardar_resultado_ocr(self, documento_id: int, campo: str, valor_extraido: str,
+    def guardar_resultado_ocr(self, documento_id: int, tupla_numero: int, datos_ocr: dict,
                             confianza: float, fuente_modelo: str, validado: bool = False) -> 'OcrResultado':
-        """Alias para mantener compatibilidad"""
-        return self.guardar_campo_ocr(
-            documento_id=documento_id,
-            campo=campo,
-            valor_extraido=valor_extraido,
-            confianza=confianza,
-            fuente_modelo=fuente_modelo,
-            validado=validado
-        )
-    
-    def guardar_campo_ocr(self, documento_id: int, campo: str, valor_extraido: str,
-                         confianza: float, fuente_modelo: str, validado: bool = False) -> 'OcrResultado':
-        """Guarda un campo OCR individual en la base de datos"""
+        """Guarda una tupla completa de OCR como un registro JSON"""
         ocr_resultado = self.OcrResultado(
             documento_id=documento_id,
-            campo=campo,
-            valor_extraido=valor_extraido,
+            tupla_numero=tupla_numero,
+            datos_ocr=datos_ocr,
             confianza=confianza,
             fuente_modelo=fuente_modelo,
             validado=validado
@@ -94,6 +82,18 @@ class DatabaseService:
         self.db.commit()
         self.db.refresh(ocr_resultado)
         return ocr_resultado
+    
+    def guardar_campo_ocr(self, documento_id: int, tupla_numero: int, datos_ocr: dict,
+                         confianza: float, fuente_modelo: str, validado: bool = False) -> 'OcrResultado':
+        """Alias para mantener compatibilidad - guarda tupla completa"""
+        return self.guardar_resultado_ocr(
+            documento_id=documento_id,
+            tupla_numero=tupla_numero,
+            datos_ocr=datos_ocr,
+            confianza=confianza,
+            fuente_modelo=fuente_modelo,
+            validado=validado
+        )
     
     def obtener_documento(self, documento_id: int) -> 'DocumentoDigitalizado':
         """Obtiene un documento por ID"""
