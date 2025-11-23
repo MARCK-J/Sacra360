@@ -20,7 +20,7 @@ def list_parishes(db: Session = Depends(get_db)):
     result = []
     for r in rows:
         result.append({
-            "id": r.id,
+            "id": str(r.id),
             "name": r.name,
             "address": r.address,
             "priest_name": r.priest_name,
@@ -47,7 +47,7 @@ def create_parish(payload: ParishCreateDTO, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(model)
     return {
-        "id": model.id,
+        "id": str(model.id),
         "name": model.name,
         "address": model.address,
         "priest_name": model.priest_name,
@@ -65,7 +65,7 @@ def get_parish(parish_id: int, db: Session = Depends(get_db)):
     if not record:
         raise HTTPException(status_code=404, detail="Parroquia no encontrada")
     return {
-        "id": record.id,
+        "id": str(record.id),
         "name": record.name,
         "address": record.address,
         "priest_name": record.priest_name,
@@ -92,7 +92,7 @@ def update_parish(parish_id: int, payload: ParishCreateDTO, db: Session = Depend
     db.commit()
     db.refresh(record)
     return {
-        "id": record.id,
+        "id": str(record.id),
         "name": record.name,
         "address": record.address,
         "priest_name": record.priest_name,
@@ -111,4 +111,4 @@ def delete_parish(parish_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Parroquia no encontrada")
     db.delete(record)
     db.commit()
-    return {"success": True, "id": parish_id}
+    return {"success": True, "id": str(parish_id)}

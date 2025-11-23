@@ -64,7 +64,7 @@ class PersonDTO(BaseModel):
     birth_date: datetime
     birth_place: str = Field(..., max_length=200)
     nationality: str = Field(default="Colombiana", max_length=100)
-    gender: str = Field(..., regex="^(M|F|O)$")
+    gender: str = Field(..., pattern="^(M|F|O)$")
     
     class Config:
         schema_extra = {
