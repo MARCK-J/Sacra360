@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 
 export default function Digitalizacion() {
   const navigate = useNavigate()
+  // files: array of { file: File, preview: string | null }
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState([])
@@ -15,6 +16,7 @@ export default function Digitalizacion() {
 
   const [libros, setLibros] = useState([])
   const [loadingLibros, setLoadingLibros] = useState(true)
+  const createdPreviewsRef = useRef(new Set())
 
   useEffect(() => {
     fetchLibros()
@@ -74,10 +76,11 @@ export default function Digitalizacion() {
   }
 
   const handleFiles = (newFiles) => {
-    const validFiles = Array.from(newFiles).filter(file => {
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
-      const maxSize = 50 * 1024 * 1024
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    const maxSize = 50 * 1024 * 1024
 
+    const validFiles = Array.from(newFiles).map(file => ({ file, preview: null })).filter(item => {
+      const file = item.file
       if (!validTypes.includes(file.type)) {
         alert(`Archivo ${file.name} no es válido. Solo PDF, JPG, PNG.`)
         return false
@@ -88,6 +91,17 @@ export default function Digitalizacion() {
         return false
       }
 
+      // create preview for images
+      if (file.type.startsWith('image/')) {
+        try {
+          const url = URL.createObjectURL(file)
+          item.preview = url
+          createdPreviewsRef.current.add(url)
+        } catch (e) {
+          item.preview = null
+        }
+      }
+
       return true
     })
 
@@ -95,7 +109,14 @@ export default function Digitalizacion() {
   }
 
   const removeFile = (index) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
+    setFiles(prev => {
+      const toRemove = prev[index]
+      if (toRemove && toRemove.preview) {
+        try { URL.revokeObjectURL(toRemove.preview) } catch (e) {}
+        createdPreviewsRef.current.delete(toRemove.preview)
+      }
+      return prev.filter((_, i) => i !== index)
+    })
   }
 
   const uploadFiles = async () => {
@@ -108,7 +129,8 @@ export default function Digitalizacion() {
     const newUploadedFiles = []
 
     try {
-      for (const file of files) {
+      for (const fileObj of files) {
+        const file = fileObj.file
         const uploadData = new FormData()
         uploadData.append('archivo', file)
         uploadData.append('tipo_sacramento', formData.sacramento)
@@ -127,6 +149,7 @@ export default function Digitalizacion() {
             newUploadedFiles.push({
               ...result,
               fileName: file.name,
+              preview: result.imagen_url || fileObj.preview || null,
               status: 'uploaded',
               timestamp: new Date().toLocaleString()
             })
@@ -150,7 +173,12 @@ export default function Digitalizacion() {
       }
 
       setUploadedFiles(prev => [...prev, ...newUploadedFiles])
-      setFiles([])
+      // revoke and clear previews from selected files
+      setFiles(prev => {
+        prev.forEach(p => { if (p.preview) { try { URL.revokeObjectURL(p.preview) } catch(e){} } })
+        createdPreviewsRef.current.clear()
+        return []
+      })
       setFormData({ sacramento: 0, libro: 0 })
 
       // Redirección automática si todo fue exitoso
@@ -166,6 +194,16 @@ export default function Digitalizacion() {
       setUploading(false)
     }
   }
+
+  // cleanup previews on unmount
+  useEffect(() => {
+    return () => {
+      createdPreviewsRef.current.forEach(url => {
+        try { URL.revokeObjectURL(url) } catch (e) {}
+      })
+      createdPreviewsRef.current.clear()
+    }
+  }, [])
 
   return (
     <Layout title="Digitalización de Documentos">
@@ -260,13 +298,20 @@ export default function Digitalizacion() {
                 Archivos seleccionados ({files.length})
               </h4>
               <div className="space-y-2">
-                {files.map((file, index) => (
+                {files.map((item, index) => (
                   <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
-                    <div>
-                      <span className="font-medium text-gray-900 dark:text-white">{file.name}</span>
-                      <span className="text-gray-500 ml-2 text-sm">
-                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
+                    <div className="flex items-center gap-3">
+                      {item.preview ? (
+                        <img src={item.preview} alt={item.file.name} className="w-16 h-12 object-cover rounded-md border" />
+                      ) : (
+                        <div className="w-16 h-12 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md text-sm text-gray-600">PDF</div>
+                      )}
+                      <div>
+                        <span className="font-medium text-gray-900 dark:text-white">{item.file.name}</span>
+                        <span className="text-gray-500 ml-2 text-sm">
+                          ({(item.file.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
                     </div>
                     <button
                       onClick={() => removeFile(index)}
@@ -335,6 +380,15 @@ export default function Digitalizacion() {
                   )}
                   {file.mensaje && (
                     <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">{file.mensaje}</p>
+                  )}
+                  {(file.preview || file.imagen_url || file.url) && (
+                    <div className="mt-3">
+                      <img
+                        src={file.preview || file.imagen_url || file.url}
+                        alt={file.fileName}
+                        className="max-w-xs max-h-48 object-contain rounded-md border"
+                      />
+                    </div>
                   )}
                 </div>
               ))}
