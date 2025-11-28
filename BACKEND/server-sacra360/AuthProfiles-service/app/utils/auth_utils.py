@@ -3,7 +3,7 @@ Utilidades para AuthProfiles Service
 Funciones auxiliares para autenticación y manejo de tokens
 """
 
-import jwt
+from jose import jwt
 import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List

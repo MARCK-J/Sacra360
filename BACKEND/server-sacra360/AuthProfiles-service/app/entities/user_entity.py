@@ -3,10 +3,19 @@ Entidades del dominio para Authentication y Profiles
 Representación de datos del negocio
 """
 
+<<<<<<< Updated upstream
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from app.dto.auth_dto import UserRole
+=======
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, Text, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from datetime import date
+
+Base = declarative_base()
+>>>>>>> Stashed changes
 
 
 class UserEntity(BaseModel):
@@ -66,6 +75,7 @@ class SessionEntity(BaseModel):
         from_attributes = True
 
 
+<<<<<<< Updated upstream
 class PermissionEntity(BaseModel):
     """Entidad de permisos del sistema"""
     id: str
@@ -188,3 +198,21 @@ class AuditLogEntity(BaseModel):
                 "success": True
             }
         }
+=======
+class Auditoria(Base):
+    """Entidad Auditoria para tracking de accesos"""
+    __tablename__ = "auditoria"
+    
+    id_auditoria = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey('usuarios.id_usuario'))
+    accion = Column(Text, nullable=False)
+    registro_afectado = Column(Text, nullable=False)
+    id_registro = Column(Integer, nullable=False)
+    fecha = Column(DateTime, nullable=False)
+    
+    # Relaciones
+    usuario = relationship("Usuario", back_populates="auditorias")
+    
+    def __repr__(self):
+        return f"<Auditoria(id={self.id_auditoria}, accion={self.accion})>"
+>>>>>>> Stashed changes
