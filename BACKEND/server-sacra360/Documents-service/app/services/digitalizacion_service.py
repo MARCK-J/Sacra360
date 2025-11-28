@@ -12,6 +12,8 @@ import logging
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException, status
 from minio import Minio
 from minio.error import S3Error
 from io import BytesIO
@@ -93,6 +95,7 @@ class DigitalizacionService:
                 archivo_url=minio_info['url'],
                 libro_id=libro_id,
                 tipo_sacramento=tipo_sacramento,
+                nombre_archivo=archivo_nombre,
                 db=db
             )
             
@@ -183,23 +186,24 @@ class DigitalizacionService:
         archivo_url: str, 
         libro_id: int, 
         tipo_sacramento: int, 
-        db: Session
+        db: Session,
+        nombre_archivo: Optional[str] = None
     ) -> int:
         """Guarda documento en base de datos y retorna ID"""
         try:
             # Crear registro en documento_digitalizado
-            # Nota: Esto requiere el modelo SQLAlchemy correspondiente
-            
             from app.models.documento_model import DocumentoDigitalizadoModel
             
             documento = DocumentoDigitalizadoModel(
                 libros_id=libro_id,
                 tipo_sacramento=tipo_sacramento,
                 imagen_url=archivo_url,
+                nombre_archivo=nombre_archivo,
                 ocr_texto="",  # Se llenará después del OCR
                 modelo_fuente="",  # Se llenará después del OCR
                 confianza=0.0,  # Se llenará después del OCR
-                fecha_procesamiento=datetime.now()
+                fecha_procesamiento=datetime.now(),
+                estado_procesamiento='pendiente'
             )
             
             db.add(documento)

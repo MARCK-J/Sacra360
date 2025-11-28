@@ -1,255 +1,159 @@
-from typing import List, Optional, Dict, Any
+"""
+Controller para gestión de sacramentos
+Endpoints para registrar y validar sacramentos
+"""
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from datetime import date, datetime
+from datetime import date
 
 from app.database import get_db
+from app.dto.sacramento_dto import SacramentoCreateDTO, SacramentoResponseDTO
+from app.services.sacramento_service import SacramentoService
 
 router = APIRouter(prefix="/sacramentos", tags=["Sacramentos"])
 
 
-def _row_to_dict(row, keys):
-    return {k: getattr(row, k) if hasattr(row, k) else row[idx] for idx, k in enumerate(keys)}
-
-
-@router.post("/", status_code=status.HTTP_201_CREATED)
-def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
-    """Crear un sacramento. Usa los nombres de columnas que utiliza OCR/validación (tipo_id, persona_id, libro_id, etc.)."""
-    try:
-        # Validaciones mínimas
-        tipo = payload.get("tipo_sacramento") or payload.get("tipo_id") or payload.get("tipo")
-        if tipo is None:
-            raise HTTPException(status_code=422, detail="tipo_sacramento (id) requerido")
-        # aceptar nombre -> resolver a id si se recibe string
-        tipo_id = None
-        if isinstance(tipo, str):
-            # buscar id en tipos_sacramentos
-            t = db.execute(text("SELECT id_tipo FROM tipos_sacramentos WHERE lower(nombre)=lower(:n) LIMIT 1"), {"n": tipo}).fetchone()
-            if not t:
-                raise HTTPException(status_code=400, detail=f"Tipo de sacramento '{tipo}' no encontrado")
-            tipo_id = t[0]
-        else:
-            tipo_id = int(tipo)
-
-        persona_id = payload.get("id_persona") or payload.get("persona_id")
-        # Si no se proporciona persona_id, permitir crear una persona simple a partir de campos del formulario
-        if not persona_id:
-            # intentar leer nombre / fecha de nacimiento
-            person_name = payload.get("person_name") or payload.get("nombres")
-            person_birth = payload.get("person_birthdate") or payload.get("fecha_nacimiento") or payload.get("fecha_nacimiento_persona")
-            padre = payload.get("father_name") or payload.get("nombre_padre")
-            madre = payload.get("mother_name") or payload.get("nombre_madre")
-            if person_name:
-                # Insertar persona mínima. Los campos apellido_paterno/materno no son obligatorios en la inserción aquí (se usan valores vacíos si no vienen)
-                ap1 = payload.get("apellido_paterno") or ""
-                ap2 = payload.get("apellido_materno") or ""
-                try:
-                    lugar = payload.get("lugar_nacimiento") or payload.get("place_of_birth") or ""
-                    res_p = db.execute(text(
-                        "INSERT INTO personas (nombres, apellido_paterno, apellido_materno, fecha_nacimiento, lugar_nacimiento, nombre_padre, nombre_madre) VALUES (:n, :ap1, :ap2, :fn, :lugar, :np, :nm) RETURNING id_persona"
-                    ), {
-                        "n": person_name,
-                        "ap1": ap1,
-                        "ap2": ap2,
-                        "fn": person_birth,
-                        "lugar": lugar,
-                        "np": padre,
-                        "nm": madre
-                    })
-                    persona_id = res_p.fetchone()[0]
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                    raise HTTPException(status_code=500, detail="Error creando persona asociada")
-            else:
-                raise HTTPException(status_code=422, detail="id_persona o person_name requerido")
-
-        libro_id = payload.get("libro_id") or payload.get("libro") or payload.get("libro_registro")
-        # si libro viene como nombre, intentar resolver
-        if libro_id and not isinstance(libro_id, int):
-            l = db.execute(text("SELECT id_libro FROM libros WHERE lower(nombre)=lower(:n) LIMIT 1"), {"n": libro_id}).fetchone()
-            if l:
-                libro_id = l[0]
-            else:
-                # crear libro mínimo
-                res = db.execute(text("INSERT INTO libros (nombre, fecha_inicio, fecha_fin) VALUES (:n, NOW()::date, NOW()::date) RETURNING id_libro"), {"n": libro_id})
-                libro_id = res.fetchone()[0]
-
-        usuario_id = payload.get("usuario_registro_id") or payload.get("usuario_id") or 1
-        institucion_val = payload.get("institucion_id") or payload.get("institucion") or payload.get("parroquia") or payload.get("sacrament_location") or payload.get("sacrament-location")
-        institucion_id = None
-        # Si se pasó un nombre de institución/parroquia intentar resolver o crear
-        if institucion_val:
-            try:
-                if isinstance(institucion_val, int):
-                    institucion_id = institucion_val
-                else:
-                    r = db.execute(text("SELECT id_institucion FROM institucionesparroquias WHERE lower(nombre)=lower(:n) LIMIT 1"), {"n": institucion_val}).fetchone()
-                    if r:
-                        institucion_id = r[0]
-                    else:
-                        ins = db.execute(text("INSERT INTO institucionesparroquias (nombre) VALUES (:n) RETURNING id_institucion"), {"n": institucion_val})
-                        institucion_id = ins.fetchone()[0]
-                        db.commit()
-            except Exception:
-                db.rollback()
-                institucion_id = 1
-        if not institucion_id:
-            institucion_id = 1
-
-        fecha_raw = payload.get("fecha_sacramento")
-        if not fecha_raw:
-            raise HTTPException(status_code=422, detail="fecha_sacramento requerida")
-        try:
-            fecha_sac = datetime.fromisoformat(fecha_raw).date() if isinstance(fecha_raw, str) else fecha_raw
-        except Exception:
-            raise HTTPException(status_code=422, detail="fecha_sacramento inválida")
-
-        # Insertar usando SQL coherente con validacion_service
-        insert_sql = text("""
-            INSERT INTO sacramentos (
-                persona_id, tipo_id, usuario_id, institucion_id, libro_id,
-                fecha_sacramento, fecha_registro, fecha_actualizacion
-            ) VALUES (
-                :persona_id, :tipo_id, :usuario_id, :institucion_id, :libro_id,
-                :fecha_sacramento, NOW(), NOW()
-            ) RETURNING id_sacramento
-        """)
-
-        res = db.execute(insert_sql, {
-            "persona_id": persona_id,
-            "tipo_id": tipo_id,
-            "usuario_id": usuario_id,
-            "institucion_id": institucion_id,
-            "libro_id": libro_id,
-            "fecha_sacramento": fecha_sac
-        })
-        sac_id = res.fetchone()[0]
-        db.commit()
-
-        # Si es bautizo, opcionalmente insertar detalles (ministro, padrino, foja, numero)
-        try:
-            if tipo_id == 1:  # asumimos id 1 = bautizo en el catálogo
-                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
-                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
-                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
-                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
-                fecha_det = fecha_sac
-                if any([ministro, padrino, foja, numero]):
-                    db.execute(text(
-                        "INSERT INTO detalles_bautizo (sacramento_id, padrino, ministro, foja, numero, fecha_bautizo) VALUES (:sid, :pad, :min, :foj, :num, :f)"
-                    ), {"sid": sac_id, "pad": padrino, "min": ministro, "foj": foja, "num": numero, "f": fecha_det})
-                    db.commit()
-        except Exception:
-            db.rollback()
-
-        row = db.execute(text("SELECT * FROM sacramentos WHERE id_sacramento = :id"), {"id": sac_id}).fetchone()
-        if not row:
-            raise HTTPException(status_code=500, detail="Error al crear sacramento")
-        # row._mapping is a Mapping of column_name -> value
-        return dict(row._mapping)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/", response_model=List[Dict[str, Any]])
-def list_sacramentos(
-    tipo_sacramento: Optional[str] = Query(None),
-    fecha_inicio: Optional[date] = Query(None),
-    fecha_fin: Optional[date] = Query(None),
-    sacerdote: Optional[str] = Query(None),
-    id_persona: Optional[int] = Query(None),
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=200),
+@router.get("/check-duplicate",
+             response_model=dict,
+             status_code=status.HTTP_200_OK,
+             summary="Verificar si existe sacramento duplicado",
+             description="Valida si una persona ya tiene registrado este sacramento")
+def check_duplicate_sacramento(
+    persona_id: int = Query(..., description="ID de la persona", gt=0),
+    tipo_id: int = Query(..., description="ID del tipo de sacramento", gt=0),
+    libro_id: int = Query(..., description="ID del libro", gt=0),
+    fecha_sacramento: date = Query(..., description="Fecha del sacramento (YYYY-MM-DD)"),
     db: Session = Depends(get_db)
 ):
+    """
+    Verifica si ya existe un sacramento para esta persona.
+    
+    Evita registrar:
+    - Dos bautizos para la misma persona
+    - Dos confirmaciones en el mismo libro
+    - Dos matrimonios en la misma fecha
+    
+    Returns:
+        - **exists**: true si ya existe, false si no existe
+        - **sacramento**: datos del sacramento existente (si existe)
+    """
+    service = SacramentoService(db)
+    resultado = service.check_duplicate(
+        persona_id=persona_id,
+        tipo_id=tipo_id,
+        libro_id=libro_id,
+        fecha_sacramento=fecha_sacramento
+    )
+    
+    return resultado
+
+
+@router.post("/",
+             response_model=SacramentoResponseDTO,
+             status_code=status.HTTP_201_CREATED,
+             summary="Registrar nuevo sacramento",
+             description="Crea un nuevo registro de sacramento con validación de duplicados")
+def create_sacramento(
+    dto: SacramentoCreateDTO,
+    db: Session = Depends(get_db)
+):
+    """
+    Registrar un nuevo sacramento.
+    
+    Validaciones:
+    - La persona no debe tener el mismo sacramento ya registrado
+    - La fecha del sacramento no puede ser futura
+    - Todas las FK deben existir (persona, tipo, usuario, institución, libro)
+    
+    Returns:
+        Sacramento creado con su ID asignado
+    
+    Raises:
+        - 409 CONFLICT: Si el sacramento ya existe
+        - 400 BAD REQUEST: Si hay error de validación
+    """
+    service = SacramentoService(db)
+    
     try:
-        sql = "SELECT s.*, ts.nombre as tipo_nombre FROM sacramentos s LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id"
-        where = []
-        params = {}
-        if tipo_sacramento:
-            where.append("lower(ts.nombre)=lower(:tipo)")
-            params["tipo"] = tipo_sacramento
-        if fecha_inicio:
-            where.append("s.fecha_sacramento >= :fi")
-            params["fi"] = fecha_inicio
-        if fecha_fin:
-            where.append("s.fecha_sacramento <= :ff")
-            params["ff"] = fecha_fin
-        if sacerdote:
-            where.append("s.ministro ILIKE :sac")
-            params["sac"] = f"%{sacerdote}%"
-        if id_persona:
-            where.append("s.persona_id = :pid")
-            params["pid"] = id_persona
-        if where:
-            sql += " WHERE " + " AND ".join(where)
-        sql += " ORDER BY s.fecha_sacramento DESC"
-        sql += " LIMIT :lim OFFSET :off"
-        params["lim"] = limit
-        params["off"] = (page - 1) * limit
-
-        result = db.execute(text(sql), params)
-        rows = [dict(r._mapping) for r in result.fetchall()]
-        return rows
-
+        sacramento = service.create(
+            persona_id=dto.persona_id,
+            tipo_id=dto.tipo_id,
+            usuario_id=dto.usuario_id,
+            institucion_id=dto.institucion_id,
+            libro_id=dto.libro_id,
+            fecha_sacramento=dto.fecha_sacramento
+        )
+        
+        return SacramentoResponseDTO.model_validate(sacramento)
+        
+    except ValueError as e:
+        # Sacramento duplicado
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error al crear sacramento: {str(e)}"
+        )
 
 
-@router.get("/bautizos")
-def list_bautizos(db: Session = Depends(get_db)):
-    return list_sacramentos(tipo_sacramento="bautizo", db=db)
+@router.get("/{sacramento_id}",
+            response_model=SacramentoResponseDTO,
+            summary="Obtener sacramento por ID",
+            description="Obtiene un sacramento específico por su ID")
+def get_sacramento(
+    sacramento_id: int,
+    db: Session = Depends(get_db)
+):
+    """Obtener un sacramento específico por su ID"""
+    service = SacramentoService(db)
+    sacramento = service.get_by_id(sacramento_id)
+    
+    if not sacramento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sacramento con ID {sacramento_id} no encontrado"
+        )
+    
+    return SacramentoResponseDTO.model_validate(sacramento)
 
 
-@router.get("/confirmaciones")
-def list_confirmaciones(db: Session = Depends(get_db)):
-    return list_sacramentos(tipo_sacramento="confirmacion", db=db)
+@router.get("/persona/{persona_id}",
+            response_model=List[dict],
+            summary="Obtener sacramentos de una persona",
+            description="Lista todos los sacramentos registrados para una persona")
+def get_sacramentos_by_persona(
+    persona_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtener historial de sacramentos de una persona.
+    
+    Útil para ver qué sacramentos ha recibido una persona:
+    - Bautizo
+    - Confirmación
+    - Matrimonio
+    """
+    service = SacramentoService(db)
+    sacramentos = service.get_by_persona(persona_id)
+    
+    return sacramentos
 
 
-@router.get("/matrimonios")
-def list_matrimonios(db: Session = Depends(get_db)):
-    return list_sacramentos(tipo_sacramento="matrimonio", db=db)
-
-
-@router.get("/primeras-comuniones")
-def list_primeras_comuniones(db: Session = Depends(get_db)):
-    return list_sacramentos(tipo_sacramento="primera comunion", db=db)
-
-
-@router.get("/{id}")
-def get_sacramento(id: int, db: Session = Depends(get_db)):
-    row = db.execute(text("SELECT s.*, ts.nombre as tipo_nombre FROM sacramentos s LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id WHERE s.id_sacramento = :id"), {"id": id}).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Sacramento no encontrado")
-    return dict(row._mapping)
-
-
-@router.put("/{id}")
-def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
-    # Construir SET dinámico permitiendo solo columnas esperadas
-    allowed = {"persona_id", "tipo_id", "usuario_id", "institucion_id", "libro_id", "fecha_sacramento", "ministro", "padrinos", "observaciones", "folio", "numero_acta", "pagina"}
-    updates = []
-    params = {"id": id}
-    for k, v in payload.items():
-        if k in allowed:
-            updates.append(f"{k} = :{k}")
-            params[k] = v
-    if not updates:
-        raise HTTPException(status_code=422, detail="No hay campos válidos para actualizar")
-    sql = text(f"UPDATE sacramentos SET {', '.join(updates)}, fecha_actualizacion = NOW() WHERE id_sacramento = :id")
-    db.execute(sql, params)
-    db.commit()
-    return get_sacramento(id, db)
-
-
-@router.delete("/{id}")
-def delete_sacramento(id: int, db: Session = Depends(get_db)):
-    db.execute(text("DELETE FROM sacramentos WHERE id_sacramento = :id"), {"id": id})
-    db.commit()
-    return {"message": "Sacramento eliminado"}
+@router.get("/",
+            response_model=List[SacramentoResponseDTO],
+            summary="Listar sacramentos",
+            description="Lista todos los sacramentos con paginación")
+def list_sacramentos(
+    skip: int = Query(0, ge=0, description="Registros a omitir"),
+    limit: int = Query(100, ge=1, le=500, description="Máximo de registros"),
+    db: Session = Depends(get_db)
+):
+    """Listar todos los sacramentos con paginación"""
+    service = SacramentoService(db)
+    sacramentos = service.list_all(skip=skip, limit=limit)
+    
+    return [SacramentoResponseDTO.model_validate(s) for s in sacramentos]

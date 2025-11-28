@@ -9,6 +9,36 @@ from app.services.persona_service import PersonaService
 
 router = APIRouter(prefix="/personas", tags=["Personas"])
 
+@router.get("/search",
+             response_model=List[PersonaResponseDTO],
+             status_code=status.HTTP_200_OK,
+             summary="Buscar personas por similitud",
+             description="Busca personas que coincidan con los criterios proporcionados")
+def search_personas(
+    nombres: Optional[str] = Query(None, description="Nombres de la persona"),
+    apellido_paterno: Optional[str] = Query(None, description="Apellido paterno"),
+    apellido_materno: Optional[str] = Query(None, description="Apellido materno"),
+    fecha_nacimiento: Optional[date] = Query(None, description="Fecha de nacimiento (YYYY-MM-DD)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Busca personas que coincidan con los criterios de búsqueda.
+    
+    Útil para encontrar si una persona ya existe antes de crear un sacramento.
+    
+    Returns:
+        Lista de personas que coinciden con los criterios
+    """
+    personas = PersonaService.search(
+        db=db,
+        nombres=nombres,
+        apellido_paterno=apellido_paterno,
+        apellido_materno=apellido_materno,
+        fecha_nacimiento=fecha_nacimiento
+    )
+    
+    return [PersonaResponseDTO.model_validate(p) for p in personas]
+
 @router.post("/", 
              response_model=PersonaResponseDTO, 
              status_code=status.HTTP_201_CREATED,

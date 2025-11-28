@@ -2,37 +2,30 @@
 Modelo SQLAlchemy para la tabla usuarios
 Define la estructura de los usuarios del sistema
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, Date, Text, ForeignKey
+from datetime import datetime, date
 
 from app.database import Base
 
-class Usuario(Base):
+class UsuarioModel(Base):
     """
     Modelo para la tabla usuarios
     Gestiona los usuarios del sistema
     """
     __tablename__ = "usuarios"
     
-    id_usuario = Column(Integer, primary_key=True, index=True, name="id_usuario")
-    nombre_usuario = Column(String(50), nullable=False, unique=True, name="nombre_usuario")
-    email = Column(String(100), nullable=False, unique=True, name="email")
-    nombres = Column(String(100), nullable=False, name="nombres")
-    apellidos = Column(String(100), nullable=False, name="apellidos")
-    cargo = Column(String(100), nullable=True, name="cargo")
-    activo = Column(Boolean, nullable=False, default=True, name="activo")
-    fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow, name="fecha_creacion")
-    ultimo_login = Column(DateTime, nullable=True, name="ultimo_login")
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if not self.fecha_creacion:
-            self.fecha_creacion = datetime.utcnow()
+    id_usuario = Column(Integer, primary_key=True, index=True)
+    rol_id = Column(Integer, ForeignKey("roles.id_rol"), nullable=False)
+    nombre = Column(String(50), nullable=False)
+    apellido_paterno = Column(String(50), nullable=False)
+    apellido_materno = Column(String(50), nullable=False)
+    email = Column(String(100), nullable=False)
+    contrasenia = Column(Text, nullable=False)
+    fecha_creacion = Column(Date, nullable=False, default=date.today)
+    activo = Column(Boolean, nullable=False, default=True)
     
     def __repr__(self):
-        return f"<Usuario(id={self.id_usuario}, usuario='{self.nombre_usuario}', nombres='{self.nombres}')>"
+        return f"<Usuario(id={self.id_usuario}, nombre='{self.nombre} {self.apellido_paterno}')>"
     
     @property
     def nombre_completo(self):
