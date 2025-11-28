@@ -4,11 +4,14 @@ Representación de datos del negocio
 """
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from app.dto.auth_dto import UserRole
 =======
+=======
+>>>>>>> Stashed changes
 from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship

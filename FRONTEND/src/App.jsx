@@ -25,6 +25,7 @@ import Certificados from './pages/Certificados'
 
   return (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     <>
       <div>
         <a href="https://vite.dev" target="_blank">
@@ -48,6 +49,8 @@ import Certificados from './pages/Certificados'
       </p>
     </>
 =======
+=======
+>>>>>>> Stashed changes
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -68,6 +71,9 @@ import Certificados from './pages/Certificados'
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AuthProvider>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   )
 }

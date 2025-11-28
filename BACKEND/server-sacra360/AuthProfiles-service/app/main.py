@@ -18,7 +18,10 @@ import uvicorn
 from app.routers.auth_router import router as auth_router
 from app.routers.profiles_router import router as profiles_router
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 from app.routers.usuarios_router import router as usuarios_router
 from app.routers.auditoria_router import router as auditoria_router
 from app.database import init_db
@@ -83,6 +86,9 @@ app.include_router(auth_router, tags=["Autenticación"])
 app.include_router(profiles_router, prefix="/api/v1/profiles", tags=["Perfiles"])
 app.include_router(usuarios_router, tags=["Gestión de Usuarios"])
 app.include_router(auditoria_router, tags=["Auditoría de Accesos"])
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 
