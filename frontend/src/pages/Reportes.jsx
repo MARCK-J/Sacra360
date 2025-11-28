@@ -1,26 +1,47 @@
+import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 
 export default function Reportes() {
+  const [counts, setCounts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/reportes/count-by-type')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        setCounts(data.counts || [])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   return (
     <Layout title="Reportes">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-xl bg-white dark:bg-gray-800/50 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sacramentos por Año</h3>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">12,345</p>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span>2023</span>
-            <span className="text-green-500 font-medium">+12%</span>
-          </div>
-          <div className="mt-4 h-48">
-            <div className="grid h-full grid-flow-col items-end gap-4">
-              <div className="w-full rounded-t-lg bg-primary/20" style={{ height: '60%' }} />
-              <div className="w-full rounded-t-lg bg-primary/20" style={{ height: '70%' }} />
-              <div className="w-full rounded-t-lg bg-primary/20" style={{ height: '40%' }} />
-              <div className="w-full rounded-t-lg bg-primary/20" style={{ height: '20%' }} />
-              <div className="w-full rounded-t-lg bg-primary/20" style={{ height: '50%' }} />
-              <div className="w-full rounded-t-lg bg-primary" style={{ height: '80%' }} />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sacramentos por Tipo</h3>
+          {loading && <p className="text-sm text-gray-500">Cargando...</p>}
+          {error && <p className="text-sm text-red-600">Error: {error}</p>}
+          {!loading && !error && (
+            <div className="mt-4">
+              {counts.length === 0 && <p className="text-sm text-gray-500">No hay datos disponibles.</p>}
+              <ul className="space-y-2">
+                {counts.map((c) => (
+                  <li key={c.tipo} className="flex justify-between items-center border-b py-2">
+                    <span className="text-sm text-gray-700 dark:text-gray-200">{c.tipo}</span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">{c.total}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="rounded-xl bg-white dark:bg-gray-800/50 p-6 shadow-sm">

@@ -285,36 +285,30 @@ export default function Personas() {
                 </div>
         </form>
       </div>
+
       <div className="mt-8 bg-white dark:bg-background-dark/50 rounded-xl shadow-sm">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sacramentos Vinculados</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Historial de Sacramentos</h3>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-600">Use la página de <strong>Sacramento</strong> para crear nuevos registros de sacramentos.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                  <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400">
-                    <tr>
-                      <th className="px-6 py-3" scope="col">Sacramento</th>
-                      <th className="px-6 py-3" scope="col">Fecha</th>
-                      <th className="px-6 py-3" scope="col">Lugar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="bg-white dark:bg-background-dark/50 border-b dark:border-gray-700">
-                      <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" scope="row">Bautizo</th>
-                      <td className="px-6 py-4">2000-05-15</td>
-                      <td className="px-6 py-4">Parroquia San Juan</td>
-                    </tr>
-                    <tr className="bg-white dark:bg-background-dark/50 border-b dark:border-gray-700">
-                      <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" scope="row">Confirmación</th>
-                      <td className="px-6 py-4">2015-08-20</td>
-                      <td className="px-6 py-4">Catedral Metropolitana</td>
-                    </tr>
-                    <tr className="bg-white dark:bg-background-dark/50">
-                      <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" scope="row">Matrimonio</th>
-                      <td className="px-6 py-4">2025-03-10</td>
-                      <td className="px-6 py-4">Iglesia del Carmen</td>
-                    </tr>
-                  </tbody>
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400">
+              <tr>
+                <th className="px-6 py-3" scope="col">Sacramento</th>
+                <th className="px-6 py-3" scope="col">Fecha</th>
+                <th className="px-6 py-3" scope="col">Lugar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="bg-white dark:bg-background-dark/50 border-b dark:border-gray-700">
+                <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" scope="row">Bautizo</th>
+                <td className="px-6 py-4">2000-05-15</td>
+                <td className="px-6 py-4">Parroquia San Juan</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>

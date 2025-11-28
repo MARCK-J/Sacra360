@@ -1,0 +1,29 @@
+# FastAPI y servidor
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Base de datos
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# Autenticación y seguridad
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+pyjwt==2.8.0
+bcrypt==4.0.1
+
+# Configuración
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic[email]==2.5.0
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Utilidades
+python-dateutil==2.8.2
+requests==2.31.0
+
+# Logging
+python-json-logger==2.0.7

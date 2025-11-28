@@ -201,3 +201,15 @@ def filter_by_estado_civil(
         estado_civil=estado_civil
     )
     return [PersonaResponseDTO.model_validate(p) for p in personas]
+
+
+@router.get("/{persona_id}/sacramentos", summary="Obtener sacramentos de una persona")
+def get_sacramentos_de_persona(persona_id: int, db: Session = Depends(get_db)):
+    """Devuelve la lista de sacramentos asociados a una persona"""
+    try:
+        sql = "SELECT s.*, ts.nombre as tipo_nombre FROM sacramentos s LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id WHERE s.persona_id = :pid ORDER BY s.fecha_sacramento DESC"
+        res = db.execute(sql, {"pid": persona_id})
+        rows = [dict(r._mapping) for r in res.fetchall()]
+        return rows
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
