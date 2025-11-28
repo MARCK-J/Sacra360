@@ -5,6 +5,7 @@ const navItems = [
   { to: '/digitalizacion', label: 'Digitalización', icon: 'cloud_upload' },
   { to: '/revision-ocr', label: 'Revisión OCR', icon: 'document_scanner' },
   { to: '/registros', label: 'Registros', icon: 'menu_book' },
+  { to: '/sacramento', label: 'Sacramento', icon: 'qr_code_scanner' },
   { to: '/personas', label: 'Personas', icon: 'group' },
   { to: '/libros', label: 'Libros', icon: 'import_contacts' },
   { to: '/certificados', label: 'Certificados', icon: 'workspace_premium' },

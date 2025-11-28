@@ -19,6 +19,8 @@ from app.controllers.sacramento_controller import router as sacramento_router
 from app.controllers.institucion_controller import router as institucion_router
 from app.controllers.digitalizacion_controller import router as digitalizacion_router
 from app.controllers.validacion_controller import router as validacion_router
+from app.controllers.sacramento_controller import router as sacramento_router
+from app.controllers.reportes_controller import router as reportes_router
 
 # Importar configuración de base de datos y modelos
 from app.database import engine, Base
@@ -99,6 +101,7 @@ app.include_router(sacramento_router, prefix="/api/v1")
 app.include_router(institucion_router, prefix="/api/v1")
 app.include_router(digitalizacion_router)  # Ya incluye su propio prefix
 app.include_router(validacion_router, prefix="/api/v1/validacion", tags=["validacion"])
+app.include_router(reportes_router, prefix="/api/v1")
 
 # Manejador de errores global
 @app.exception_handler(Exception)

@@ -10,15 +10,33 @@ from typing import Optional, Dict, Any, List
 import secrets
 import re
 from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 
 
 # Configuración de encriptación
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Configuración JWT (en producción, usar variables de entorno)
-SECRET_KEY = "tu-clave-secreta-muy-segura-cambia-en-produccion"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Configuración JWT (leer desde variables de entorno)
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "sacra360-secret-key-change-in-production")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+# OAuth2 scheme
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+
+# Dependencia de base de datos
+from app.database import SessionLocal
+
+def get_db():
+    """Genera una sesión de base de datos"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class PasswordUtils:
@@ -297,3 +315,77 @@ class Constants:
         "X-XSS-Protection": "1; mode=block",
         "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
     }
+
+
+# ==========================================
+# Funciones standalone para compatibilidad
+# ==========================================
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifica si una contraseña coincide con su hash"""
+    return PasswordUtils.verify_password(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """Hashea una contraseña"""
+    return PasswordUtils.hash_password(password)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Crea un token de acceso JWT"""
+    return JWTUtils.create_access_token(data, expires_delta)
+
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene el usuario actual desde el token JWT
+    
+    Args:
+        token: Token JWT del header Authorization
+        db: Sesión de base de datos
+        
+    Returns:
+        Usuario autenticado
+        
+    Raises:
+        HTTPException: Si el token es inválido o el usuario no existe
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="No se pudo validar las credenciales",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        # Verificar y decodificar el token
+        payload = JWTUtils.verify_token(token)
+        email: str = payload.get("sub")
+        
+        if email is None:
+            raise credentials_exception
+            
+    except jwt.JWTError:
+        raise credentials_exception
+    
+    # Buscar usuario en la base de datos
+    from app.entities.user_entity import Usuario
+    user = db.query(Usuario).filter(Usuario.email == email).first()
+    
+    if user is None:
+        raise credentials_exception
+        
+    if not user.activo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario inactivo"
+        )
+    
+    return user
+
+
+# Exportar constantes comunes
+ACCESS_TOKEN_EXPIRE_MINUTES = Constants.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = Constants.REFRESH_TOKEN_EXPIRE_DAYS
