@@ -11,6 +11,7 @@ import Usuarios from './pages/Usuarios'
 import Reportes from './pages/Reportes'
 import Certificados from './pages/Certificados'
 import Sacramento from './pages/Sacramento'
+import Sacramentos from './pages/Sacramentos'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/revision-ocr" element={<RevisionOCR />} />
       <Route path="/libros" element={<Libros />} />
       <Route path="/sacramento" element={<Sacramento />} />
+      <Route path="/sacramentos" element={<Sacramentos />} />
       <Route path="/usuarios" element={<Usuarios />} />
       <Route path="/reportes" element={<Reportes />} />
       <Route path="/certificados" element={<Certificados />} />
