@@ -139,9 +139,9 @@ CREATE TABLE personas (
     apellido_paterno varchar(50)  NOT NULL,
     apellido_materno varchar(50)  NOT NULL,
     fecha_nacimiento date  NOT NULL,
-    lugar_nacimiento varchar(100)  NOT NULL,
-    nombre_padre varchar(100)  NOT NULL,
-    nombre_madre varchar(100)  NOT NULL,
+    fecha_bautismo date  NOT NULL,
+    nombre_padre_nombre_madre varchar(200)  NOT NULL,
+    nombre_padrino_nombre_madrina varchar(200)  NOT NULL,
     CONSTRAINT personas_pk PRIMARY KEY (id_persona)
 );
 
@@ -156,7 +156,8 @@ CREATE TABLE sacramentos (
     fecha_sacramento date  NOT NULL,
     fecha_registro timestamp  NOT NULL,
     fecha_actualizacion timestamp  NOT NULL,
-    CONSTRAINT sacramentos_pk PRIMARY KEY (id_sacramento)
+    CONSTRAINT sacramentos_pk PRIMARY KEY (id_sacramento),
+    CONSTRAINT sacramentos_unico_por_registro UNIQUE (persona_id, tipo_id, fecha_sacramento, libro_id)
 );
 
 -- Table: tipos_sacramentos

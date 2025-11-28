@@ -1,34 +1,27 @@
-from sqlalchemy import Column, Integer, String, Date, Text, Boolean, DateTime
-from sqlalchemy.sql import func
-from app.database import Base
+"""
+Módulo de modelos SQLAlchemy
+Importa todos los modelos para que estén disponibles
+"""
+from app.models.persona_model import PersonaModel
+from app.models.libro_model import LibroModel
+from app.models.tipo_sacramento_model import TipoSacramentoModel
+from app.models.sacramento_model import SacramentoModel
+from app.models.institucion_model import InstitucionModel
+from app.models.usuario_model import UsuarioModel
+from app.models.documento_model import DocumentoDigitalizadoModel
+from app.models.validacion_model import ValidacionTupla
+from app.models.correccion_model import CorreccionDocumento
+from app.models.ocr_model import OCRResultado
 
-class PersonaModel(Base):
-    __tablename__ = "personas"
-    
-    id_persona = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nombres = Column(String(100), nullable=False)
-    apellido_paterno = Column(String(50), nullable=False)
-    apellido_materno = Column(String(50), nullable=False)
-    fecha_nacimiento = Column(Date, nullable=False)
-    lugar_nacimiento = Column(String(100), nullable=False)
-    nombre_padre = Column(String(100), nullable=False)
-    nombre_madre = Column(String(100), nullable=False)
-
-class LibroModel(Base):
-    __tablename__ = "libros"
-    
-    id_libro = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nombre = Column(String(50), nullable=False)
-    fecha_inicio = Column(Date, nullable=False)
-    fecha_fin = Column(Date, nullable=False)
-    observaciones = Column(Text, nullable=True)
-
-class TipoSacramentoModel(Base):
-    __tablename__ = "tipos_sacramentos"
-    
-    id_tipo = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    nombre = Column(String(50), nullable=False, unique=True)
-    descripcion = Column(Text, nullable=True)
-
-# Exportar los modelos para facilitar las importaciones
-__all__ = ["PersonaModel", "LibroModel", "TipoSacramentoModel"]
+__all__ = [
+    "PersonaModel",
+    "LibroModel",
+    "TipoSacramentoModel",
+    "SacramentoModel",
+    "InstitucionModel",
+    "UsuarioModel",
+    "DocumentoDigitalizadoModel",
+    "ValidacionTupla",
+    "CorreccionDocumento",
+    "OCRResultado"
+]

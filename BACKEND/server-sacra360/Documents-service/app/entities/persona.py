@@ -9,9 +9,9 @@ class Persona:
     apellido_paterno: str
     apellido_materno: str
     fecha_nacimiento: date
-    lugar_nacimiento: str
-    nombre_padre: str
-    nombre_madre: str
+    fecha_bautismo: date
+    nombre_padre_nombre_madre: str
+    nombre_padrino_nombre_madrina: str
     
     @classmethod
     def from_orm(cls, orm_obj):
@@ -22,7 +22,7 @@ class Persona:
             apellido_paterno=orm_obj.apellido_paterno,
             apellido_materno=orm_obj.apellido_materno,
             fecha_nacimiento=orm_obj.fecha_nacimiento,
-            lugar_nacimiento=orm_obj.lugar_nacimiento,
-            nombre_padre=orm_obj.nombre_padre,
-            nombre_madre=orm_obj.nombre_madre
+            fecha_bautismo=orm_obj.fecha_bautismo,
+            nombre_padre_nombre_madre=orm_obj.nombre_padre_nombre_madre,
+            nombre_padrino_nombre_madrina=orm_obj.nombre_padrino_nombre_madrina
         )
