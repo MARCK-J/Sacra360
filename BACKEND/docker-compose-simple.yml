@@ -77,6 +77,25 @@ services:
     networks:
       - sacra360_network
 
+  # AuthProfiles Service - Puerto 8004
+  authprofiles-service:
+    build:
+      context: ./server-sacra360/AuthProfiles-service
+      dockerfile: Dockerfile
+    container_name: sacra360_authprofiles_service
+    environment:
+      - DATABASE_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - SECRET_KEY=sacra360-secret-key-change-in-production-use-strong-key
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8002,http://localhost:8001
+    ports:
+      - "8004:8004"
+    depends_on:
+      - postgres
+    networks:
+      - sacra360_network
+
 volumes:
   postgres_data:
     driver: local
