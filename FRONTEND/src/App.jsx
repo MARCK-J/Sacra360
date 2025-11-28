@@ -10,6 +10,7 @@ import Libros from './pages/Libros'
 import Usuarios from './pages/Usuarios'
 import Reportes from './pages/Reportes'
 import Certificados from './pages/Certificados'
+import Sacramento from './pages/Sacramento'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/digitalizacion" element={<Digitalizacion />} />
       <Route path="/revision-ocr" element={<RevisionOCR />} />
       <Route path="/libros" element={<Libros />} />
+      <Route path="/sacramento" element={<Sacramento />} />
       <Route path="/usuarios" element={<Usuarios />} />
       <Route path="/reportes" element={<Reportes />} />
       <Route path="/certificados" element={<Certificados />} />

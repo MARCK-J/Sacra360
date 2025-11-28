@@ -33,8 +33,37 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
             tipo_id = int(tipo)
 
         persona_id = payload.get("id_persona") or payload.get("persona_id")
+        # Si no se proporciona persona_id, permitir crear una persona simple a partir de campos del formulario
         if not persona_id:
-            raise HTTPException(status_code=422, detail="id_persona requerido")
+            # intentar leer nombre / fecha de nacimiento
+            person_name = payload.get("person_name") or payload.get("nombres")
+            person_birth = payload.get("person_birthdate") or payload.get("fecha_nacimiento") or payload.get("fecha_nacimiento_persona")
+            padre = payload.get("father_name") or payload.get("nombre_padre")
+            madre = payload.get("mother_name") or payload.get("nombre_madre")
+            if person_name:
+                # Insertar persona mínima. Los campos apellido_paterno/materno no son obligatorios en la inserción aquí (se usan valores vacíos si no vienen)
+                ap1 = payload.get("apellido_paterno") or ""
+                ap2 = payload.get("apellido_materno") or ""
+                try:
+                    lugar = payload.get("lugar_nacimiento") or payload.get("place_of_birth") or ""
+                    res_p = db.execute(text(
+                        "INSERT INTO personas (nombres, apellido_paterno, apellido_materno, fecha_nacimiento, lugar_nacimiento, nombre_padre, nombre_madre) VALUES (:n, :ap1, :ap2, :fn, :lugar, :np, :nm) RETURNING id_persona"
+                    ), {
+                        "n": person_name,
+                        "ap1": ap1,
+                        "ap2": ap2,
+                        "fn": person_birth,
+                        "lugar": lugar,
+                        "np": padre,
+                        "nm": madre
+                    })
+                    persona_id = res_p.fetchone()[0]
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                    raise HTTPException(status_code=500, detail="Error creando persona asociada")
+            else:
+                raise HTTPException(status_code=422, detail="id_persona o person_name requerido")
 
         libro_id = payload.get("libro_id") or payload.get("libro") or payload.get("libro_registro")
         # si libro viene como nombre, intentar resolver
@@ -48,7 +77,26 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
                 libro_id = res.fetchone()[0]
 
         usuario_id = payload.get("usuario_registro_id") or payload.get("usuario_id") or 1
-        institucion_id = payload.get("institucion_id") or payload.get("institucion") or payload.get("parroquia_id") or 1
+        institucion_val = payload.get("institucion_id") or payload.get("institucion") or payload.get("parroquia") or payload.get("sacrament_location") or payload.get("sacrament-location")
+        institucion_id = None
+        # Si se pasó un nombre de institución/parroquia intentar resolver o crear
+        if institucion_val:
+            try:
+                if isinstance(institucion_val, int):
+                    institucion_id = institucion_val
+                else:
+                    r = db.execute(text("SELECT id_institucion FROM institucionesparroquias WHERE lower(nombre)=lower(:n) LIMIT 1"), {"n": institucion_val}).fetchone()
+                    if r:
+                        institucion_id = r[0]
+                    else:
+                        ins = db.execute(text("INSERT INTO institucionesparroquias (nombre) VALUES (:n) RETURNING id_institucion"), {"n": institucion_val})
+                        institucion_id = ins.fetchone()[0]
+                        db.commit()
+            except Exception:
+                db.rollback()
+                institucion_id = 1
+        if not institucion_id:
+            institucion_id = 1
 
         fecha_raw = payload.get("fecha_sacramento")
         if not fecha_raw:
@@ -79,6 +127,22 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
         })
         sac_id = res.fetchone()[0]
         db.commit()
+
+        # Si es bautizo, opcionalmente insertar detalles (ministro, padrino, foja, numero)
+        try:
+            if tipo_id == 1:  # asumimos id 1 = bautizo en el catálogo
+                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
+                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
+                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
+                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
+                fecha_det = fecha_sac
+                if any([ministro, padrino, foja, numero]):
+                    db.execute(text(
+                        "INSERT INTO detalles_bautizo (sacramento_id, padrino, ministro, foja, numero, fecha_bautizo) VALUES (:sid, :pad, :min, :foj, :num, :f)"
+                    ), {"sid": sac_id, "pad": padrino, "min": ministro, "foj": foja, "num": numero, "f": fecha_det})
+                    db.commit()
+        except Exception:
+            db.rollback()
 
         row = db.execute(text("SELECT * FROM sacramentos WHERE id_sacramento = :id"), {"id": sac_id}).fetchone()
         if not row:
