@@ -651,21 +651,29 @@ class ValidacionService:
             except:
                 fecha_sacramento = "2000-01-01"
             
-            # 5. Procesar nombres de padres
+            # 5. Procesar nombres de padres y padrinos
             padres_texto = campos_corregidos.get("padres", "No especificado")
-            nombre_padre = padres_texto[:100] if padres_texto else "No especificado"
-            nombre_madre = padres_texto[100:200] if len(padres_texto) > 100 else "No especificado"
+            padrinos_texto = campos_corregidos.get("padrinos", "No especificado")
+            
+            # Combinar padre y madre en un solo campo
+            nombre_padre_nombre_madre = padres_texto[:200] if padres_texto else "No especificado"
+            
+            # Combinar padrino y madrina en un solo campo
+            nombre_padrino_nombre_madrina = padrinos_texto[:200] if padrinos_texto else "No especificado"
+            
+            # Usar fecha del sacramento como fecha_bautismo estimada
+            fecha_bautismo = fecha_sacramento
             
             # 6. Insertar en tabla personas
             insert_persona = text("""
                 INSERT INTO personas (
                     nombres, apellido_paterno, apellido_materno,
-                    fecha_nacimiento, lugar_nacimiento,
-                    nombre_padre, nombre_madre
+                    fecha_nacimiento, fecha_bautismo,
+                    nombre_padre_nombre_madre, nombre_padrino_nombre_madrina
                 ) VALUES (
                     :nombres, :ap_paterno, :ap_materno,
-                    :fecha_nac, :lugar_nac,
-                    :padre, :madre
+                    :fecha_nac, :fecha_bautismo,
+                    :padre_madre, :padrino_madrina
                 )
                 RETURNING id_persona
             """)
@@ -675,9 +683,9 @@ class ValidacionService:
                 "ap_paterno": apellido_paterno,
                 "ap_materno": apellido_materno,
                 "fecha_nac": fecha_nacimiento,
-                "lugar_nac": campos_corregidos.get("parroquia_bautismo", "No especificado")[:100],
-                "padre": nombre_padre,
-                "madre": nombre_madre
+                "fecha_bautismo": fecha_bautismo,
+                "padre_madre": nombre_padre_nombre_madre,
+                "padrino_madrina": nombre_padrino_nombre_madrina
             })
             
             persona_id = result_persona.fetchone()[0]

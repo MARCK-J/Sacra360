@@ -204,7 +204,7 @@ const ValidacionOCRModal = ({
       documento_id: documentoId,
       tupla_numero: tupla.tupla_numero,
       tupla_id_ocr: tupla.id_ocr,
-      usuario_validador_id: 1, // TODO: Obtener del contexto de usuario
+      usuario_validador_id: 4, // Usuario Admin Sistema
       institucion_id: institucionSeleccionada,
       datos_validados: datosValidados,
       observaciones,

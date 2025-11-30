@@ -348,7 +348,8 @@ async def validar_tupla_json(
     documento_id: int,
     tupla_numero: int,
     campos_corregidos: Dict[str, Any],
-    usuario_id: int = 1,
+    institucion_id: int,
+    usuario_id: int = 4,
     db: Session = Depends(get_db)
 ):
     """
@@ -365,7 +366,8 @@ async def validar_tupla_json(
         documento_id: ID del documento
         tupla_numero: Número de la tupla (1-10)
         campos_corregidos: Diccionario con los campos validados/corregidos
-        usuario_id: ID del usuario que valida
+        institucion_id: ID de la institución/parroquia
+        usuario_id: ID del usuario que valida (default 4)
         
     Returns:
         Resultado de la validación con IDs creados
@@ -376,6 +378,7 @@ async def validar_tupla_json(
             tupla_numero=tupla_numero,
             campos_corregidos=campos_corregidos,
             usuario_id=usuario_id,
+            institucion_id=institucion_id,
             db=db
         )
         return resultado
