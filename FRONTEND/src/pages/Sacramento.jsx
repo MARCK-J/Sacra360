@@ -191,12 +191,22 @@ export default function Sacramento() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Si es Confirmación (tipo 2), usar la lógica de Registros.jsx
+    // Bautizo (tipo 1)
+    if (form.tipo_sacramento === 1) {
+      return await handleSubmitBautizo()
+    }
+    
+    // Confirmación (tipo 2)
     if (form.tipo_sacramento === 2) {
       return await handleSubmitConfirmacion()
     }
     
-    // Lógica original para otros sacramentos
+    // Matrimonio (tipo 3)
+    if (form.tipo_sacramento === 3) {
+      return await handleSubmitMatrimonio()
+    }
+    
+    // Lógica original para otros sacramentos (Defunción, etc.)
     setLoading(true)
     setMessage(null)
     try {
@@ -338,6 +348,104 @@ export default function Sacramento() {
     setValidacionDuplicado(null)
     setMessage(null)
   }
+  
+  const handleSubmitBautizo = async () => {
+    setLoading(true)
+    setMessage(null)
+    
+    try {
+      const bautizoData = {
+        libro_id: parseInt(libroSeleccionado),
+        institucion_id: parseInt(institucionSeleccionada),
+        fecha_sacramento: form.fecha_sacramento,
+        nombres: persona.nombres,
+        apellido_paterno: persona.apellido_paterno,
+        apellido_materno: persona.apellido_materno,
+        fecha_nacimiento: persona.fecha_nacimiento,
+        fecha_bautismo: persona.fecha_bautismo,
+        nombre_padre_nombre_madre: persona.nombre_padre_nombre_madre,
+        nombre_padrino_nombre_madrina: persona.nombre_padrino_nombre_madrina,
+        usuario_id: 4
+      }
+      
+      const res = await fetch(`${API_URL}/bautizos/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bautizoData)
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || 'Error al registrar bautizo')
+      }
+      
+      const resultado = await res.json()
+      setMessage({ type: 'success', text: `✓ Bautizo registrado. Persona ID: ${resultado.persona_id}, Sacramento ID: ${resultado.sacramento_id}` })
+      
+      setTimeout(() => {
+        resetFormConfirmacion()
+      }, 2000)
+      
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error: ' + err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  const handleSubmitMatrimonio = async () => {
+    setLoading(true)
+    setMessage(null)
+    
+    try {
+      const matrimonioData = {
+        libro_id: parseInt(libroSeleccionado),
+        institucion_id: parseInt(institucionSeleccionada),
+        fecha_sacramento: form.fecha_sacramento,
+        nombres_esposo: persona.nombres_esposo || '',
+        apellido_paterno_esposo: persona.apellido_paterno_esposo || '',
+        apellido_materno_esposo: persona.apellido_materno_esposo || '',
+        fecha_nacimiento_esposo: persona.fecha_nacimiento_esposo || '',
+        fecha_bautismo_esposo: persona.fecha_bautismo_esposo || '',
+        nombre_padrino_nombre_madrina_esposo: persona.nombre_padrino_nombre_madrina_esposo || '',
+        nombres_esposa: persona.nombres_esposa || '',
+        apellido_paterno_esposa: persona.apellido_paterno_esposa || '',
+        apellido_materno_esposa: persona.apellido_materno_esposa || '',
+        fecha_nacimiento_esposa: persona.fecha_nacimiento_esposa || '',
+        fecha_bautismo_esposa: persona.fecha_bautismo_esposa || '',
+        nombre_padrino_nombre_madrina_esposa: persona.nombre_padrino_nombre_madrina_esposa || '',
+        nombre_padre_esposo: persona.nombre_padre_esposo || '',
+        nombre_madre_esposo: persona.nombre_madre_esposo || '',
+        nombre_padre_esposa: persona.nombre_padre_esposa || '',
+        nombre_madre_esposa: persona.nombre_madre_esposa || '',
+        testigos: persona.testigos || '',
+        usuario_id: 4
+      }
+      
+      const res = await fetch(`${API_URL}/matrimonios/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(matrimonioData)
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || 'Error al registrar matrimonio')
+      }
+      
+      const resultado = await res.json()
+      setMessage({ type: 'success', text: `✓ Matrimonio registrado. Esposo ID: ${resultado.esposo_id}, Esposa ID: ${resultado.esposa_id}, Sacramento ID: ${resultado.sacramento_id}` })
+      
+      setTimeout(() => {
+        resetFormConfirmacion()
+      }, 2000)
+      
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error: ' + err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Layout title="Registrar Nuevo Sacramento">
@@ -369,8 +477,8 @@ export default function Sacramento() {
               </div>
             )}
             
-            {/* Para Confirmación, mostrar selección de Libro e Institución */}
-            {form.tipo_sacramento === 2 && (
+            {/* Para Bautizo, Confirmación y Matrimonio, mostrar selección de Libro e Institución */}
+            {[1, 2, 3].includes(form.tipo_sacramento) && (
               <>
                 <div className="flex flex-col gap-4">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Libro e Institución</h3>
@@ -429,18 +537,6 @@ export default function Sacramento() {
                     disabled={form.tipo_sacramento === 2 && !institucionSeleccionada}
                   />
                 </div>
-                {form.tipo_sacramento !== 2 && (
-                  <>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-location">Lugar (Parroquia)</label>
-                      <input name="sacrament_location" value={form.sacrament_location} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-location" placeholder="Ej: Parroquia San Miguel" type="text" />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-minister">Ministro</label>
-                      <input name="sacrament_minister" value={form.sacrament_minister} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-minister" placeholder="Ej: P. Juan Pérez" type="text" />
-                    </div>
-                  </>
-                )}
               </div>
             </div>
 
@@ -593,6 +689,345 @@ export default function Sacramento() {
                     />
                   </div>
                 </div>
+              ) : form.tipo_sacramento === 1 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="relative">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres *</label>
+                    <input
+                      type="text"
+                      name="nombres"
+                      value={persona.nombres}
+                      onChange={handlePersonaChange}
+                      onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Ej: Juan Carlos"
+                      autoComplete="off"
+                    />
+                    {mostrarSugerencias && campoActivo === 'nombres' && sugerencias.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {sugerencias.map((sugerencia, index) => (
+                          <div
+                            key={index}
+                            onClick={() => seleccionarSugerencia(sugerencia)}
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                          >
+                            {sugerencia}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Paterno *</label>
+                    <input
+                      type="text"
+                      name="apellido_paterno"
+                      value={persona.apellido_paterno}
+                      onChange={handlePersonaChange}
+                      onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Ej: Pérez"
+                      autoComplete="off"
+                    />
+                    {mostrarSugerencias && campoActivo === 'apellido_paterno' && sugerencias.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {sugerencias.map((sugerencia, index) => (
+                          <div
+                            key={index}
+                            onClick={() => seleccionarSugerencia(sugerencia)}
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                          >
+                            {sugerencia}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="relative">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Materno *</label>
+                    <input
+                      type="text"
+                      name="apellido_materno"
+                      value={persona.apellido_materno}
+                      onChange={handlePersonaChange}
+                      onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Ej: González"
+                      autoComplete="off"
+                    />
+                    {mostrarSugerencias && campoActivo === 'apellido_materno' && sugerencias.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {sugerencias.map((sugerencia, index) => (
+                          <div
+                            key={index}
+                            onClick={() => seleccionarSugerencia(sugerencia)}
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                          >
+                            {sugerencia}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Nacimiento *</label>
+                    <input
+                      type="date"
+                      name="fecha_nacimiento"
+                      value={persona.fecha_nacimiento}
+                      onChange={handlePersonaChange}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Lugar de Nacimiento</label>
+                    <input
+                      type="text"
+                      name="lugar_nacimiento"
+                      value={persona.lugar_nacimiento}
+                      onChange={handlePersonaChange}
+                      disabled={!form.fecha_sacramento}
+                      placeholder="Ej: La Paz, Bolivia"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Bautismo *</label>
+                    <input
+                      type="date"
+                      name="fecha_bautismo"
+                      value={persona.fecha_bautismo}
+                      onChange={handlePersonaChange}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres de los Padres *</label>
+                    <input
+                      type="text"
+                      name="nombre_padre_nombre_madre"
+                      value={persona.nombre_padre_nombre_madre}
+                      onChange={handlePersonaChange}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      placeholder="Ej: Juan Pérez / María González"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres del Padrino y Madrina *</label>
+                    <input
+                      type="text"
+                      name="nombre_padrino_nombre_madrina"
+                      value={persona.nombre_padrino_nombre_madrina}
+                      onChange={handlePersonaChange}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      placeholder="Ej: Carlos Gómez / Ana Fernández"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+              ) : form.tipo_sacramento === 3 ? (
+                <div className="space-y-6">
+                  {/* Datos del Esposo */}
+                  <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4">Datos del Esposo</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres *</label>
+                        <input
+                          type="text"
+                          name="nombres_esposo"
+                          value={persona.nombres_esposo || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="Ej: Juan Carlos"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Paterno *</label>
+                        <input
+                          type="text"
+                          name="apellido_paterno_esposo"
+                          value={persona.apellido_paterno_esposo || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="Ej: Pérez"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Materno *</label>
+                        <input
+                          type="text"
+                          name="apellido_materno_esposo"
+                          value={persona.apellido_materno_esposo || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="Ej: González"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Nacimiento *</label>
+                        <input
+                          type="date"
+                          name="fecha_nacimiento_esposo"
+                          value={persona.fecha_nacimiento_esposo || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Bautismo *</label>
+                        <input
+                          type="date"
+                          name="fecha_bautismo_esposo"
+                          value={persona.fecha_bautismo_esposo || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres de los Padres del Esposo *</label>
+                        <input
+                          type="text"
+                          name="padres_esposo"
+                          value={persona.padres_esposo || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          placeholder="Ej: Juan Pérez / María González"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Datos de la Esposa */}
+                  <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-4">
+                    <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4">Datos de la Esposa</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres *</label>
+                        <input
+                          type="text"
+                          name="nombres_esposa"
+                          value={persona.nombres_esposa || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="Ej: Ana María"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Paterno *</label>
+                        <input
+                          type="text"
+                          name="apellido_paterno_esposa"
+                          value={persona.apellido_paterno_esposa || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="Ej: Flores"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Materno *</label>
+                        <input
+                          type="text"
+                          name="apellido_materno_esposa"
+                          value={persona.apellido_materno_esposa || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="Ej: Quispe"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Nacimiento *</label>
+                        <input
+                          type="date"
+                          name="fecha_nacimiento_esposa"
+                          value={persona.fecha_nacimiento_esposa || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Bautismo *</label>
+                        <input
+                          type="date"
+                          name="fecha_bautismo_esposa"
+                          value={persona.fecha_bautismo_esposa || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres de los Padres de la Esposa *</label>
+                        <input
+                          type="text"
+                          name="padres_esposa"
+                          value={persona.padres_esposa || ''}
+                          onChange={handlePersonaChange}
+                          required
+                          disabled={!form.fecha_sacramento}
+                          placeholder="Ej: Pedro Flores / Carmen Quispe"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Testigos */}
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Testigos *</label>
+                    <input
+                      type="text"
+                      name="testigos"
+                      value={persona.testigos || ''}
+                      onChange={handlePersonaChange}
+                      required
+                      disabled={!form.fecha_sacramento}
+                      placeholder="Ej: Roberto Sánchez / Laura Martínez"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
@@ -617,56 +1052,6 @@ export default function Sacramento() {
                 {validacionDuplicado.mensaje}
               </div>
             )}
-
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Familiares</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre</label>
-                  <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre</label>
-                  <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
-                </div>
-              </div>
-            </div>
-
-            {form.tipo_sacramento === 1 && (
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-800 pb-3">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Padrinos</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="godparent-1-name">Padrino / Madrina 1</label>
-                    <input name="godparent_1_name" value={form.godparent_1_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="godparent-1-name" placeholder="Nombre completo" type="text" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Datos del Libro de Registro</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="book-number">Libro N°</label>
-                  <input name="book_number" value={form.book_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="book-number" placeholder="Ej: 12" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="folio-number">Folio N°</label>
-                  <input name="folio_number" value={form.folio_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="folio-number" placeholder="Ej: 45" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="record-number">Partida N°</label>
-                  <input name="record_number" value={form.record_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="record-number" placeholder="Ej: 89" type="text" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="notes">Notas</label>
-                <textarea name="notes" value={form.notes} onChange={handleChange} className="form-textarea rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="notes" placeholder="Añada cualquier observación o nota marginal." rows="3"></textarea>
-              </div>
-            </div>
 
             <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
               <button type="button" className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 gap-2 text-sm font-bold min-w-0 px-6 hover:bg-gray-300 dark:hover:bg-gray-600">

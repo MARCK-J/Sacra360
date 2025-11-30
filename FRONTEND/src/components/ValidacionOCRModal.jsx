@@ -292,6 +292,7 @@ const ValidacionOCRModal = ({
    * Orden de campos según la tabla de las hojas
    */
   const ORDEN_CAMPOS = [
+    'parroquia_bautismo',
     'nombre_confirmando',
     'dia_nacimiento',
     'mes_nacimiento',
@@ -319,6 +320,7 @@ const ValidacionOCRModal = ({
    */
   const obtenerEtiquetaCampo = (nombreCampo) => {
     const etiquetas = {
+      'parroquia_bautismo': '🏛️ PARROQUIA DE BAUTISMO (detectada por OCR)',
       'nombre_confirmando': 'CONFIRMANDO (Nombre - Ap. Paterno - Ap. Materno)',
       'dia_nacimiento': 'Día de Nacimiento',
       'mes_nacimiento': 'Mes de Nacimiento',
@@ -369,6 +371,28 @@ const ValidacionOCRModal = ({
     };
 
     const tieneCorreccion = correcciones[idLocal];
+
+    // Si es el campo de parroquia_bautismo, renderizar como solo lectura
+    if (campo.campo === 'parroquia_bautismo') {
+      return (
+        <div key={idLocal} className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg col-span-full">
+          <div className="flex justify-between items-start mb-2">
+            <label className="font-semibold text-blue-800">
+              {obtenerEtiquetaCampo(campo.campo)}
+            </label>
+            <span className={`text-xs px-2 py-1 rounded ${getConfianzaColor(campo.confianza)}`}>
+              {Math.round(campo.confianza * 100)}%
+            </span>
+          </div>
+          <div className="p-3 bg-white rounded border-2 border-blue-400 font-medium text-gray-800">
+            {campo.valor_extraido || 'No detectada'}
+          </div>
+          <p className="text-xs text-blue-600 mt-2">
+            ℹ️ Este campo es de referencia. Seleccione la institución correcta en el selector verde más abajo.
+          </p>
+        </div>
+      );
+    }
 
     return (
       <div key={idLocal} className="bg-gray-50 p-4 rounded-lg border">
@@ -478,30 +502,6 @@ const ValidacionOCRModal = ({
             </div>
           </div>
 
-          {/* Selector de Institución/Parroquia */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-blue-100 mb-2">
-              🏛️ Institución/Parroquia *
-            </label>
-            <select
-              value={institucionSeleccionada || ''}
-              onChange={(e) => setInstitucionSeleccionada(parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={loading || instituciones.length === 0}
-            >
-              <option value="">Seleccione una institución...</option>
-              {instituciones.map((inst) => (
-                <option key={inst.id_institucion} value={inst.id_institucion}>
-                  {inst.nombre} {inst.direccion ? `- ${inst.direccion}` : ''}
-                </option>
-              ))}
-            </select>
-            {!institucionSeleccionada && (
-              <p className="text-xs text-yellow-200 mt-1">
-                ⚠️ Debe seleccionar una institución para poder validar
-              </p>
-            )}
-          </div>
         </div>
 
         {/* Content */}
@@ -560,6 +560,31 @@ const ValidacionOCRModal = ({
                 >
                   {modoEdicion ? 'Ver Modo' : 'Editar'}
                 </button>
+              </div>
+
+              {/* Selector de Institución/Parroquia */}
+              <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300 p-4 rounded-lg">
+                <label className="block text-sm font-medium text-green-800 mb-2">
+                  ✅ Seleccione la Institución/Parroquia correcta *
+                </label>
+                <select
+                  value={institucionSeleccionada || ''}
+                  onChange={(e) => setInstitucionSeleccionada(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border-2 border-green-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  disabled={loading || instituciones.length === 0}
+                >
+                  <option value="">Seleccione una institución...</option>
+                  {instituciones.map((inst) => (
+                    <option key={inst.id_institucion} value={inst.id_institucion}>
+                      {inst.nombre} {inst.direccion ? `- ${inst.direccion}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {!institucionSeleccionada && (
+                  <p className="text-xs text-red-600 mt-2 font-medium">
+                    ⚠️ Debe seleccionar una institución para poder validar
+                  </p>
+                )}
               </div>
 
               {/* Campos OCR */}

@@ -21,6 +21,8 @@ from app.controllers.digitalizacion_controller import router as digitalizacion_r
 from app.controllers.validacion_controller import router as validacion_router
 from app.controllers.sacramento_controller import router as sacramento_router
 from app.controllers.reportes_controller import router as reportes_router
+from app.controllers.bautizo_controller import router as bautizo_router
+from app.controllers.matrimonio_controller import router as matrimonio_router
 
 # Importar configuración de base de datos y modelos
 from app.database import engine, Base
@@ -29,6 +31,7 @@ from app.models.documento_model import DocumentoDigitalizadoModel
 from app.models.validacion_model import ValidacionTupla
 from app.models.correccion_model import CorreccionDocumento
 from app.models.ocr_model import OCRResultado
+from app.models.matrimonio_model import MatrimonioModel
 # from app.models.sacramento_model import Sacramento  # Comentado temporalmente
 # from app.models.usuario_model import Usuario  # Comentado temporalmente
 
@@ -102,6 +105,8 @@ app.include_router(institucion_router, prefix="/api/v1")
 app.include_router(digitalizacion_router)  # Ya incluye su propio prefix
 app.include_router(validacion_router, prefix="/api/v1/validacion", tags=["validacion"])
 app.include_router(reportes_router, prefix="/api/v1")
+app.include_router(bautizo_router, prefix="/api/v1")
+app.include_router(matrimonio_router, prefix="/api/v1")
 
 # Manejador de errores global
 @app.exception_handler(Exception)

@@ -76,11 +76,13 @@ CREATE TABLE detalles_matrimonio (
     apellido_materno_esposo varchar(50)  NOT NULL,
     apellido_peterno_esposa varchar(50)  NOT NULL,
     apellido_materno_esposa varchar(50)  NOT NULL,
+    fecha_nacimiento_esposo date  NOT NULL,
+    fecha_nacimiento_esposa date  NOT NULL,
     nombre_padre_esposo varchar(100)  NOT NULL,
     nombre_madre_esposo varchar(100)  NOT NULL,
     nombre_padre_esposa varchar(100)  NOT NULL,
     nombre_madre_esposa varchar(100)  NOT NULL,
-    padrino varchar(100)  NOT NULL,
+    testigos varchar(200)  NOT NULL,
     ministro varchar(100)  NOT NULL,
     foja varchar(10)  NOT NULL,
     numero varchar(10)  NOT NULL,
@@ -158,6 +160,21 @@ CREATE TABLE sacramentos (
     fecha_actualizacion timestamp  NOT NULL,
     CONSTRAINT sacramentos_pk PRIMARY KEY (id_sacramento),
     CONSTRAINT sacramentos_unico_por_registro UNIQUE (persona_id, tipo_id, fecha_sacramento, libro_id)
+);
+
+-- Table: matrimonios
+CREATE TABLE matrimonios (
+    id_matrimonio serial  NOT NULL,
+    sacramento_id int  NOT NULL,
+    esposo_id int  NOT NULL,
+    esposa_id int  NOT NULL,
+    nombre_padre_esposo varchar(100)  NOT NULL,
+    nombre_madre_esposo varchar(100)  NOT NULL,
+    nombre_padre_esposa varchar(100)  NOT NULL,
+    nombre_madre_esposa varchar(100)  NOT NULL,
+    testigos varchar(200)  NOT NULL,
+    CONSTRAINT matrimonios_pk PRIMARY KEY (id_matrimonio),
+    CONSTRAINT matrimonios_sacramento_unico UNIQUE (sacramento_id)
 );
 
 -- Table: tipos_sacramentos
@@ -296,6 +313,30 @@ ALTER TABLE sacramentos ADD CONSTRAINT sacramentos_tipos_sacramentos
 ALTER TABLE sacramentos ADD CONSTRAINT sacramentos_usuarios
     FOREIGN KEY (usuario_id)
     REFERENCES usuarios (id_usuario)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: matrimonios_sacramentos (table: matrimonios)
+ALTER TABLE matrimonios ADD CONSTRAINT matrimonios_sacramentos
+    FOREIGN KEY (sacramento_id)
+    REFERENCES sacramentos (id_sacramento)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: matrimonios_esposo (table: matrimonios)
+ALTER TABLE matrimonios ADD CONSTRAINT matrimonios_esposo
+    FOREIGN KEY (esposo_id)
+    REFERENCES personas (id_persona)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: matrimonios_esposa (table: matrimonios)
+ALTER TABLE matrimonios ADD CONSTRAINT matrimonios_esposa
+    FOREIGN KEY (esposa_id)
+    REFERENCES personas (id_persona)  
     NOT DEFERRABLE 
     INITIALLY IMMEDIATE
 ;
