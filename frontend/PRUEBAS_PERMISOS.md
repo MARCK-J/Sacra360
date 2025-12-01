@@ -1,31 +1,31 @@
-# 🧪 Guía de Pruebas del Sistema de Permisos RBAC
+# ­ƒº¬ Gu├¡a de Pruebas del Sistema de Permisos RBAC
 
-## 📋 Resumen de Implementación
+## ­ƒôï Resumen de Implementaci├│n
 
-Se ha aplicado el sistema de permisos RBAC a **TODOS** los módulos del frontend. Los componentes ahora responden dinámicamente según el rol del usuario logueado.
+Se ha aplicado el sistema de permisos RBAC a **TODOS** los m├│dulos del frontend. Los componentes ahora responden din├ímicamente seg├║n el rol del usuario logueado.
 
 ---
 
-## 🎯 Módulos Actualizados
+## ­ƒÄ» M├│dulos Actualizados
 
-### ✅ 1. Digitalización (`Digitalizacion.jsx`)
+### Ô£à 1. Digitalizaci├│n (`Digitalizacion.jsx`)
 **Permisos aplicados:**
-- ✓ Botón "Seleccionar archivos" → `create`
-- ✓ Botón "Eliminar archivo" (X) → `delete`
-- ✓ Botón "Subir archivos" → `create`
+- Ô£ô Bot├│n "Seleccionar archivos" ÔåÆ `create`
+- Ô£ô Bot├│n "Eliminar archivo" (X) ÔåÆ `delete`
+- Ô£ô Bot├│n "Subir archivos" ÔåÆ `create`
 
 **Comportamiento esperado:**
 - **Administrador**: Ve y puede usar todos los botones
 - **Digitalizador**: Ve botones de crear y subir (NO eliminar)
 - **Validador**: Ve botones de editar documentos
-- **Usuario**: Solo puede VER documentos (sin botones de acción)
+- **Usuario**: Solo puede VER documentos (sin botones de acci├│n)
 
 ---
 
-### ✅ 2. Revisión OCR (`RevisionOCR.jsx`)
+### Ô£à 2. Revisi├│n OCR (`RevisionOCR.jsx`)
 **Permisos aplicados:**
-- ✓ Botones de validación OCR
-- ✓ Modal de corrección de datos
+- Ô£ô Botones de validaci├│n OCR
+- Ô£ô Modal de correcci├│n de datos
 
 **Comportamiento esperado:**
 - **Administrador**: Acceso completo
@@ -35,25 +35,25 @@ Se ha aplicado el sistema de permisos RBAC a **TODOS** los módulos del frontend
 
 ---
 
-### ✅ 3. Registros (`Registros.jsx`)
+### Ô£à 3. Registros (`Registros.jsx`)
 **Permisos aplicados:**
-- ✓ Botón "Ver" (visibility) → Siempre visible
-- ✓ Botón "Editar" (edit) → `update`
-- ✓ Botón "Borrador" (draft) → `update`
-- ✓ Botón "Gavel" → `update`
+- Ô£ô Bot├│n "Ver" (visibility) ÔåÆ Siempre visible
+- Ô£ô Bot├│n "Editar" (edit) ÔåÆ `update`
+- Ô£ô Bot├│n "Borrador" (draft) ÔåÆ `update`
+- Ô£ô Bot├│n "Gavel" ÔåÆ `update`
 
 **Comportamiento esperado:**
 - **Administrador**: Todos los botones visibles (CRUD completo)
-- **Digitalizador**: Solo botón "Ver"
+- **Digitalizador**: Solo bot├│n "Ver"
 - **Validador**: Botones de Ver y Editar
-- **Usuario**: Solo botón "Ver"
+- **Usuario**: Solo bot├│n "Ver"
 
 ---
 
-### ✅ 4. Personas (`Personas.jsx`)
+### Ô£à 4. Personas (`Personas.jsx`)
 **Permisos aplicados:**
-- ✓ Botón "Fusionar Registros" → `update`
-- ✓ Formulario de edición de datos personales
+- Ô£ô Bot├│n "Fusionar Registros" ÔåÆ `update`
+- Ô£ô Formulario de edici├│n de datos personales
 
 **Comportamiento esperado:**
 - **Administrador**: Puede fusionar y editar todo
@@ -63,10 +63,10 @@ Se ha aplicado el sistema de permisos RBAC a **TODOS** los módulos del frontend
 
 ---
 
-### ✅ 5. Libros (`Libros.jsx`)
+### Ô£à 5. Libros (`Libros.jsx`)
 **Permisos aplicados:**
-- ✓ Botón "Guardar Ubicación" → `update`
-- ✓ Formulario de asignación de ubicación física
+- Ô£ô Bot├│n "Guardar Ubicaci├│n" ÔåÆ `update`
+- Ô£ô Formulario de asignaci├│n de ubicaci├│n f├¡sica
 
 **Comportamiento esperado:**
 - **Administrador**: Puede crear y actualizar ubicaciones
@@ -76,10 +76,10 @@ Se ha aplicado el sistema de permisos RBAC a **TODOS** los módulos del frontend
 
 ---
 
-### ✅ 6. Certificados (`Certificados.jsx`)
+### Ô£à 6. Certificados (`Certificados.jsx`)
 **Permisos aplicados:**
-- ✓ Botón "Generar" certificado → `create`
-- ✓ Botón "Previsualizar" → Siempre visible
+- Ô£ô Bot├│n "Generar" certificado ÔåÆ `create`
+- Ô£ô Bot├│n "Previsualizar" ÔåÆ Siempre visible
 
 **Comportamiento esperado:**
 - **Administrador**: Puede generar certificados
@@ -89,45 +89,45 @@ Se ha aplicado el sistema de permisos RBAC a **TODOS** los módulos del frontend
 
 ---
 
-### ✅ 7. Usuarios (`Usuarios.jsx`)
+### Ô£à 7. Usuarios (`Usuarios.jsx`)
 **Permisos aplicados:**
-- ✓ Botones "Editar" en tabla → `update`
-- ✓ Botones "Guardar Cambios" → `update`
-- ✓ Panel de edición de permisos → `update`
+- Ô£ô Botones "Editar" en tabla ÔåÆ `update`
+- Ô£ô Botones "Guardar Cambios" ÔåÆ `update`
+- Ô£ô Panel de edici├│n de permisos ÔåÆ `update`
 
 **Comportamiento esperado:**
-- **Administrador**: CRUD completo de usuarios (ÚNICO con acceso)
-- **Digitalizador**: No tiene acceso al módulo
-- **Validador**: No tiene acceso al módulo
-- **Usuario**: No tiene acceso al módulo
+- **Administrador**: CRUD completo de usuarios (├ÜNICO con acceso)
+- **Digitalizador**: No tiene acceso al m├│dulo
+- **Validador**: No tiene acceso al m├│dulo
+- **Usuario**: No tiene acceso al m├│dulo
 
 ---
 
-### ✅ 8. Auditoría (`Auditoria.jsx`)
+### Ô£à 8. Auditor├¡a (`Auditoria.jsx`)
 **Permisos aplicados:**
-- ✓ Botón "Exportar a CSV" → `read`
+- Ô£ô Bot├│n "Exportar a CSV" ÔåÆ `read`
 
 **Comportamiento esperado:**
-- **Administrador**: Puede ver y exportar logs (ÚNICO con acceso)
-- **Digitalizador**: No tiene acceso al módulo
-- **Validador**: No tiene acceso al módulo
-- **Usuario**: No tiene acceso al módulo
+- **Administrador**: Puede ver y exportar logs (├ÜNICO con acceso)
+- **Digitalizador**: No tiene acceso al m├│dulo
+- **Validador**: No tiene acceso al m├│dulo
+- **Usuario**: No tiene acceso al m├│dulo
 
 ---
 
-### ✅ 9. Reportes (`Reportes.jsx`)
+### Ô£à 9. Reportes (`Reportes.jsx`)
 **Permisos aplicados:**
-- Solo lectura (sin botones de acción)
+- Solo lectura (sin botones de acci├│n)
 
 **Comportamiento esperado:**
 - **Administrador**: Puede ver todos los reportes
-- **Digitalizador**: No tiene acceso al módulo
+- **Digitalizador**: No tiene acceso al m├│dulo
 - **Validador**: Puede ver reportes
-- **Usuario**: No tiene acceso al módulo
+- **Usuario**: No tiene acceso al m├│dulo
 
 ---
 
-## 🧪 Casos de Prueba
+## ­ƒº¬ Casos de Prueba
 
 ### Caso 1: Login como Administrador
 ```
@@ -136,10 +136,10 @@ Password: Admin123!
 ```
 
 **Verificar:**
-- [ ] Todos los módulos visibles en el menú lateral
-- [ ] Todos los botones de acción visibles en cada módulo
-- [ ] Puede crear, editar, eliminar en todos los módulos
-- [ ] Tiene acceso a Usuarios y Auditoría
+- [ ] Todos los m├│dulos visibles en el men├║ lateral
+- [ ] Todos los botones de acci├│n visibles en cada m├│dulo
+- [ ] Puede crear, editar, eliminar en todos los m├│dulos
+- [ ] Tiene acceso a Usuarios y Auditor├¡a
 
 ---
 
@@ -150,12 +150,12 @@ Password: Digita123!
 ```
 
 **Verificar:**
-- [ ] Menú muestra: Digitalización, Registros, Personas, Libros, Certificados
-- [ ] En Digitalización: Puede subir archivos
-- [ ] En Registros: Solo ve botón "Ver" (NO editar)
+- [ ] Men├║ muestra: Digitalizaci├│n, Registros, Personas, Libros, Certificados
+- [ ] En Digitalizaci├│n: Puede subir archivos
+- [ ] En Registros: Solo ve bot├│n "Ver" (NO editar)
 - [ ] En Personas: Solo puede consultar
-- [ ] NO ve módulos de: Usuarios, Auditoría, Reportes
-- [ ] NO ve botón de eliminar en Digitalización
+- [ ] NO ve m├│dulos de: Usuarios, Auditor├¡a, Reportes
+- [ ] NO ve bot├│n de eliminar en Digitalizaci├│n
 
 ---
 
@@ -166,12 +166,12 @@ Password: Revisor123!
 ```
 
 **Verificar:**
-- [ ] Menú muestra: Digitalización, Revisión OCR, Registros, Personas, Libros, Certificados, Reportes
-- [ ] En Revisión OCR: Puede validar y corregir (CRUD completo)
+- [ ] Men├║ muestra: Digitalizaci├│n, Revisi├│n OCR, Registros, Personas, Libros, Certificados, Reportes
+- [ ] En Revisi├│n OCR: Puede validar y corregir (CRUD completo)
 - [ ] En Registros: Puede editar (botones edit, draft, gavel visibles)
 - [ ] En Personas: Puede fusionar duplicados
 - [ ] En Certificados: Puede generar certificados
-- [ ] NO ve módulos de: Usuarios, Auditoría
+- [ ] NO ve m├│dulos de: Usuarios, Auditor├¡a
 
 ---
 
@@ -182,109 +182,109 @@ Password: Consul123!
 ```
 
 **Verificar:**
-- [ ] Menú muestra: Digitalización, Revisión OCR, Registros, Personas, Libros, Certificados
-- [ ] En TODOS los módulos: Solo botón "Ver" visible
+- [ ] Men├║ muestra: Digitalizaci├│n, Revisi├│n OCR, Registros, Personas, Libros, Certificados
+- [ ] En TODOS los m├│dulos: Solo bot├│n "Ver" visible
 - [ ] NO puede crear, editar, ni eliminar nada
-- [ ] NO ve módulos de: Usuarios, Auditoría, Reportes
+- [ ] NO ve m├│dulos de: Usuarios, Auditor├¡a, Reportes
 - [ ] Todos los formularios en modo solo lectura
 
 ---
 
-## 🔍 Pruebas de Navegación
+## ­ƒöì Pruebas de Navegaci├│n
 
-### Test 1: Navegación lateral dinámica
+### Test 1: Navegaci├│n lateral din├ímica
 1. Login con cada rol
-2. Verificar que el menú lateral muestre solo los módulos permitidos
-3. Verificar que los íconos y nombres sean correctos
+2. Verificar que el men├║ lateral muestre solo los m├│dulos permitidos
+3. Verificar que los ├¡conos y nombres sean correctos
 
-### Test 2: Protección de rutas
+### Test 2: Protecci├│n de rutas
 1. Login como Usuario
 2. Intentar acceder manualmente a `/usuarios` (escribir en URL)
 3. Debe redirigir a `/dashboard` o mostrar mensaje de acceso denegado
 
-### Test 3: Persistencia de sesión
+### Test 3: Persistencia de sesi├│n
 1. Login con cualquier rol
-2. Refrescar la página (F5)
-3. Verificar que mantiene la sesión y permisos
+2. Refrescar la p├ígina (F5)
+3. Verificar que mantiene la sesi├│n y permisos
 
 ### Test 4: Logout
 1. Login con cualquier rol
-2. Hacer clic en botón de Logout
-3. Verificar redirección a `/login`
+2. Hacer clic en bot├│n de Logout
+3. Verificar redirecci├│n a `/login`
 4. Verificar que no puede acceder a rutas protegidas
 
 ---
 
-## 📊 Matriz de Verificación Rápida
+## ­ƒôè Matriz de Verificaci├│n R├ípida
 
-| Módulo | Admin | Digitalizador | Validador | Usuario |
+| M├│dulo | Admin | Digitalizador | Validador | Usuario |
 |--------|-------|---------------|-----------|---------|
-| **Digitalización** | CRUD | CRU | RU | R |
-| **Revisión OCR** | CRUD | R | CRUD | R |
+| **Digitalizaci├│n** | CRUD | CRU | RU | R |
+| **Revisi├│n OCR** | CRUD | R | CRUD | R |
 | **Registros** | CRUD | R | RU | R |
 | **Personas** | CRUD | R | RU | R |
 | **Libros** | CRUD | R | R | R |
 | **Certificados** | CRUD | R | CR | R |
-| **Usuarios** | CRUD | ❌ | ❌ | ❌ |
-| **Auditoría** | R | ❌ | ❌ | ❌ |
-| **Reportes** | R | ❌ | R | ❌ |
+| **Usuarios** | CRUD | ÔØî | ÔØî | ÔØî |
+| **Auditor├¡a** | R | ÔØî | ÔØî | ÔØî |
+| **Reportes** | R | ÔØî | R | ÔØî |
 
 **Leyenda:**
 - C = Create (Crear)
 - R = Read (Leer/Ver)
 - U = Update (Actualizar/Editar)
 - D = Delete (Eliminar)
-- ❌ = Sin acceso al módulo
+- ÔØî = Sin acceso al m├│dulo
 
 ---
 
-## 🐛 Errores Comunes a Verificar
+## ­ƒÉø Errores Comunes a Verificar
 
 ### Error 1: Botones visibles sin permisos
-**Síntoma:** Usuario ve botón pero al hacer clic no hace nada
-**Causa:** Falta `PermissionGuard` envolviendo el botón
-**Solución:** Ya implementado en todos los módulos ✅
+**S├¡ntoma:** Usuario ve bot├│n pero al hacer clic no hace nada
+**Causa:** Falta `PermissionGuard` envolviendo el bot├│n
+**Soluci├│n:** Ya implementado en todos los m├│dulos Ô£à
 
-### Error 2: Módulo visible sin permisos
-**Síntoma:** Usuario ve módulo en menú sin tener acceso
-**Causa:** Falta verificación en `Layout.jsx`
-**Solución:** Ya implementado con `canAccessModule()` ✅
+### Error 2: M├│dulo visible sin permisos
+**S├¡ntoma:** Usuario ve m├│dulo en men├║ sin tener acceso
+**Causa:** Falta verificaci├│n en `Layout.jsx`
+**Soluci├│n:** Ya implementado con `canAccessModule()` Ô£à
 
-### Error 3: No mantiene sesión al refrescar
-**Síntoma:** Al refrescar página pierde login
+### Error 3: No mantiene sesi├│n al refrescar
+**S├¡ntoma:** Al refrescar p├ígina pierde login
 **Causa:** Token no persiste en localStorage
-**Solución:** Ya implementado en `AuthContext.jsx` ✅
+**Soluci├│n:** Ya implementado en `AuthContext.jsx` Ô£à
 
 ### Error 4: Token expirado no redirige
-**Síntoma:** Usuario con token expirado ve contenido
-**Causa:** Falta validación de token en PrivateRoute
-**Solución:** Backend valida en cada request
+**S├¡ntoma:** Usuario con token expirado ve contenido
+**Causa:** Falta validaci├│n de token en PrivateRoute
+**Soluci├│n:** Backend valida en cada request
 
 ---
 
-## 🎨 Pruebas de UI/UX
+## ­ƒÄ¿ Pruebas de UI/UX
 
 ### Verificar en cada rol:
-- [ ] Los botones deshabilitados/ocultos NO dejan espacios vacíos
+- [ ] Los botones deshabilitados/ocultos NO dejan espacios vac├¡os
 - [ ] Los mensajes de error son claros cuando no hay permisos
-- [ ] La navegación es fluida y coherente
+- [ ] La navegaci├│n es fluida y coherente
 - [ ] Los colores y estilos son consistentes
 - [ ] El modo oscuro funciona correctamente
 
 ---
 
-## 📝 Checklist Final de Implementación
+## ­ƒôØ Checklist Final de Implementaci├│n
 
 ### Archivos Core:
-- [x] `src/config/permissions.js` - Configuración de permisos
-- [x] `src/context/AuthContext.jsx` - Contexto de autenticación
-- [x] `src/components/PrivateRoute.jsx` - Protección de rutas
-- [x] `src/components/PermissionGuard.jsx` - Protección de contenido
+- [x] `src/config/permissions.js` - Configuraci├│n de permisos
+- [x] `src/context/AuthContext.jsx` - Contexto de autenticaci├│n
+- [x] `src/components/PrivateRoute.jsx` - Protecci├│n de rutas
+- [x] `src/components/PermissionGuard.jsx` - Protecci├│n de contenido
 - [x] `src/hooks/usePermissions.js` - Hook de permisos
-- [x] `src/components/Layout.jsx` - Navegación dinámica
+- [x] `src/components/Layout.jsx` - Navegaci├│n din├ímica
 - [x] `src/App.jsx` - Rutas protegidas
 
-### Páginas Actualizadas:
+### P├íginas Actualizadas:
 - [x] `src/pages/Digitalizacion.jsx`
 - [x] `src/pages/RevisionOCR.jsx`
 - [x] `src/pages/Registros.jsx`
@@ -298,23 +298,23 @@ Password: Consul123!
 
 ---
 
-## 🚀 Siguientes Pasos Recomendados
+## ­ƒÜÇ Siguientes Pasos Recomendados
 
-1. **Backend Validation**: Validar permisos también en el backend
+1. **Backend Validation**: Validar permisos tambi├®n en el backend
 2. **Error Handling**: Agregar mensajes claros cuando no hay permisos
 3. **Logging**: Registrar intentos de acceso no autorizados
-4. **Testing**: Crear tests automáticos E2E con Cypress/Playwright
+4. **Testing**: Crear tests autom├íticos E2E con Cypress/Playwright
 5. **Performance**: Optimizar carga de permisos con React.memo
 
 ---
 
-## 📞 Soporte
+## ­ƒô× Soporte
 
-Si encuentras algún problema:
-1. Verifica que el backend esté corriendo en puerto 8004
+Si encuentras alg├║n problema:
+1. Verifica que el backend est├® corriendo en puerto 8004
 2. Verifica que el usuario tenga el rol correcto en la base de datos
 3. Limpia el localStorage del navegador: `localStorage.clear()`
 4. Revisa la consola del navegador para errores
 
 **Sistema implementado:** 28 de Noviembre de 2025
-**Versión:** 1.0.0
+**Versi├│n:** 1.0.0

@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 import logging
 
-# Importar DTOs nuevos
-from app.dto.auth_dto_new import (
+# Importar DTOs
+from app.dto.auth_dto import (
     LoginRequest, LoginResponse,
     RegisterRequest, RegisterResponse,
     ChangePasswordRequest,

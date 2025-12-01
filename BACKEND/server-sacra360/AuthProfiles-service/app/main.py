@@ -10,43 +10,14 @@ Responsabilidades:
 - Sesiones y tokens JWT
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
-from app.routers.auth_router import router as auth_router
-from app.routers.profiles_router import router as profiles_router
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> Stashed changes
+from app.routers.auth_router_adapted import router as auth_router
 from app.routers.usuarios_router import router as usuarios_router
 from app.routers.auditoria_router import router as auditoria_router
-from app.database import init_db
-
-# Función para verificar conexión DB
-def check_db_connection():
-    """Verificar conexión a la base de datos"""
-    try:
-        from app.database import SessionLocal
-        from sqlalchemy import text
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        return True
-    except Exception as e:
-        logger.error(f"Error conectando a BD: {e}")
-        return False
-
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
->>>>>>> Stashed changes
 
 
 @asynccontextmanager
@@ -71,25 +42,16 @@ app = FastAPI(
 # Configuración CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Incluir routers
-<<<<<<< Updated upstream
-app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(profiles_router, prefix="/api/profiles", tags=["Profiles"])
-=======
 app.include_router(auth_router, tags=["Autenticación"])
-app.include_router(profiles_router, prefix="/api/v1/profiles", tags=["Perfiles"])
 app.include_router(usuarios_router, tags=["Gestión de Usuarios"])
 app.include_router(auditoria_router, tags=["Auditoría de Accesos"])
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 
 @app.get("/")
@@ -110,7 +72,7 @@ async def health_check():
     return {
         "service": "AuthProfiles",
         "status": "healthy",
-        "port": 8001,
+        "port": 8004,
         "database": "connected"
     }
 
@@ -119,6 +81,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8004,
         reload=True
     )

@@ -1,6 +1,6 @@
 -- ================================================
 -- SCRIPT: Crear usuarios para cada rol del sistema
--- Sistema Sacra360 - Gestión de Archivos Sacramentales
+-- Sistema Sacra360 - Gesti├│n de Archivos Sacramentales
 -- ================================================
 
 -- Verificar que la tabla usuarios existe
@@ -19,7 +19,7 @@ END $$;
 -- 1. USUARIO ADMINISTRADOR
 -- ================================================
 -- Email: admin@sacra360.com
--- Contraseña: Admin123!
+-- Contrase├▒a: Admin123!
 -- Rol: Administrador (id_rol: 1)
 
 INSERT INTO usuarios (
@@ -36,7 +36,7 @@ SELECT
     1,
     'Carlos',
     'Mendoza',
-    'López',
+    'L├│pez',
     'admin@sacra360.com',
     '$2b$12$HH88zDZaTI1Kn5zOtm9PZ.XBKQY.73YE6k8267JYn520cet6tPH8G', -- Admin123!
     CURRENT_DATE,
@@ -49,7 +49,7 @@ WHERE NOT EXISTS (
 -- 2. USUARIO REVISOR
 -- ================================================
 -- Email: revisor@sacra360.com
--- Contraseña: Revisor123!
+-- Contrase├▒a: Revisor123!
 -- Rol: Revisor (id_rol: 2)
 
 INSERT INTO usuarios (
@@ -65,8 +65,8 @@ INSERT INTO usuarios (
 SELECT 
     2,
     'Ana',
-    'Rodríguez',
-    'Martínez',
+    'Rodr├¡guez',
+    'Mart├¡nez',
     'revisor@sacra360.com',
     '$2b$12$vXZx3YKpL9wN2QrA5BcXhOHj8F4kT6mP1nL7sV9eR3wQ2aB5cD8fG', -- Revisor123!
     CURRENT_DATE,
@@ -79,7 +79,7 @@ WHERE NOT EXISTS (
 -- 3. USUARIO DIGITALIZADOR
 -- ================================================
 -- Email: digitalizador@sacra360.com
--- Contraseña: Digita123!
+-- Contrase├▒a: Digita123!
 -- Rol: Digitalizador (id_rol: 3)
 
 INSERT INTO usuarios (
@@ -95,8 +95,8 @@ INSERT INTO usuarios (
 SELECT 
     3,
     'Juan',
-    'Pérez',
-    'García',
+    'P├®rez',
+    'Garc├¡a',
     'digitalizador@sacra360.com',
     '$2b$12$QSUuTRfapgfqrWSFytoK0u1kCJFMGVYmwL6FcmuiZGULwy4iZtOpi', -- Digita123!
     CURRENT_DATE,
@@ -109,7 +109,7 @@ WHERE NOT EXISTS (
 -- 4. USUARIO CONSULTOR
 -- ================================================
 -- Email: consultor@sacra360.com
--- Contraseña: Consul123!
+-- Contrase├▒a: Consul123!
 -- Rol: Consultor (id_rol: 4)
 
 INSERT INTO usuarios (
@@ -124,8 +124,8 @@ INSERT INTO usuarios (
 )
 SELECT 
     4,
-    'Sofía',
-    'Gómez',
+    'Sof├¡a',
+    'G├│mez',
     'Torres',
     'consultor@sacra360.com',
     '$2b$12$kL9pN8mQ3vR7tS5wX2yZ1uA4bC6dE8fH9jK0lM2nO4pQ6rT8sV9wY', -- Consul123!
@@ -136,7 +136,7 @@ WHERE NOT EXISTS (
 );
 
 -- ================================================
--- VERIFICACIÓN: Mostrar usuarios creados
+-- VERIFICACI├ôN: Mostrar usuarios creados
 -- ================================================
 
 SELECT 
@@ -159,38 +159,38 @@ WHERE u.email IN (
 ORDER BY u.rol_id;
 
 -- ================================================
--- MENSAJE DE ÉXITO
+-- MENSAJE DE ├ëXITO
 -- ================================================
 
 DO $$ 
 BEGIN
     RAISE NOTICE '';
-    RAISE NOTICE '✅ ================================================';
-    RAISE NOTICE '✅ USUARIOS CREADOS EXITOSAMENTE';
-    RAISE NOTICE '✅ ================================================';
+    RAISE NOTICE 'Ô£à ================================================';
+    RAISE NOTICE 'Ô£à USUARIOS CREADOS EXITOSAMENTE';
+    RAISE NOTICE 'Ô£à ================================================';
     RAISE NOTICE '';
-    RAISE NOTICE '🔐 CREDENCIALES DE ACCESO:';
+    RAISE NOTICE '­ƒöÉ CREDENCIALES DE ACCESO:';
     RAISE NOTICE '';
-    RAISE NOTICE '👤 ADMINISTRADOR:';
+    RAISE NOTICE '­ƒæñ ADMINISTRADOR:';
     RAISE NOTICE '   Email: admin@sacra360.com';
     RAISE NOTICE '   Password: Admin123!';
     RAISE NOTICE '   Permisos: Control total del sistema';
     RAISE NOTICE '';
-    RAISE NOTICE '👤 REVISOR:';
+    RAISE NOTICE '­ƒæñ REVISOR:';
     RAISE NOTICE '   Email: revisor@sacra360.com';
     RAISE NOTICE '   Password: Revisor123!';
     RAISE NOTICE '   Permisos: Revisar y validar registros';
     RAISE NOTICE '';
-    RAISE NOTICE '👤 DIGITALIZADOR:';
+    RAISE NOTICE '­ƒæñ DIGITALIZADOR:';
     RAISE NOTICE '   Email: digitalizador@sacra360.com';
     RAISE NOTICE '   Password: Digita123!';
     RAISE NOTICE '   Permisos: Digitalizar documentos';
     RAISE NOTICE '';
-    RAISE NOTICE '👤 CONSULTOR:';
+    RAISE NOTICE '­ƒæñ CONSULTOR:';
     RAISE NOTICE '   Email: consultor@sacra360.com';
     RAISE NOTICE '   Password: Consul123!';
     RAISE NOTICE '   Permisos: Solo lectura';
     RAISE NOTICE '';
-    RAISE NOTICE '⚠️  IMPORTANTE: Cambiar las contraseñas en producción';
+    RAISE NOTICE 'ÔÜá´©Å  IMPORTANTE: Cambiar las contrase├▒as en producci├│n';
     RAISE NOTICE '================================================';
 END $$;

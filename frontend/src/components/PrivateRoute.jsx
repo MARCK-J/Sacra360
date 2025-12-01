@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 
 /**
  * Componente que protege rutas privadas
- * Redirige al login si no está autenticado
+ * Redirige al login si no est├í autenticado
  */
 export const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()

@@ -297,3 +297,56 @@ class Constants:
         "X-XSS-Protection": "1; mode=block",
         "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
     }
+
+
+# Funciones independientes para compatibilidad con auth_router_adapted
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verificar contraseña contra hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """Hashear contraseña usando bcrypt"""
+    return pwd_context.hash(password)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Crear token JWT de acceso"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def get_current_user():
+    """Factory function que retorna una dependencia para obtener el usuario actual"""
+    from fastapi import Depends, HTTPException, status
+    from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+    
+    security = HTTPBearer()
+    
+    async def _get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        """Función interna que obtiene el usuario del token JWT"""
+        token = credentials.credentials
+        
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: str = payload.get("sub")
+            if user_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="No se pudo validar las credenciales"
+                )
+            return payload
+        except jwt.JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No se pudo validar las credenciales"
+            )
+    
+    return _get_current_user

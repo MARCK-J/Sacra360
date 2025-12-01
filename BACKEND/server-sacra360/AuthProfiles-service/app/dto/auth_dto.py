@@ -235,3 +235,36 @@ class TokenValidationResponse(BaseModel):
     user_id: Optional[str] = None
     expires_at: Optional[datetime] = None
     permissions: Optional[List[str]] = None
+
+
+class RegisterResponse(BaseModel):
+    """Respuesta de registro exitoso"""
+    id_usuario: int
+    nombre: str
+    apellido_paterno: str
+    apellido_materno: Optional[str] = None
+    email: str
+    rol_id: int
+    nombre_rol: str
+    activo: bool
+    fecha_creacion: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class UsuarioResponse(BaseModel):
+    """Respuesta con información del usuario"""
+    id_usuario: int
+    nombre: str
+    apellido_paterno: str
+    apellido_materno: Optional[str] = None
+    email: str
+    rol_id: int
+    nombre_rol: str
+    activo: bool
+    fecha_creacion: datetime
+    ultima_sesion: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True

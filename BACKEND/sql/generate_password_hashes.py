@@ -1,12 +1,12 @@
 """
-Generador de hashes bcrypt para contraseñas de usuarios
+Generador de hashes bcrypt para contrase├▒as de usuarios
 Sistema Sacra360
 """
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Contraseñas para cada rol
+# Contrase├▒as para cada rol
 passwords = {
     "Administrador": "Admin123!",
     "Revisor": "Revisor123!",
@@ -21,11 +21,11 @@ print()
 
 for rol, password in passwords.items():
     hash_result = pwd_context.hash(password)
-    print(f"🔐 {rol}:")
-    print(f"   Contraseña: {password}")
+    print(f"­ƒöÉ {rol}:")
+    print(f"   Contrase├▒a: {password}")
     print(f"   Hash: {hash_result}")
     print()
 
 print("=" * 60)
-print("✅ Hashes generados exitosamente")
+print("Ô£à Hashes generados exitosamente")
 print("=" * 60)

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import ValidacionOCRModal from '../components/ValidacionOCRModal'
-import PermissionGuard from '../components/PermissionGuard'
 
 export default function RevisionOCR() {
   const navigate = useNavigate()
@@ -44,9 +43,9 @@ export default function RevisionOCR() {
   const abrirModalValidacion = (doc) => {
     const tiposSacramento = {
       1: 'Bautismo',
-      2: 'Confirmación',
+      2: 'Confirmaci├│n',
       4: 'Matrimonio',
-      5: 'Defunción'
+      5: 'Defunci├│n'
     }
 
     setValidacionModal({
@@ -67,7 +66,7 @@ export default function RevisionOCR() {
   }
 
   const manejarValidacionCompleta = (documentoId) => {
-    console.log('Validación completada para documento:', documentoId)
+    console.log('Validaci├│n completada para documento:', documentoId)
     cerrarModal()
     // Actualizar lista de documentos
     setDocumentos(prev => prev.filter(doc => doc.id !== documentoId))
@@ -78,18 +77,18 @@ export default function RevisionOCR() {
   }
 
   return (
-    <Layout title="Revisión OCR">
+    <Layout title="Revisi├│n OCR">
       <div className="max-w-6xl mx-auto">
         <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Documentos Pendientes de Validación
+              Documentos Pendientes de Validaci├│n
             </h2>
             <button
               onClick={() => navigate('/digitalizacion')}
               className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
             >
-              ← Volver a Digitalización
+              ÔåÉ Volver a Digitalizaci├│n
             </button>
           </div>
 
@@ -104,7 +103,7 @@ export default function RevisionOCR() {
                 check_circle
               </span>
               <p className="text-gray-600 dark:text-gray-400">
-                No hay documentos pendientes de validación
+                No hay documentos pendientes de validaci├│n
               </p>
             </div>
           ) : (
@@ -131,9 +130,9 @@ export default function RevisionOCR() {
                       <td className="px-6 py-4">
                         <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
                           {doc.tipo_sacramento === 1 && 'Bautismo'}
-                          {doc.tipo_sacramento === 2 && 'Confirmación'}
+                          {doc.tipo_sacramento === 2 && 'Confirmaci├│n'}
                           {doc.tipo_sacramento === 4 && 'Matrimonio'}
-                          {doc.tipo_sacramento === 5 && 'Defunción'}
+                          {doc.tipo_sacramento === 5 && 'Defunci├│n'}
                         </span>
                       </td>
                       <td className="px-6 py-4">{new Date(doc.fecha_subida).toLocaleDateString()}</td>
@@ -160,7 +159,7 @@ export default function RevisionOCR() {
         </div>
       </div>
 
-      {/* Modal de Validación */}
+      {/* Modal de Validaci├│n */}
       <ValidacionOCRModal
         isOpen={validacionModal.isOpen}
         onClose={cerrarModal}

@@ -1,9 +1,9 @@
 /**
  * Sistema de Permisos - Sacra360
- * Define los permisos CRUD para cada módulo según el rol del usuario
+ * Define los permisos CRUD para cada m├│dulo seg├║n el rol del usuario
  */
 
-// Definición de roles
+// Definici├│n de roles
 export const ROLES = {
   ADMINISTRADOR: 'Administrador',
   DIGITALIZADOR: 'Digitalizador',
@@ -11,9 +11,9 @@ export const ROLES = {
   USUARIO: 'Usuario' // Consultor
 }
 
-// Definición de permisos por módulo
+// Definici├│n de permisos por m├│dulo
 export const PERMISSIONS = {
-  // Módulo de Digitalización
+  // M├│dulo de Digitalizaci├│n
   digitalizacion: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: true, read: true, update: true, delete: false },
@@ -21,7 +21,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: true, update: false, delete: false }
   },
   
-  // Módulo de Revisión OCR
+  // M├│dulo de Revisi├│n OCR
   revisionOCR: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: false, read: true, update: false, delete: false },
@@ -29,7 +29,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: true, update: false, delete: false }
   },
   
-  // Módulo de Registros (Sacramentos)
+  // M├│dulo de Registros (Sacramentos)
   registros: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: false, read: true, update: false, delete: false },
@@ -37,7 +37,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: true, update: false, delete: false }
   },
   
-  // Módulo de Personas
+  // M├│dulo de Personas
   personas: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: false, read: true, update: false, delete: false },
@@ -45,7 +45,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: true, update: false, delete: false }
   },
   
-  // Módulo de Libros
+  // M├│dulo de Libros
   libros: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: false, read: true, update: false, delete: false },
@@ -53,7 +53,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: true, update: false, delete: false }
   },
   
-  // Módulo de Certificados
+  // M├│dulo de Certificados
   certificados: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: false, read: true, update: false, delete: false },
@@ -61,7 +61,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: true, update: false, delete: false }
   },
   
-  // Módulo de Usuarios
+  // M├│dulo de Usuarios
   usuarios: {
     [ROLES.ADMINISTRADOR]: { create: true, read: true, update: true, delete: true },
     [ROLES.DIGITALIZADOR]: { create: false, read: false, update: false, delete: false },
@@ -69,7 +69,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: false, update: false, delete: false }
   },
   
-  // Módulo de Auditoría
+  // M├│dulo de Auditor├¡a
   auditoria: {
     [ROLES.ADMINISTRADOR]: { create: false, read: true, update: false, delete: false },
     [ROLES.DIGITALIZADOR]: { create: false, read: false, update: false, delete: false },
@@ -77,7 +77,7 @@ export const PERMISSIONS = {
     [ROLES.USUARIO]: { create: false, read: false, update: false, delete: false }
   },
   
-  // Módulo de Reportes
+  // M├│dulo de Reportes
   reportes: {
     [ROLES.ADMINISTRADOR]: { create: false, read: true, update: false, delete: false },
     [ROLES.DIGITALIZADOR]: { create: false, read: false, update: false, delete: false },
@@ -87,10 +87,10 @@ export const PERMISSIONS = {
 }
 
 /**
- * Verifica si un usuario tiene un permiso específico en un módulo
+ * Verifica si un usuario tiene un permiso espec├¡fico en un m├│dulo
  * @param {string} userRole - Rol del usuario
- * @param {string} module - Nombre del módulo
- * @param {string} action - Acción a verificar (create, read, update, delete)
+ * @param {string} module - Nombre del m├│dulo
+ * @param {string} action - Acci├│n a verificar (create, read, update, delete)
  * @returns {boolean}
  */
 export const hasPermission = (userRole, module, action) => {
@@ -106,9 +106,9 @@ export const hasPermission = (userRole, module, action) => {
 }
 
 /**
- * Obtiene todos los permisos de un usuario para un módulo
+ * Obtiene todos los permisos de un usuario para un m├│dulo
  * @param {string} userRole - Rol del usuario
- * @param {string} module - Nombre del módulo
+ * @param {string} module - Nombre del m├│dulo
  * @returns {object}
  */
 export const getModulePermissions = (userRole, module) => {
@@ -121,9 +121,9 @@ export const getModulePermissions = (userRole, module) => {
 }
 
 /**
- * Verifica si un usuario puede acceder a un módulo (al menos lectura)
+ * Verifica si un usuario puede acceder a un m├│dulo (al menos lectura)
  * @param {string} userRole - Rol del usuario
- * @param {string} module - Nombre del módulo
+ * @param {string} module - Nombre del m├│dulo
  * @returns {boolean}
  */
 export const canAccessModule = (userRole, module) => {
@@ -131,7 +131,7 @@ export const canAccessModule = (userRole, module) => {
 }
 
 /**
- * Lista de módulos visibles según el rol
+ * Lista de m├│dulos visibles seg├║n el rol
  */
 export const getVisibleModules = (userRole) => {
   const modules = Object.keys(PERMISSIONS)

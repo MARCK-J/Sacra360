@@ -1,48 +1,48 @@
-# 🔐 CREDENCIALES DE USUARIOS - SISTEMA SACRA360
+# ­ƒöÉ CREDENCIALES DE USUARIOS - SISTEMA SACRA360
 
 ## Usuarios Creados por Rol
 
-### 👤 1. ADMINISTRADOR
+### ­ƒæñ 1. ADMINISTRADOR
 - **Email:** `admin@sacra360.com`
-- **Contraseña:** `Admin123!`
+- **Contrase├▒a:** `Admin123!`
 - **Rol:** Administrador (id_rol: 1)
-- **Nombre:** Carlos Mendoza López
+- **Nombre:** Carlos Mendoza L├│pez
 - **Permisos:** Control total del sistema
 - **ID Usuario:** 5
 
 ---
 
-### 👤 2. REVISOR
+### ­ƒæñ 2. REVISOR
 - **Email:** `revisor@sacra360.com`
-- **Contraseña:** `Revisor123!`
+- **Contrase├▒a:** `Revisor123!`
 - **Rol:** Revisor (id_rol: 2)
-- **Nombre:** Ana Rodríguez Martínez
+- **Nombre:** Ana Rodr├¡guez Mart├¡nez
 - **Permisos:** Revisar y validar registros OCR
 - **ID Usuario:** 7
 
 ---
 
-### 👤 3. DIGITALIZADOR
+### ­ƒæñ 3. DIGITALIZADOR
 - **Email:** `digitalizador@sacra360.com`
-- **Contraseña:** `Digita123!`
+- **Contrase├▒a:** `Digita123!`
 - **Rol:** Digitalizador (id_rol: 3)
-- **Nombre:** Juan Pérez García
+- **Nombre:** Juan P├®rez Garc├¡a
 - **Permisos:** Digitalizar y subir documentos
 - **ID Usuario:** 6
 
 ---
 
-### 👤 4. CONSULTOR
+### ­ƒæñ 4. CONSULTOR
 - **Email:** `consultor@sacra360.com`
-- **Contraseña:** `Consul123!`
+- **Contrase├▒a:** `Consul123!`
 - **Rol:** Consultor (id_rol: 4)
-- **Nombre:** Sofía Gómez Torres
+- **Nombre:** Sof├¡a G├│mez Torres
 - **Permisos:** Solo lectura/consulta
 - **ID Usuario:** 8
 
 ---
 
-## 🔗 Endpoint de Login
+## ­ƒöù Endpoint de Login
 
 ```bash
 POST http://localhost:8004/api/v1/auth/login
@@ -54,7 +54,7 @@ Content-Type: application/json
 }
 ```
 
-## 🧪 Ejemplo de Prueba con PowerShell
+## ­ƒº¬ Ejemplo de Prueba con PowerShell
 
 ```powershell
 # Login como Administrador
@@ -71,7 +71,7 @@ $response = Invoke-WebRequest -Uri 'http://localhost:8004/api/v1/auth/login' `
 $response.Content | ConvertFrom-Json
 ```
 
-## 🧪 Ejemplo de Prueba con cURL
+## ­ƒº¬ Ejemplo de Prueba con cURL
 
 ```bash
 # Login como Revisor
@@ -83,30 +83,30 @@ curl -X POST "http://localhost:8004/api/v1/auth/login" \
   }'
 ```
 
-## ⚠️ IMPORTANTE - SEGURIDAD
+## ÔÜá´©Å IMPORTANTE - SEGURIDAD
 
-1. **Cambiar contraseñas en producción:** Estas son contraseñas de desarrollo/prueba
-2. **Política de contraseñas:** Las contraseñas cumplen con:
-   - Mínimo 8 caracteres
-   - Al menos una mayúscula
-   - Al menos una minúscula
-   - Al menos un número
-   - Al menos un carácter especial
-3. **No compartir credenciales** en repositorios públicos
-4. **Rotar contraseñas** periódicamente en producción
+1. **Cambiar contrase├▒as en producci├│n:** Estas son contrase├▒as de desarrollo/prueba
+2. **Pol├¡tica de contrase├▒as:** Las contrase├▒as cumplen con:
+   - M├¡nimo 8 caracteres
+   - Al menos una may├║scula
+   - Al menos una min├║scula
+   - Al menos un n├║mero
+   - Al menos un car├ícter especial
+3. **No compartir credenciales** en repositorios p├║blicos
+4. **Rotar contrase├▒as** peri├│dicamente en producci├│n
 
-## 📋 Matriz de Permisos por Rol
+## ­ƒôï Matriz de Permisos por Rol
 
-| Módulo | Administrador | Revisor | Digitalizador | Consultor |
+| M├│dulo | Administrador | Revisor | Digitalizador | Consultor |
 |--------|--------------|---------|---------------|-----------|
-| Digitalización | ✅ CRUD | ✅ R/U | ✅ C/R/U | ❌ Solo R |
-| Revisión OCR | ✅ CRUD | ✅ CRUD | ✅ R | ❌ Solo R |
-| Registros | ✅ CRUD | ✅ R/U | ✅ R | ❌ Solo R |
-| Personas | ✅ CRUD | ✅ R/U | ❌ Solo R | ❌ Solo R |
-| Libros | ✅ CRUD | ✅ R/U | ✅ R | ❌ Solo R |
-| Usuarios | ✅ CRUD | ❌ | ❌ | ❌ |
-| Auditoría | ✅ R | ❌ | ❌ | ❌ |
-| Reportes | ✅ R | ✅ R | ❌ | ❌ |
+| Digitalizaci├│n | Ô£à CRUD | Ô£à R/U | Ô£à C/R/U | ÔØî Solo R |
+| Revisi├│n OCR | Ô£à CRUD | Ô£à CRUD | Ô£à R | ÔØî Solo R |
+| Registros | Ô£à CRUD | Ô£à R/U | Ô£à R | ÔØî Solo R |
+| Personas | Ô£à CRUD | Ô£à R/U | ÔØî Solo R | ÔØî Solo R |
+| Libros | Ô£à CRUD | Ô£à R/U | Ô£à R | ÔØî Solo R |
+| Usuarios | Ô£à CRUD | ÔØî | ÔØî | ÔØî |
+| Auditor├¡a | Ô£à R | ÔØî | ÔØî | ÔØî |
+| Reportes | Ô£à R | Ô£à R | ÔØî | ÔØî |
 
 **Leyenda:**
 - C = Create (Crear)
@@ -114,19 +114,19 @@ curl -X POST "http://localhost:8004/api/v1/auth/login" \
 - U = Update (Actualizar)
 - D = Delete (Eliminar)
 
-## 🗄️ Información de Base de Datos
+## ­ƒùä´©Å Informaci├│n de Base de Datos
 
 **Tabla:** `usuarios`
-**Relación:** `usuarios.rol_id` → `roles.id_rol`
+**Relaci├│n:** `usuarios.rol_id` ÔåÆ `roles.id_rol`
 
 ### Roles disponibles:
 1. Administrador - Control total
-2. Revisor - Validación y revisión
+2. Revisor - Validaci├│n y revisi├│n
 3. Digitalizador - Carga de documentos
 4. Consultor - Solo lectura
 
 ---
 
-**Fecha de creación:** 28 de Noviembre de 2025  
-**Sistema:** Sacra360 - Gestión de Archivos Sacramentales  
-**Versión:** 1.0.0
+**Fecha de creaci├│n:** 28 de Noviembre de 2025  
+**Sistema:** Sacra360 - Gesti├│n de Archivos Sacramentales  
+**Versi├│n:** 1.0.0

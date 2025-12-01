@@ -1,6 +1,6 @@
 """
-Router de Auditoría de Accesos
-Gestión de logs de autenticación (login, logout, intentos fallidos)
+Router de Auditor├¡a de Accesos
+Gesti├│n de logs de autenticaci├│n (login, logout, intentos fallidos)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -14,13 +14,13 @@ from app.database import get_db
 from app.entities.user_entity import Usuario, Auditoria
 from app.utils.auth_utils import get_current_user
 
-router = APIRouter(prefix="/api/v1/auditoria", tags=["Auditoría"])
+router = APIRouter(prefix="/api/v1/auditoria", tags=["Auditor├¡a"])
 
 
 # ===================== DTOs =====================
 
 class AuditoriaResponse(BaseModel):
-    """Respuesta de log de auditoría"""
+    """Respuesta de log de auditor├¡a"""
     id_auditoria: int
     usuario_id: int
     nombre_usuario: Optional[str]
@@ -41,7 +41,7 @@ def verificar_es_admin(usuario_actual: Usuario):
     if usuario_actual.rol_id != 1:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para acceder a los logs de auditoría"
+            detail="No tienes permisos para acceder a los logs de auditor├¡a"
         )
 
 
@@ -50,17 +50,17 @@ def verificar_es_admin(usuario_actual: Usuario):
 @router.get("", response_model=List[AuditoriaResponse])
 async def listar_auditoria(
     usuario_id: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
-    accion: Optional[str] = Query(None, description="Filtrar por tipo de acción (LOGIN_EXITOSO, LOGIN_FALLIDO, LOGOUT, etc.)"),
+    accion: Optional[str] = Query(None, description="Filtrar por tipo de acci├│n (LOGIN_EXITOSO, LOGIN_FALLIDO, LOGOUT, etc.)"),
     fecha_inicio: Optional[date] = Query(None, description="Fecha inicio (formato: YYYY-MM-DD)"),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin (formato: YYYY-MM-DD)"),
-    search: Optional[str] = Query(None, description="Búsqueda en email o detalles"),
-    skip: int = Query(0, ge=0, description="Registros a saltar para paginación"),
-    limit: int = Query(50, ge=1, le=500, description="Límite de registros a retornar"),
+    search: Optional[str] = Query(None, description="B├║squeda en email o detalles"),
+    skip: int = Query(0, ge=0, description="Registros a saltar para paginaci├│n"),
+    limit: int = Query(50, ge=1, le=500, description="L├¡mite de registros a retornar"),
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Listar logs de auditoría de accesos con filtros
+    Listar logs de auditor├¡a de accesos con filtros
     Solo accesible para administradores
     """
     # Verificar que sea admin
@@ -99,13 +99,13 @@ async def listar_auditoria(
     if filtros:
         query = query.filter(and_(*filtros))
     
-    # Ordenar por fecha descendente (más recientes primero)
+    # Ordenar por fecha descendente (m├ís recientes primero)
     query = query.order_by(desc(Auditoria.fecha))
     
-    # Paginación
+    # Paginaci├│n
     logs = query.offset(skip).limit(limit).all()
     
-    # Construir respuesta con información del usuario
+    # Construir respuesta con informaci├│n del usuario
     resultado = []
     for log in logs:
         usuario = db.query(Usuario).filter(Usuario.id_usuario == log.usuario_id).first() if log.usuario_id else None
@@ -131,7 +131,7 @@ async def obtener_auditoria(
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Obtener un log de auditoría específico por ID
+    Obtener un log de auditor├¡a espec├¡fico por ID
     Solo accesible para administradores
     """
     # Verificar que sea admin
@@ -143,10 +143,10 @@ async def obtener_auditoria(
     if not log:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Log de auditoría con ID {log_id} no encontrado"
+            detail=f"Log de auditor├¡a con ID {log_id} no encontrado"
         )
     
-    # Obtener información del usuario
+    # Obtener informaci├│n del usuario
     usuario = db.query(Usuario).filter(Usuario.id_usuario == log.usuario_id).first() if log.usuario_id else None
     
     return AuditoriaResponse(
@@ -170,7 +170,7 @@ async def obtener_auditoria_por_usuario(
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Obtener logs de auditoría de un usuario específico
+    Obtener logs de auditor├¡a de un usuario espec├¡fico
     Solo accesible para administradores
     """
     # Verificar que sea admin
@@ -214,7 +214,7 @@ async def obtener_estadisticas(
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Obtener estadísticas de auditoría (resumen)
+    Obtener estad├¡sticas de auditor├¡a (resumen)
     Solo accesible para administradores
     """
     # Verificar que sea admin

@@ -1,6 +1,6 @@
 """
-Router de Gestión de Usuarios
-CRUD completo para administración de usuarios del sistema
+Router de Gesti├│n de Usuarios
+CRUD completo para administraci├│n de usuarios del sistema
 Requiere rol de Administrador
 """
 
@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
 
 
-# Dependency para obtener la sesión de BD
+# Dependency para obtener la sesi├│n de BD
 def get_db():
-    """Dependency para obtener la sesión de base de datos"""
+    """Dependency para obtener la sesi├│n de base de datos"""
     from app.database import SessionLocal
     db = SessionLocal()
     try:
@@ -53,7 +53,7 @@ def registrar_auditoria(
         db.add(auditoria)
         db.commit()
     except Exception as e:
-        logger.error(f"Error al registrar auditoría: {e}")
+        logger.error(f"Error al registrar auditor├¡a: {e}")
         db.rollback()
 
 
@@ -62,7 +62,7 @@ def verificar_es_admin(usuario_actual: Usuario):
     if usuario_actual.rol_id != 1:  # 1 = Administrador
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para realizar esta acción. Se requiere rol de Administrador."
+            detail="No tienes permisos para realizar esta acci├│n. Se requiere rol de Administrador."
         )
 
 
@@ -120,7 +120,7 @@ async def listar_usuarios(
     """
     Listar todos los usuarios del sistema
     - Requiere: rol de Administrador
-    - Soporta filtros por activo, rol y búsqueda por nombre/email
+    - Soporta filtros por activo, rol y b├║squeda por nombre/email
     """
     verificar_es_admin(usuario_actual)
     
@@ -146,7 +146,7 @@ async def listar_usuarios(
                 )
             )
         
-        # Ejecutar query con paginación
+        # Ejecutar query con paginaci├│n
         usuarios = query.offset(skip).limit(limit).all()
         
         # Obtener roles
@@ -187,7 +187,7 @@ async def obtener_usuario(
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Obtener detalles de un usuario específico
+    Obtener detalles de un usuario espec├¡fico
     - Requiere: rol de Administrador
     """
     verificar_es_admin(usuario_actual)
@@ -238,7 +238,7 @@ async def crear_usuario(
         if usuario_existente:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"El email {data.email} ya está registrado"
+                detail=f"El email {data.email} ya est├í registrado"
             )
         
         # Verificar que el rol existe
@@ -265,7 +265,7 @@ async def crear_usuario(
         db.commit()
         db.refresh(nuevo_usuario)
         
-        # Registrar auditoría
+        # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
             usuario_id=usuario_actual.id_usuario,
@@ -306,9 +306,9 @@ async def actualizar_usuario(
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Actualizar información de un usuario
+    Actualizar informaci├│n de un usuario
     - Requiere: rol de Administrador
-    - No incluye cambio de contraseña (usar endpoint específico)
+    - No incluye cambio de contrase├▒a (usar endpoint espec├¡fico)
     """
     verificar_es_admin(usuario_actual)
     
@@ -322,7 +322,7 @@ async def actualizar_usuario(
                 detail=f"Usuario con ID {usuario_id} no encontrado"
             )
         
-        # Verificar email único si se está actualizando
+        # Verificar email ├║nico si se est├í actualizando
         if data.email and data.email != usuario.email:
             email_existente = db.query(Usuario).filter(
                 Usuario.email == data.email.lower(),
@@ -332,10 +332,10 @@ async def actualizar_usuario(
             if email_existente:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"El email {data.email} ya está en uso"
+                    detail=f"El email {data.email} ya est├í en uso"
                 )
         
-        # Verificar rol si se está actualizando
+        # Verificar rol si se est├í actualizando
         if data.rol_id:
             rol = db.query(Rol).filter(Rol.id_rol == data.rol_id).first()
             if not rol:
@@ -361,7 +361,7 @@ async def actualizar_usuario(
         db.commit()
         db.refresh(usuario)
         
-        # Registrar auditoría
+        # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
             usuario_id=usuario_actual.id_usuario,
@@ -406,7 +406,7 @@ async def cambiar_contrasenia(
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Cambiar contraseña de un usuario
+    Cambiar contrase├▒a de un usuario
     - Requiere: rol de Administrador
     """
     verificar_es_admin(usuario_actual)
@@ -420,30 +420,30 @@ async def cambiar_contrasenia(
                 detail=f"Usuario con ID {usuario_id} no encontrado"
             )
         
-        # Actualizar contraseña
+        # Actualizar contrase├▒a
         usuario.contrasenia = get_password_hash(data.contrasenia)
         db.commit()
         
-        # Registrar auditoría
+        # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
             usuario_id=usuario_actual.id_usuario,
             accion="CAMBIAR_CONTRASENIA",
-            detalles=f"Contraseña cambiada para usuario: {usuario.email} (ID: {usuario.id_usuario})"
+            detalles=f"Contrase├▒a cambiada para usuario: {usuario.email} (ID: {usuario.id_usuario})"
         )
         
-        logger.info(f"Contraseña cambiada para usuario {usuario_id} por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Contrase├▒a cambiada para usuario {usuario_id} por admin ID: {usuario_actual.id_usuario}")
         
-        return {"message": "Contraseña actualizada exitosamente"}
+        return {"message": "Contrase├▒a actualizada exitosamente"}
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Error al cambiar contraseña: {e}")
+        logger.error(f"Error al cambiar contrase├▒a: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al cambiar contraseña"
+            detail="Error al cambiar contrase├▒a"
         )
 
 
@@ -456,7 +456,7 @@ async def eliminar_usuario(
     """
     Eliminar (desactivar) un usuario
     - Requiere: rol de Administrador
-    - No se elimina físicamente, solo se desactiva
+    - No se elimina f├¡sicamente, solo se desactiva
     """
     verificar_es_admin(usuario_actual)
     
@@ -480,7 +480,7 @@ async def eliminar_usuario(
         usuario.activo = False
         db.commit()
         
-        # Registrar auditoría
+        # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
             usuario_id=usuario_actual.id_usuario,

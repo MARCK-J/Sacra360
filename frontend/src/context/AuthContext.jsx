@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Error en login:', error)
       return {
         success: false,
-        error: error.response?.data?.detail || 'Error al iniciar sesión'
+        error: error.response?.data?.detail || 'Error al iniciar sesi├│n'
       }
     }
   }
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     return user?.nombre_rol || null
   }
 
-  // Verificar si está autenticado
+  // Verificar si est├í autenticado
   const isAuthenticated = () => {
     return !!token && !!user
   }
