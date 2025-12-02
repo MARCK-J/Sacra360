@@ -18,6 +18,8 @@ import uvicorn
 from app.routers.auth_router_adapted import router as auth_router
 from app.routers.usuarios_router import router as usuarios_router
 from app.routers.auditoria_router import router as auditoria_router
+from app.routers.reportes_router import router as reportes_router
+from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
 
 @asynccontextmanager
@@ -48,10 +50,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middlewares de seguridad
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
+
 # Incluir routers
 app.include_router(auth_router, tags=["Autenticación"])
 app.include_router(usuarios_router, tags=["Gestión de Usuarios"])
 app.include_router(auditoria_router, tags=["Auditoría de Accesos"])
+app.include_router(reportes_router, tags=["Reportes y Estadísticas"])
 
 
 @app.get("/")

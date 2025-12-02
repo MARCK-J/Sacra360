@@ -25,26 +25,23 @@ class Usuario(Base):
     apellido_paterno = Column(String(100), nullable=False)
     apellido_materno = Column(String(100))
     email = Column(String(255), nullable=False, unique=True)
-    contrasenia_hash = Column(String(255), nullable=False)
+    contrasenia = Column(Text, nullable=False)
     rol_id = Column(Integer, ForeignKey('roles.id_rol'), nullable=False)
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    ultima_sesion = Column(DateTime)
     
     rol = relationship('Rol', back_populates='usuarios')
     auditorias = relationship('Auditoria', back_populates='usuario')
 
 
 class Auditoria(Base):
-    __tablename__ = 'auditoria_accesos'
+    __tablename__ = 'auditoria'
     
     id_auditoria = Column(Integer, primary_key=True)
     usuario_id = Column(Integer, ForeignKey('usuarios.id_usuario'), nullable=False)
-    accion = Column(String(100), nullable=False)
-    modulo = Column(String(100))
-    detalle = Column(Text)
-    fecha_hora = Column(DateTime, default=datetime.utcnow)
-    ip_origen = Column(String(50))
-    exitoso = Column(Boolean, default=True)
+    accion = Column(Text, nullable=False)
+    registro_afectado = Column(Text, nullable=False)
+    id_registro = Column(Integer, nullable=False)
+    fecha = Column(DateTime, nullable=False, default=datetime.utcnow)
     
     usuario = relationship('Usuario', back_populates='auditorias')
