@@ -13,6 +13,89 @@ def _row_to_dict(row, keys):
     return {k: getattr(row, k) if hasattr(row, k) else row[idx] for idx, k in enumerate(keys)}
 
 
+def _validate_sacramento_payload(tipo_id: int, payload: Dict[str, Any], db: Optional[Session] = None):
+    """Valida campos mínimos y reglas por tipo. Lanza HTTPException(422) con detalle si hay errores.
+    Esta función intenta ser tolerante con distintos nombres de campo que provienen del frontend.
+    """
+    errors = []
+
+    # Persona requerida (id_persona o person_name)
+    has_persona = bool(payload.get('id_persona') or payload.get('persona_id') or payload.get('person_name') or payload.get('nombres'))
+    if not has_persona:
+        errors.append({"field": "person", "message": "id_persona o person_name requerido"})
+
+    # Fecha del sacramento
+    fecha_raw = payload.get('fecha_sacramento')
+    if not fecha_raw:
+        errors.append({"field": "fecha_sacramento", "message": "fecha_sacramento requerida"})
+    else:
+        try:
+            if isinstance(fecha_raw, str):
+                datetime.fromisoformat(fecha_raw)
+        except Exception:
+            errors.append({"field": "fecha_sacramento", "message": "fecha_sacramento inválida, use ISO (YYYY-MM-DD)"})
+
+    # Determinar nombre del tipo si es posible (preferir nombre en catálogo)
+    tipo_nombre = None
+    try:
+        if db is not None:
+            r = db.execute(text("SELECT nombre FROM tipos_sacramentos WHERE id_tipo = :id LIMIT 1"), {"id": tipo_id}).fetchone()
+            if r:
+                tipo_nombre = (r[0] or "").lower()
+    except Exception:
+        tipo_nombre = None
+    # si payload trae el nombre, usarlo como respaldo
+    if not tipo_nombre:
+        tp = payload.get('tipo_sacramento') or payload.get('tipo')
+        if isinstance(tp, str):
+            tipo_nombre = tp.lower()
+
+    # Reglas por tipo (comparar por nombre cuando sea posible)
+    try:
+        t = int(tipo_id)
+    except Exception:
+        t = None
+
+    # Bautizo: exigir al menos ministro o padrino o datos de libro/acta
+    if tipo_nombre == 'bautizo' or t == 1:
+        has_ministro = bool(payload.get('ministro') or payload.get('sacrament_minister') or payload.get('sacrament-minister'))
+        has_padrino = bool(payload.get('padrino') or payload.get('godparent_1_name') or payload.get('godparent-1-name'))
+        has_libro_info = bool(payload.get('folio') or payload.get('folio_number') or payload.get('numero_acta') or payload.get('record_number') or payload.get('book_number'))
+        if not (has_ministro or has_padrino or has_libro_info):
+            errors.append({"field": "bautizo", "message": "Para bautizo debe incluir ministro, padrino o datos de libro/acta"})
+
+    # Matrimonio: requerir dos personas y datos de padres para ambos contrayentes (ser tolerante con nombres de campo)
+    if tipo_nombre == 'matrimonio' or tipo_nombre == 'matrimonios' or (t is not None and t == 3):
+        # Comprobar presencia de ambos contrayentes
+        has_person1 = bool(payload.get('persona_id') or payload.get('id_persona') or payload.get('person_name') or payload.get('nombres'))
+        has_person2 = bool(payload.get('persona2_id') or payload.get('id_persona_2') or payload.get('spouse_name') or payload.get('second_person_name') or payload.get('contrayente_2') or payload.get('person2_name'))
+        if not (has_person1 and has_person2):
+            errors.append({"field": "matrimonio", "message": "Matrimonio requiere datos de ambos contrayentes (persona 1 y persona 2)"})
+
+        # Padres: para cada contrayente esperamos padre y madre (aceptar variantes de nombre)
+        def has_parents_for(prefixes):
+            # prefixes: list of prefix strings to try, e.g. ['','2','_2','spouse_']
+            for p in prefixes:
+                padre = payload.get(f'father_name{p}') or payload.get(f'padre{p}') or payload.get(f'padre_nombre{p}')
+                madre = payload.get(f'mother_name{p}') or payload.get(f'madre{p}') or payload.get(f'madre_nombre{p}')
+                if padre and madre:
+                    return True
+            return False
+
+        # Try common suffixes/variants for second spouse
+        person1_parent_ok = has_parents_for(['', '_1', '1']) or (payload.get('father_name') and payload.get('mother_name'))
+        person2_parent_ok = has_parents_for(['2', '_2', '2_name', '_spouse']) or bool(payload.get('father2_name') and payload.get('mother2_name')) or bool(payload.get('spouse_father') and payload.get('spouse_mother'))
+
+        if not person1_parent_ok:
+            errors.append({"field": "padres_contrayente_1", "message": "Se requieren nombres de padre y madre para el primer contrayente"})
+        if not person2_parent_ok:
+            errors.append({"field": "padres_contrayente_2", "message": "Se requieren nombres de padre y madre para el segundo contrayente"})
+
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
     """Crear un sacramento. Usa los nombres de columnas que utiliza OCR/validación (tipo_id, persona_id, libro_id, etc.)."""
@@ -31,6 +114,12 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
             tipo_id = t[0]
         else:
             tipo_id = int(tipo)
+
+        # Validar payload básico y reglas por tipo antes de continuar
+        try:
+            _validate_sacramento_payload(tipo_id, payload, db)
+        except HTTPException:
+            raise
 
         persona_id = payload.get("id_persona") or payload.get("persona_id")
         # Si no se proporciona persona_id, permitir crear una persona simple a partir de campos del formulario
