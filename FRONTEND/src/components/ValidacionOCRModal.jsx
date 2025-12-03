@@ -29,6 +29,11 @@ const ValidacionOCRModal = ({
   const [notificacion, setNotificacion] = useState(null);
   const [instituciones, setInstituciones] = useState([]);
   const [institucionSeleccionada, setInstitucionSeleccionada] = useState(null);
+  
+  // Estados para validación de persona existente
+  const [personaExistente, setPersonaExistente] = useState(null);
+  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
+  const [datosParaRegistrar, setDatosParaRegistrar] = useState(null);
 
   // Efecto para cargar tuplas cuando se abre el modal
   useEffect(() => {
@@ -200,16 +205,74 @@ const ValidacionOCRModal = ({
       datosValidados[campo.campo] = valorFinal;
     });
 
-    const datosValidacion = {
+    // Construir fechas completas desde día/mes/año
+    const fechaNacimiento = `${datosValidados.ano_nacimiento}-${String(datosValidados.mes_nacimiento).padStart(2, '0')}-${String(datosValidados.dia_nacimiento).padStart(2, '0')}`;
+    const fechaBautismo = `${datosValidados.ano_bautismo}-${String(datosValidados.mes_bautismo).padStart(2, '0')}-${String(datosValidados.dia_bautismo).padStart(2, '0')}`;
+
+    // Parsear nombre_confirmando (formato: "Nombres - Apellido Paterno - Apellido Materno")
+    const nombrePartes = datosValidados.nombre_confirmando?.split('-').map(p => p.trim()) || [];
+    const nombres = nombrePartes[0] || '';
+    const apellidoPaterno = nombrePartes[1] || '';
+    const apellidoMaterno = nombrePartes[2] || '';
+
+    // Buscar si ya existe persona con mismo nombre, fecha_nacimiento y fecha_bautismo
+    try {
+      const searchRes = await fetch(
+        `http://localhost:8002/api/v1/personas/search?nombres=${encodeURIComponent(nombres)}&apellido_paterno=${encodeURIComponent(apellidoPaterno)}&apellido_materno=${encodeURIComponent(apellidoMaterno)}`
+      );
+      
+      if (searchRes.ok) {
+        const personasEncontradas = await searchRes.json();
+        
+        // Filtrar por fecha_nacimiento y fecha_bautismo exactas
+        const personaCoincidente = personasEncontradas.find(p => 
+          p.fecha_nacimiento === fechaNacimiento && 
+          p.fecha_bautismo === fechaBautismo
+        );
+        
+        if (personaCoincidente) {
+          // Persona existente encontrada - mostrar modal de confirmación
+          setPersonaExistente(personaCoincidente);
+          setDatosParaRegistrar({
+            documento_id: documentoId,
+            tupla_numero: tupla.tupla_numero,
+            tupla_id_ocr: tupla.id_ocr,
+            usuario_validador_id: 4,
+            institucion_id: institucionSeleccionada,
+            datos_validados: datosValidados,
+            observaciones,
+            accion,
+            persona_id_existente: personaCoincidente.id_persona
+          });
+          setMostrarModalConfirmacion(true);
+          setLoading(false);
+          return; // Esperar confirmación del usuario
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Error al buscar persona existente:', err);
+      // Continuar con registro normal si falla búsqueda
+    }
+
+    // No se encontró persona existente, proceder con registro normal
+    await registrarTupla({
       documento_id: documentoId,
       tupla_numero: tupla.tupla_numero,
       tupla_id_ocr: tupla.id_ocr,
-      usuario_validador_id: 4, // Usuario Admin Sistema
+      usuario_validador_id: 4,
       institucion_id: institucionSeleccionada,
       datos_validados: datosValidados,
       observaciones,
-      accion // 'aprobar', 'corregir', 'rechazar'
-    };
+      accion
+    });
+  };
+
+  /**
+   * Registra la tupla en el backend
+   */
+  const registrarTupla = async (datosValidacion) => {
+    setLoading(true);
+    const tupla = tuplas[tuplaActual];
 
     console.log('📤 Enviando validación:', datosValidacion);
 
@@ -276,6 +339,27 @@ const ValidacionOCRModal = ({
   };
 
   /**
+   * Confirma el registro con persona existente
+   */
+  const confirmarRegistroConPersonaExistente = async () => {
+    setMostrarModalConfirmacion(false);
+    await registrarTupla(datosParaRegistrar);
+    setPersonaExistente(null);
+    setDatosParaRegistrar(null);
+  };
+
+  /**
+   * Cancela el registro y vuelve a editar
+   */
+  const cancelarRegistroPersonaExistente = () => {
+    setMostrarModalConfirmacion(false);
+    setPersonaExistente(null);
+    setDatosParaRegistrar(null);
+    setLoading(false);
+    setModoEdicion(true); // Permitir editar datos
+  };
+
+  /**
    * Navega entre tuplas
    */
   const navegarTupla = (direccion) => {
@@ -292,7 +376,6 @@ const ValidacionOCRModal = ({
    * Orden de campos según la tabla de las hojas
    */
   const ORDEN_CAMPOS = [
-    'parroquia_bautismo',
     'nombre_confirmando',
     'dia_nacimiento',
     'mes_nacimiento',
@@ -320,7 +403,6 @@ const ValidacionOCRModal = ({
    */
   const obtenerEtiquetaCampo = (nombreCampo) => {
     const etiquetas = {
-      'parroquia_bautismo': '🏛️ PARROQUIA DE BAUTISMO (detectada por OCR)',
       'nombre_confirmando': 'CONFIRMANDO (Nombre - Ap. Paterno - Ap. Materno)',
       'dia_nacimiento': 'Día de Nacimiento',
       'mes_nacimiento': 'Mes de Nacimiento',
@@ -372,26 +454,9 @@ const ValidacionOCRModal = ({
 
     const tieneCorreccion = correcciones[idLocal];
 
-    // Si es el campo de parroquia_bautismo, renderizar como solo lectura
+    // Filtrar campo parroquia_bautismo (no nos sirve)
     if (campo.campo === 'parroquia_bautismo') {
-      return (
-        <div key={idLocal} className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg col-span-full">
-          <div className="flex justify-between items-start mb-2">
-            <label className="font-semibold text-blue-800">
-              {obtenerEtiquetaCampo(campo.campo)}
-            </label>
-            <span className={`text-xs px-2 py-1 rounded ${getConfianzaColor(campo.confianza)}`}>
-              {Math.round(campo.confianza * 100)}%
-            </span>
-          </div>
-          <div className="p-3 bg-white rounded border-2 border-blue-400 font-medium text-gray-800">
-            {campo.valor_extraido || 'No detectada'}
-          </div>
-          <p className="text-xs text-blue-600 mt-2">
-            ℹ️ Este campo es de referencia. Seleccione la institución correcta en el selector verde más abajo.
-          </p>
-        </div>
-      );
+      return null;
     }
 
     return (
@@ -657,6 +722,69 @@ const ValidacionOCRModal = ({
           </div>
         )}
       </div>
+
+      {/* Modal de confirmación de persona existente */}
+      {mostrarModalConfirmacion && personaExistente && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-start mb-4">
+              <AlertTriangle className="w-6 h-6 text-yellow-500 mr-3 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  ⚠️ Persona Encontrada con Bautizo Registrado
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Se encontró una persona con el mismo nombre, fecha de nacimiento y fecha de bautismo:
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Nombre:</span>
+                  <span className="ml-2 text-gray-900">
+                    {personaExistente.nombres} {personaExistente.apellido_paterno} {personaExistente.apellido_materno}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Fecha de Nacimiento:</span>
+                  <span className="ml-2 text-gray-900">{personaExistente.fecha_nacimiento}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Fecha de Bautismo:</span>
+                  <span className="ml-2 text-gray-900">{personaExistente.fecha_bautismo}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">ID Persona:</span>
+                  <span className="ml-2 text-gray-900">{personaExistente.id_persona}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-700 mb-6">
+              ¿Desea registrar la <span className="font-bold">Confirmación</span> para esta persona existente? 
+              No se creará una nueva persona, solo se agregará el sacramento de confirmación.
+            </p>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelarRegistroPersonaExistente}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded transition-colors"
+              >
+                Cancelar y Editar
+              </button>
+              <button
+                onClick={confirmarRegistroConPersonaExistente}
+                className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded transition-colors flex items-center justify-center"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Confirmar y Registrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

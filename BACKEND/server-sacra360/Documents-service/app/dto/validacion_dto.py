@@ -44,6 +44,7 @@ class ValidacionRequest(BaseModel):
     tupla_id_ocr: Optional[int] = None
     usuario_validador_id: int
     institucion_id: Optional[int] = None
+    persona_id_existente: Optional[int] = None
     correcciones: List[CorreccionCampo] = []
     datos_validados: Optional[Dict[str, Any]] = None
     observaciones: Optional[str] = None

@@ -579,7 +579,8 @@ class ValidacionService:
         campos_corregidos: Dict[str, Any],
         usuario_id: int,
         institucion_id: int,
-        db: Session
+        db: Session,
+        persona_id_existente: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Valida una tupla con estructura JSON y registra en personas y sacramentos
@@ -664,32 +665,38 @@ class ValidacionService:
             # Usar fecha del sacramento como fecha_bautismo estimada
             fecha_bautismo = fecha_sacramento
             
-            # 6. Insertar en tabla personas
-            insert_persona = text("""
-                INSERT INTO personas (
-                    nombres, apellido_paterno, apellido_materno,
-                    fecha_nacimiento, fecha_bautismo,
-                    nombre_padre_nombre_madre, nombre_padrino_nombre_madrina
-                ) VALUES (
-                    :nombres, :ap_paterno, :ap_materno,
-                    :fecha_nac, :fecha_bautismo,
-                    :padre_madre, :padrino_madrina
-                )
-                RETURNING id_persona
-            """)
-            
-            result_persona = db.execute(insert_persona, {
-                "nombres": nombres,
-                "ap_paterno": apellido_paterno,
-                "ap_materno": apellido_materno,
-                "fecha_nac": fecha_nacimiento,
-                "fecha_bautismo": fecha_bautismo,
-                "padre_madre": nombre_padre_nombre_madre,
-                "padrino_madrina": nombre_padrino_nombre_madrina
-            })
-            
-            persona_id = result_persona.fetchone()[0]
-            logger.info(f"Persona creada con ID: {persona_id}")
+            # 6. Insertar o usar persona existente
+            if persona_id_existente:
+                # Persona ya existe, usar el ID proporcionado
+                persona_id = persona_id_existente
+                logger.info(f"Usando persona existente con ID: {persona_id}")
+            else:
+                # Crear nueva persona
+                insert_persona = text("""
+                    INSERT INTO personas (
+                        nombres, apellido_paterno, apellido_materno,
+                        fecha_nacimiento, fecha_bautismo,
+                        nombre_padre_nombre_madre, nombre_padrino_nombre_madrina
+                    ) VALUES (
+                        :nombres, :ap_paterno, :ap_materno,
+                        :fecha_nac, :fecha_bautismo,
+                        :padre_madre, :padrino_madrina
+                    )
+                    RETURNING id_persona
+                """)
+                
+                result_persona = db.execute(insert_persona, {
+                    "nombres": nombres,
+                    "ap_paterno": apellido_paterno,
+                    "ap_materno": apellido_materno,
+                    "fecha_nac": fecha_nacimiento,
+                    "fecha_bautismo": fecha_bautismo,
+                    "padre_madre": nombre_padre_nombre_madre,
+                    "padrino_madrina": nombre_padrino_nombre_madrina
+                })
+                
+                persona_id = result_persona.fetchone()[0]
+                logger.info(f"Persona creada con ID: {persona_id}")
             
             # 7. Insertar en tabla sacramentos
             insert_sacramento = text("""

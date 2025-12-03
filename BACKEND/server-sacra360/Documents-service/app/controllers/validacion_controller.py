@@ -165,7 +165,8 @@ async def validar_tupla(
             campos_corregidos=validacion_data.datos_validados,
             usuario_id=validacion_data.usuario_validador_id,
             institucion_id=validacion_data.institucion_id,
-            db=db
+            db=db,
+            persona_id_existente=validacion_data.persona_id_existente
         )
         
         # Verificar si todas las tuplas están validadas

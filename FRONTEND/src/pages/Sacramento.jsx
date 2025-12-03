@@ -272,16 +272,19 @@ export default function Sacramento() {
     setMessage(null)
     
     try {
-      // 1. Crear o buscar persona
+      // 1. Buscar persona por nombre completo (sin fecha de nacimiento)
       let personaId
       const searchRes = await fetch(
-        `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres)}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno)}&fecha_nacimiento=${persona.fecha_nacimiento}`
+        `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres)}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno)}&apellido_materno=${encodeURIComponent(persona.apellido_materno)}`
       )
       const personasEncontradas = await searchRes.json()
       
       if (personasEncontradas.length > 0) {
+        // Persona ya existe (probablemente tiene bautizo), reutilizar su ID
         personaId = personasEncontradas[0].id_persona
+        console.log(`✓ Persona encontrada (ID: ${personaId}), reutilizando registro existente`)
       } else {
+        // Persona no existe, crear nuevo registro con datos de confirmación
         const createPersonaRes = await fetch(`${API_URL}/personas`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -294,6 +297,7 @@ export default function Sacramento() {
         
         const nuevaPersona = await createPersonaRes.json()
         personaId = nuevaPersona.id_persona
+        console.log(`✓ Persona creada (ID: ${personaId})`)
       }
       
       // 2. Crear sacramento
@@ -398,43 +402,124 @@ export default function Sacramento() {
     setMessage(null)
     
     try {
-      const matrimonioData = {
+      // 1. Buscar o crear Esposo
+      let esposoId
+      const searchEsposoRes = await fetch(
+        `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres_esposo || '')}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno_esposo || '')}&apellido_materno=${encodeURIComponent(persona.apellido_materno_esposo || '')}`
+      )
+      const espososEncontrados = await searchEsposoRes.json()
+      
+      if (espososEncontrados.length > 0) {
+        esposoId = espososEncontrados[0].id_persona
+        console.log(`✓ Esposo encontrado (ID: ${esposoId}), reutilizando registro`)
+      } else {
+        // Crear esposo
+        const createEsposoRes = await fetch(`${API_URL}/personas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombres: persona.nombres_esposo,
+            apellido_paterno: persona.apellido_paterno_esposo,
+            apellido_materno: persona.apellido_materno_esposo,
+            fecha_nacimiento: persona.fecha_nacimiento_esposo,
+            fecha_bautismo: persona.fecha_bautismo_esposo,
+            nombre_padre_nombre_madre: persona.padres_esposo || '',
+            nombre_padrino_nombre_madrina: ''
+          })
+        })
+        
+        if (!createEsposoRes.ok) {
+          throw new Error('Error al crear esposo')
+        }
+        
+        const nuevoEsposo = await createEsposoRes.json()
+        esposoId = nuevoEsposo.id_persona
+        console.log(`✓ Esposo creado (ID: ${esposoId})`)
+      }
+      
+      // 2. Buscar o crear Esposa
+      let esposaId
+      const searchEsposaRes = await fetch(
+        `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres_esposa || '')}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno_esposa || '')}&apellido_materno=${encodeURIComponent(persona.apellido_materno_esposa || '')}`
+      )
+      const esposasencontradas = await searchEsposaRes.json()
+      
+      if (esposasencontradas.length > 0) {
+        esposaId = esposasencontradas[0].id_persona
+        console.log(`✓ Esposa encontrada (ID: ${esposaId}), reutilizando registro`)
+      } else {
+        // Crear esposa
+        const createEsposaRes = await fetch(`${API_URL}/personas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombres: persona.nombres_esposa,
+            apellido_paterno: persona.apellido_paterno_esposa,
+            apellido_materno: persona.apellido_materno_esposa,
+            fecha_nacimiento: persona.fecha_nacimiento_esposa,
+            fecha_bautismo: persona.fecha_bautismo_esposa,
+            nombre_padre_nombre_madre: persona.padres_esposa || '',
+            nombre_padrino_nombre_madrina: ''
+          })
+        })
+        
+        if (!createEsposaRes.ok) {
+          throw new Error('Error al crear esposa')
+        }
+        
+        const nuevaEsposa = await createEsposaRes.json()
+        esposaId = nuevaEsposa.id_persona
+        console.log(`✓ Esposa creada (ID: ${esposaId})`)
+      }
+      
+      // 3. Crear sacramento de matrimonio
+      const sacramentoData = {
+        persona_id: esposoId, // El esposo es la persona principal
+        tipo_id: 3, // Matrimonio
         libro_id: parseInt(libroSeleccionado),
         institucion_id: parseInt(institucionSeleccionada),
         fecha_sacramento: form.fecha_sacramento,
-        nombres_esposo: persona.nombres_esposo || '',
-        apellido_paterno_esposo: persona.apellido_paterno_esposo || '',
-        apellido_materno_esposo: persona.apellido_materno_esposo || '',
-        fecha_nacimiento_esposo: persona.fecha_nacimiento_esposo || '',
-        fecha_bautismo_esposo: persona.fecha_bautismo_esposo || '',
-        nombre_padrino_nombre_madrina_esposo: persona.nombre_padrino_nombre_madrina_esposo || '',
-        nombres_esposa: persona.nombres_esposa || '',
-        apellido_paterno_esposa: persona.apellido_paterno_esposa || '',
-        apellido_materno_esposa: persona.apellido_materno_esposa || '',
-        fecha_nacimiento_esposa: persona.fecha_nacimiento_esposa || '',
-        fecha_bautismo_esposa: persona.fecha_bautismo_esposa || '',
-        nombre_padrino_nombre_madrina_esposa: persona.nombre_padrino_nombre_madrina_esposa || '',
-        nombre_padre_esposo: persona.nombre_padre_esposo || '',
-        nombre_madre_esposo: persona.nombre_madre_esposo || '',
-        nombre_padre_esposa: persona.nombre_padre_esposa || '',
-        nombre_madre_esposa: persona.nombre_madre_esposa || '',
-        testigos: persona.testigos || '',
         usuario_id: 4
       }
       
-      const res = await fetch(`${API_URL}/matrimonios/`, {
+      const createSacramentoRes = await fetch(`${API_URL}/sacramentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sacramentoData)
+      })
+      
+      if (!createSacramentoRes.ok) {
+        const errorData = await createSacramentoRes.json()
+        throw new Error(errorData.detail || 'Error al crear sacramento')
+      }
+      
+      const nuevoSacramento = await createSacramentoRes.json()
+      const sacramentoId = nuevoSacramento.id_sacramento
+      
+      // 4. Crear registro en tabla matrimonios
+      const matrimonioData = {
+        sacramento_id: sacramentoId,
+        esposo_id: esposoId,
+        esposa_id: esposaId,
+        nombre_padre_esposo: persona.padres_esposo?.split('/')[0]?.trim() || '',
+        nombre_madre_esposo: persona.padres_esposo?.split('/')[1]?.trim() || '',
+        nombre_padre_esposa: persona.padres_esposa?.split('/')[0]?.trim() || '',
+        nombre_madre_esposa: persona.padres_esposa?.split('/')[1]?.trim() || '',
+        testigos: persona.testigos || ''
+      }
+      
+      const createMatrimonioRes = await fetch(`${API_URL}/matrimonios/registro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(matrimonioData)
       })
       
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.detail || 'Error al registrar matrimonio')
+      if (!createMatrimonioRes.ok) {
+        const errorData = await createMatrimonioRes.json()
+        throw new Error(errorData.detail || 'Error al crear matrimonio')
       }
       
-      const resultado = await res.json()
-      setMessage({ type: 'success', text: `✓ Matrimonio registrado. Esposo ID: ${resultado.esposo_id}, Esposa ID: ${resultado.esposa_id}, Sacramento ID: ${resultado.sacramento_id}` })
+      setMessage({ type: 'success', text: `✓ Matrimonio registrado. Esposo ID: ${esposoId}, Esposa ID: ${esposaId}, Sacramento ID: ${sacramentoId}` })
       
       setTimeout(() => {
         resetFormConfirmacion()
