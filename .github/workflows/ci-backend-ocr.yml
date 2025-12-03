@@ -2,11 +2,13 @@ name: CI Backend (OCR-focused)
 
 on:
   push:
-    paths:
-      - 'BACKEND/**'
+    # Run on pushes to any branch
+    branches:
+      - '**'
   pull_request:
-    paths:
-      - 'BACKEND/**'
+    # Run on PRs targeting any branch
+    branches:
+      - '**'
   workflow_dispatch: {}
 
 jobs:
