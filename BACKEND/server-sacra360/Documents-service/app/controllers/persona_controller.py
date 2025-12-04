@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import date
 
 from app.database import get_db
@@ -177,8 +178,17 @@ def filter_by_estado_civil(
 def get_sacramentos_de_persona(persona_id: int, db: Session = Depends(get_db)):
     """Devuelve la lista de sacramentos asociados a una persona"""
     try:
-        sql = "SELECT s.*, ts.nombre as tipo_nombre FROM sacramentos s LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id WHERE s.persona_id = :pid ORDER BY s.fecha_sacramento DESC"
-        res = db.execute(sql, {"pid": persona_id})
+        sql = (
+            "SELECT s.*, ts.nombre as tipo_nombre, "
+            "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+            "ip.nombre AS institucion_nombre "
+            "FROM sacramentos s "
+            "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+            "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+            "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
+            "WHERE s.persona_id = :pid ORDER BY s.fecha_sacramento DESC"
+        )
+        res = db.execute(text(sql), {"pid": persona_id})
         rows = [dict(r._mapping) for r in res.fetchall()]
         return rows
     except Exception as e:

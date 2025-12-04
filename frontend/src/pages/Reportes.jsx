@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Layout from '../components/Layout'
 
 export default function Reportes() {
@@ -7,6 +7,48 @@ export default function Reportes() {
   const [errorCounts, setErrorCounts] = useState(null)
 
   const [tipos, setTipos] = useState([])
+  // preserve original catalog id->name mapping (some entries use ids that contain numeric codes)
+  const tipoIdToNameRef = useRef(new Map())
+
+  // Map numeric sacrament codes to canonical names when the catalog uses numbers
+  const SACRAMENTO_NAME_BY_CODE = {
+    '1': 'bautizo',
+    '2': 'confirmacion',
+    '3': 'matrimonio',
+    '4': 'defuncion'
+  }
+
+  // Build a display label for a count 'tipo' value using available maps
+  function resolveTipoLabel(rawTipo) {
+    if (rawTipo == null) return String(rawTipo)
+    const s = String(rawTipo)
+    // numeric string -> canonical
+    if (/^\d+$/.test(s)) {
+      // try SACRAMENTO map first
+      if (SACRAMENTO_NAME_BY_CODE[s]) return SACRAMENTO_NAME_BY_CODE[s]
+      // try the original catalog id->name mapping
+      const n = Number(s)
+      if (!Number.isNaN(n) && tipoIdToNameRef.current.has(n)) {
+        const v = tipoIdToNameRef.current.get(n)
+        // if v is numeric-like, map via SACRAMENTO map
+        if (/^\d+$/.test(String(v)) && SACRAMENTO_NAME_BY_CODE[String(v)]) return SACRAMENTO_NAME_BY_CODE[String(v)]
+        return v
+      }
+      return s
+    }
+    // non-numeric: try matching against canonical tipos
+    const key = s.toLowerCase()
+    if (tipos && tipos.length > 0) {
+      const found = tipos.find((t) => String(t.nombre || '').toLowerCase() === key || String(t.id) === s)
+      if (found) return found.nombre
+    }
+    // try sacraments map by name
+    if (SACRAMENTO_NAME_BY_CODE) {
+      const entry = Object.entries(SACRAMENTO_NAME_BY_CODE).find(([, name]) => String(name).toLowerCase() === key)
+      if (entry) return entry[1]
+    }
+    return s
+  }
 
   // filtros & lista
   const [filtros, setFiltros] = useState({ fecha_inicio: '', fecha_fin: '', tipo: '', q: '' })
@@ -17,9 +59,12 @@ export default function Reportes() {
   const [limit, setLimit] = useState(20)
 
   useEffect(() => {
-    loadCounts()
-    loadTipos()
-    loadSacramentos() // initial load without filters
+    async function init() {
+      loadCounts()
+      await loadTipos()
+      await loadSacramentos() // initial load after tipos
+    }
+    init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -44,7 +89,52 @@ export default function Reportes() {
       if (!res.ok) return
       const data = await res.json()
       // controller returns { tipos_sacramentos: [...], total }
-      setTipos(data.tipos_sacramentos || [])
+      // Normalize tipos to a consistent shape: { id, nombre }
+      const raw = data.tipos_sacramentos || []
+      const normalized = raw.map((t) => {
+        const idVal = Number(t.id_tipo ?? t.id ?? t.id_tipo_sacramento ?? t.id_institucion ?? t.id) || t.id || t.id_tipo || 0
+        let nombreVal = t.nombre || t.nombre_tipo || t.tipo || String(t.nombre || '')
+        nombreVal = String(nombreVal || '').trim()
+        // If the catalog stores numeric codes as names (e.g. "2"), map to canonical name
+        if (/^\d+$/.test(nombreVal) && SACRAMENTO_NAME_BY_CODE[nombreVal]) {
+          nombreVal = SACRAMENTO_NAME_BY_CODE[nombreVal]
+        }
+        return { id: idVal, nombre: nombreVal }
+      })
+      // store original id->name mapping for lookups (preserve entries like id:9 -> nombre:'confirmacion')
+      tipoIdToNameRef.current.clear()
+      normalized.forEach((t) => {
+        if (t && t.id) tipoIdToNameRef.current.set(Number(t.id), t.nombre)
+      })
+
+      // Reduce/normalize catalog to the 4 canonical sacrament types.
+      const canonical = [
+        { id: 1, nombre: null }, // bautizo (keep label from catalog if present)
+        { id: 2, nombre: null }, // confirmacion
+        { id: 3, nombre: null }, // matrimonio
+        { id: 4, nombre: null }  // defuncion
+      ]
+
+      // Try to preserve catalog labels for bautizo if present; otherwise use lowercase canonical
+      const findByName = (needleRegex) => normalized.find((x) => x && x.nombre && needleRegex.test(String(x.nombre).toLowerCase()))
+
+      // bautizo: prefer any existing 'bautizo' label
+      const bautizo = findByName(/bautizo/)
+      canonical[0].nombre = bautizo ? bautizo.nombre : 'bautizo'
+
+      // confirmacion: look for explicit name or numeric-coded entry mapped earlier
+      const confirmacion = normalized.find((x) => x && (String(x.id) === '2' || String(x.nombre).toLowerCase() === 'confirmacion' || /confirmacion/.test(String(x.nombre).toLowerCase())))
+      canonical[1].nombre = confirmacion ? confirmacion.nombre : 'confirmacion'
+
+      // matrimonio: look for any matching label
+      const matrimonio = findByName(/matrimonio/)
+      canonical[2].nombre = matrimonio ? matrimonio.nombre : 'matrimonio'
+
+      // defuncion: try to find label, fallback to 'defuncion'
+      const defuncion = findByName(/defuncion|fallec/)
+      canonical[3].nombre = defuncion ? defuncion.nombre : 'defuncion'
+
+      setTipos(canonical)
     } catch (err) {
       // ignore non-critical
     }
@@ -68,8 +158,110 @@ export default function Reportes() {
       const q = buildQuery()
       const res = await fetch('/api/v1/sacramentos/?' + q)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      setSacramentos(data || [])
+      let data = await res.json()
+      data = data || []
+      
+
+      // Si el backend no devuelve `persona_nombre` para algunos registros,
+      // obtenerlos desde el endpoint de personas y rellenarlos.
+      const missingPersonaIds = Array.from(new Set(
+        data.filter((r) => (!r.persona_nombre || r.persona_nombre === null) && r.persona_id).map((r) => r.persona_id)
+      ))
+      if (missingPersonaIds.length > 0) {
+        await Promise.all(missingPersonaIds.map(async (pid) => {
+          try {
+            const pr = await fetch(`/api/v1/personas/${pid}`)
+            if (!pr.ok) return
+            const pj = await pr.json()
+            const full = [pj.nombres, pj.apellido_paterno, pj.apellido_materno].filter(Boolean).join(' ').trim()
+            if (full) {
+              data = data.map((r) => (r.persona_id === pid && (!r.persona_nombre || r.persona_nombre === null) ? { ...r, persona_nombre: full } : r))
+            }
+          } catch (e) {
+            // ignore individual lookup errors
+          }
+        }))
+      }
+
+      // Rellenar nombres de institución si el backend no los incluyó
+      // Recoger ids de institución usando varias claves posibles
+      const extractInstId = (r) => r.institucion_id ?? r.institucion ?? r.id_institucion ?? null
+      const missingInstitucionIds = Array.from(new Set(
+        data.filter((r) => (!r.institucion_nombre || r.institucion_nombre === null) && extractInstId(r)).map((r) => extractInstId(r))
+      ))
+      if (missingInstitucionIds.length > 0) {
+        try {
+          // Intentar la ruta correcta del backend (validacion controller)
+          let ir = await fetch('/api/v1/validacion/instituciones')
+          if (!ir.ok) {
+            // fallback antiguo por compatibilidad
+            ir = await fetch('/api/v1/instituciones')
+          }
+          if (ir.ok) {
+            const ij = await ir.json()
+            const institMap = new Map()
+            ;(ij.instituciones || []).forEach((it) => {
+              // guardar como string y número para evitar problemas de tipos
+              institMap.set(String(it.id_institucion), it.nombre)
+              institMap.set(Number(it.id_institucion), it.nombre)
+            })
+            data = data.map((r) => {
+              const iid = extractInstId(r)
+              if (iid && (!r.institucion_nombre || r.institucion_nombre === null)) {
+                const name = institMap.get(iid) ?? institMap.get(String(iid))
+                if (name) return { ...r, institucion_nombre: name }
+              }
+              return r
+            })
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // Si el backend no proporcionó tipo_nombre para algunos registros,
+      // intentar resolverlo con el catálogo `tipos` que cargamos al inicio.
+      if ((data || []).length > 0) {
+        // build quick lookup maps if tipos exist
+        const tipoById = new Map()
+        const tipoByName = new Map()
+        if (tipos && tipos.length > 0) {
+          tipos.forEach((t) => {
+            if (t.id) tipoById.set(Number(t.id), t.nombre)
+            if (t.nombre) tipoByName.set(String(t.nombre).toLowerCase(), t.nombre)
+          })
+        }
+
+        data = data.map((r) => {
+          // also treat numeric-looking tipo_nombre ("2") as unresolved and map it
+          const tipoNombreIsNumeric = r.tipo_nombre != null && /^\d+$/.test(String(r.tipo_nombre))
+          if (!r.tipo_nombre || r.tipo_nombre === null || tipoNombreIsNumeric) {
+            const tidRaw = (r.tipo_id ?? r.tipo) || r.tipo_sacramento
+            const tidNum = Number(tidRaw)
+            let resolved = null
+            // First try direct id lookup when catalog present
+            if (tipos && tipos.length > 0 && !Number.isNaN(tidNum) && tipoById.has(tidNum)) resolved = tipoById.get(tidNum)
+            // Next try known sacrament code map (1,2,3,4) — works even if tipos not yet loaded
+            if (!resolved && tidRaw != null) {
+              const codeName = SACRAMENTO_NAME_BY_CODE[String(tidRaw)]
+              if (codeName) resolved = codeName
+            }
+            // Also try original catalog id->name mapping (covers cases like id:9 with nombre:'2')
+            if (!resolved && !Number.isNaN(tidNum) && tipoIdToNameRef.current.has(tidNum)) {
+              resolved = tipoIdToNameRef.current.get(tidNum)
+            }
+            // Finally try matching by name in the catalog if present
+            if (!resolved && tipos && tipos.length > 0 && tidRaw) {
+              const key = String(tidRaw).toLowerCase()
+              if (tipoByName.has(key)) resolved = tipoByName.get(key)
+            }
+            if (resolved) return { ...r, tipo_nombre: resolved }
+          }
+          return r
+        })
+      }
+
+      setSacramentos(data)
     } catch (err) {
       setErrorList(err.message)
     } finally {
@@ -131,7 +323,7 @@ export default function Reportes() {
               <select name="tipo" value={filtros.tipo} onChange={handleFiltroChange} className="form-input w-full">
                 <option value="">Todos</option>
                 {tipos.map((t) => (
-                  <option key={t.id_tipo} value={t.nombre}>{t.nombre}</option>
+                  <option key={t.id} value={t.id || t.nombre}>{t.nombre}</option>
                 ))}
               </select>
             </div>
@@ -155,12 +347,22 @@ export default function Reportes() {
               <div className="mt-4">
                 {counts.length === 0 && <p className="text-sm text-gray-500">No hay datos disponibles.</p>}
                 <ul className="space-y-2">
-                  {counts.map((c) => (
-                    <li key={c.tipo} className="flex justify-between items-center border-b py-2">
-                      <span className="text-sm text-gray-700 dark:text-gray-200">{c.tipo}</span>
-                      <span className="text-lg font-semibold text-gray-900 dark:text-white">{c.total}</span>
-                    </li>
-                  ))}
+                  {(() => {
+                    // normalize and aggregate counts by canonical label
+                    const map = new Map()
+                    ;(counts || []).forEach((c) => {
+                      const label = resolveTipoLabel(c.tipo)
+                      const prev = map.get(label) || 0
+                      map.set(label, prev + (Number(c.total) || 0))
+                    })
+                    const aggregated = Array.from(map.entries()).map(([tipo, total]) => ({ tipo, total }))
+                    return aggregated.map((c) => (
+                      <li key={c.tipo} className="flex justify-between items-center border-b py-2">
+                        <span className="text-sm text-gray-700 dark:text-gray-200">{c.tipo}</span>
+                        <span className="text-lg font-semibold text-gray-900 dark:text-white">{c.total}</span>
+                      </li>
+                    ))
+                  })()}
                 </ul>
               </div>
             )}
@@ -181,7 +383,7 @@ export default function Reportes() {
                           <th className="px-4 py-2">ID</th>
                           <th className="px-4 py-2">Fecha</th>
                           <th className="px-4 py-2">Tipo</th>
-                          <th className="px-4 py-2">Persona ID</th>
+                          <th className="px-4 py-2">Persona</th>
                           <th className="px-4 py-2">Institución</th>
                         </tr>
                       </thead>
@@ -191,8 +393,8 @@ export default function Reportes() {
                             <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">{s.id_sacramento}</td>
                             <td className="px-4 py-2">{s.fecha_sacramento?.substring(0,10) || s.fecha_sacramento}</td>
                             <td className="px-4 py-2">{s.tipo_nombre || s.tipo_sacramento}</td>
-                            <td className="px-4 py-2">{s.persona_id}</td>
-                            <td className="px-4 py-2">{s.institucion_id}</td>
+                            <td className="px-4 py-2">{s.persona_nombre ?? s.persona_id}</td>
+                            <td className="px-4 py-2">{s.institucion_nombre ?? s.institucion ?? s.parroquia ?? s.sacrament_location ?? s.institucion_id}</td>
                           </tr>
                         ))}
                       </tbody>

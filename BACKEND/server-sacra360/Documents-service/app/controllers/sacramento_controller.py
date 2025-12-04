@@ -64,6 +64,14 @@ def _validate_sacramento_payload(tipo_id: int, payload: Dict[str, Any], db: Opti
         if not (has_ministro or has_padrino or has_libro_info):
             errors.append({"field": "bautizo", "message": "Para bautizo debe incluir ministro, padrino o datos de libro/acta"})
 
+    # Confirmación: reglas similares a bautizo (ministro o padrino o datos de libro/acta)
+    if tipo_nombre == 'confirmacion' or t == 2:
+        has_ministro = bool(payload.get('ministro') or payload.get('sacrament_minister') or payload.get('sacrament-minister'))
+        has_padrino = bool(payload.get('padrino') or payload.get('godparent_1_name') or payload.get('godparent-1-name') or payload.get('padrina') or payload.get('godparent_2_name'))
+        has_libro_info = bool(payload.get('folio') or payload.get('folio_number') or payload.get('numero_acta') or payload.get('record_number') or payload.get('book_number'))
+        if not (has_ministro or has_padrino or has_libro_info):
+            errors.append({"field": "confirmacion", "message": "Para confirmación debe incluir ministro, padrino/madrina o datos de libro/acta"})
+
     # Matrimonio: requerir dos personas y datos de padres para ambos contrayentes (ser tolerante con nombres de campo)
     if tipo_nombre == 'matrimonio' or tipo_nombre == 'matrimonios' or (t is not None and t == 3):
         # Comprobar presencia de ambos contrayentes
@@ -114,6 +122,36 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
             tipo_id = t[0]
         else:
             tipo_id = int(tipo)
+
+        # Asegurar que el tipo exista en la tabla tipos_sacramentos.
+        # Si el id numérico fue provisto pero no existe, intentar crear un tipo usando el nombre provisto
+        # en el payload o usando un mapeo por defecto.
+        try:
+            rcheck = db.execute(text("SELECT id_tipo FROM tipos_sacramentos WHERE id_tipo = :id LIMIT 1"), {"id": tipo_id}).fetchone()
+            if not rcheck:
+                # intentar obtener nombre desde payload
+                tipo_name_payload = payload.get('tipo_sacramento') or payload.get('tipo') or payload.get('tipo_nombre') or payload.get('tipoName')
+                if tipo_name_payload:
+                    res_t = db.execute(text("INSERT INTO tipos_sacramentos (nombre) VALUES (:n) RETURNING id_tipo"), {"n": tipo_name_payload})
+                    tipo_id = res_t.fetchone()[0]
+                    db.commit()
+                else:
+                    # mapping por defecto para ids comunes
+                    try:
+                        default_map = {1: 'bautizo', 2: 'confirmacion', 3: 'matrimonio', 4: 'defuncion', 5: 'primera comunion'}
+                        fallback_name = default_map.get(int(tipo_id), 'desconocido')
+                    except Exception:
+                        fallback_name = 'desconocido'
+                    res_t = db.execute(text("INSERT INTO tipos_sacramentos (nombre) VALUES (:n) RETURNING id_tipo"), {"n": fallback_name})
+                    tipo_id = res_t.fetchone()[0]
+                    db.commit()
+        except Exception:
+            # Si por alguna razón falla la creación del tipo, hacer rollback y continuar; el intento de inserción
+            # del sacramento fallará con FK si no existe el tipo, por eso preferimos propagar el error más adelante.
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
         # Validar payload básico y reglas por tipo antes de continuar
         try:
@@ -230,10 +268,48 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
                         "INSERT INTO detalles_bautizo (sacramento_id, padrino, ministro, foja, numero, fecha_bautizo) VALUES (:sid, :pad, :min, :foj, :num, :f)"
                     ), {"sid": sac_id, "pad": padrino, "min": ministro, "foj": foja, "num": numero, "f": fecha_det})
                     db.commit()
+
         except Exception:
             db.rollback()
 
-        row = db.execute(text("SELECT * FROM sacramentos WHERE id_sacramento = :id"), {"id": sac_id}).fetchone()
+        # Resolver nombre del tipo (consulta por si no conocemos el id fijo)
+        tipo_nombre_local = None
+        try:
+            tr = db.execute(text("SELECT nombre FROM tipos_sacramentos WHERE id_tipo = :id LIMIT 1"), {"id": tipo_id}).fetchone()
+            if tr:
+                tipo_nombre_local = (tr[0] or "").lower()
+        except Exception:
+            tipo_nombre_local = None
+
+        # Si es confirmación, insertar detalles de confirmación (ministro, padrino/madrina, foja, numero)
+        try:
+            if tipo_id == 2 or tipo_nombre_local == 'confirmacion' or tipo_nombre_local == 'confirmación':
+                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
+                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
+                madrina = payload.get("padrina") or payload.get("godparent_2_name") or payload.get("godparent-2-name")
+                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
+                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
+                fecha_det = fecha_sac
+                # Insertar solo si hay algo relevante
+                if any([ministro, padrino, madrina, foja, numero]):
+                    db.execute(text(
+                        "INSERT INTO detalles_confirmacion (sacramento_id, ministro, padrino, madrina, foja, numero, fecha_confirmacion) VALUES (:sid, :min, :pad, :mad, :foj, :num, :f)"
+                    ), {"sid": sac_id, "min": ministro, "pad": padrino, "mad": madrina, "foj": foja, "num": numero, "f": fecha_det})
+                    db.commit()
+        except Exception:
+            # si la tabla no existe u ocurre error, revertir y continuar (no bloquear registro principal)
+            db.rollback()
+
+        row = db.execute(text(
+            "SELECT s.*, ts.nombre as tipo_nombre, "
+            "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+            "ip.nombre AS institucion_nombre "
+            "FROM sacramentos s "
+            "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+            "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+            "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
+            "WHERE s.id_sacramento = :id"
+        ), {"id": sac_id}).fetchone()
         if not row:
             raise HTTPException(status_code=500, detail="Error al crear sacramento")
         # row._mapping is a Mapping of column_name -> value
@@ -258,7 +334,16 @@ def list_sacramentos(
     db: Session = Depends(get_db)
 ):
     try:
-        sql = "SELECT s.*, ts.nombre as tipo_nombre FROM sacramentos s LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id"
+        sql = (
+            "SELECT s.*, ts.nombre as tipo_nombre, "
+            "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+            "ip.nombre AS institucion_nombre "
+            "FROM sacramentos s "
+                "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+                "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+                "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
+                "LEFT JOIN detalles_bautizo dbt ON dbt.sacramento_id = s.id_sacramento"
+        )
         where = []
         params = {}
         if tipo_sacramento:
@@ -271,7 +356,9 @@ def list_sacramentos(
             where.append("s.fecha_sacramento <= :ff")
             params["ff"] = fecha_fin
         if sacerdote:
-            where.append("s.ministro ILIKE :sac")
+            # detalles_bautizo puede almacenar el ministro; la tabla sacramentos no tiene columna 'ministro'
+            # por eso buscamos en detalles_bautizo.ministro y en el nombre completo de la persona
+            where.append("(dbt.ministro ILIKE :sac OR concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) ILIKE :sac)")
             params["sac"] = f"%{sacerdote}%"
         if id_persona:
             where.append("s.persona_id = :pid")
@@ -313,7 +400,16 @@ def list_primeras_comuniones(db: Session = Depends(get_db)):
 
 @router.get("/{id}")
 def get_sacramento(id: int, db: Session = Depends(get_db)):
-    row = db.execute(text("SELECT s.*, ts.nombre as tipo_nombre FROM sacramentos s LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id WHERE s.id_sacramento = :id"), {"id": id}).fetchone()
+    row = db.execute(text(
+        "SELECT s.*, ts.nombre as tipo_nombre, "
+        "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+        "ip.nombre AS institucion_nombre "
+        "FROM sacramentos s "
+        "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+        "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+        "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
+        "WHERE s.id_sacramento = :id"
+    ), {"id": id}).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Sacramento no encontrado")
     return dict(row._mapping)

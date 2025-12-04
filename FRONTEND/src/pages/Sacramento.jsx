@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Layout from '../components/Layout'
+import PARROQUIAS from '../data/parroquias'
 
 export default function Sacramento() {
   const [loading, setLoading] = useState(false)
@@ -70,8 +71,10 @@ export default function Sacramento() {
             return
           }
         }
+      const tipoLabels = {1: 'bautizo', 2: 'confirmacion', 3: 'matrimonio', 4: 'defuncion'}
       const payload = {
         tipo_sacramento: Number(form.tipo_sacramento),
+        tipo: tipoLabels[Number(form.tipo_sacramento)] || undefined,
         fecha_sacramento: form.fecha_sacramento,
         institucion: form.sacrament_location,
         ministro: form.sacrament_minister,
@@ -155,18 +158,40 @@ export default function Sacramento() {
           <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl p-8 flex flex-col gap-8">
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Datos del Sacramento</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-date">Fecha del Sacramento</label>
-                  <input name="fecha_sacramento" value={form.fecha_sacramento} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-date" type="date" />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="book-number">Libro N°</label>
+                    <input name="book_number" value={form.book_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="book-number" placeholder="Ej: 10" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="folio-number">Folio N°</label>
+                    <input name="folio_number" value={form.folio_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="folio-number" placeholder="Ej: 45" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="record-number">Partida N°</label>
+                    <input name="record_number" value={form.record_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="record-number" placeholder="Ej: 200" type="text" />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-location">Lugar (Parroquia)</label>
-                  <input name="sacrament_location" value={form.sacrament_location} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-location" placeholder="Ej: Parroquia San Miguel" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-minister">Ministro</label>
-                  <input name="sacrament_minister" value={form.sacrament_minister} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-minister" placeholder="Ej: P. Juan Pérez" type="text" />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-date">Fecha del Sacramento</label>
+                    <input name="fecha_sacramento" value={form.fecha_sacramento} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-date" type="date" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="inst-select">Parroquia/Institución *</label>
+                    <select id="inst-select" name="sacrament_location" value={form.sacrament_location} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                      <option value="">Seleccione una parroquia</option>
+                      {PARROQUIAS.map((name, idx) => (
+                        <option key={idx} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-minister">Ministro</label>
+                    <input name="sacrament_minister" value={form.sacrament_minister} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-minister" placeholder="Ej: P. Juan Pérez" type="text" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -242,26 +267,9 @@ export default function Sacramento() {
               </div>
             )}
 
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Datos del Libro de Registro</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="book-number">Libro N°</label>
-                  <input name="book_number" value={form.book_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="book-number" placeholder="Ej: 12" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="folio-number">Folio N°</label>
-                  <input name="folio_number" value={form.folio_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="folio-number" placeholder="Ej: 45" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="record-number">Partida N°</label>
-                  <input name="record_number" value={form.record_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="record-number" placeholder="Ej: 89" type="text" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="notes">Notas</label>
-                <textarea name="notes" value={form.notes} onChange={handleChange} className="form-textarea rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="notes" placeholder="Añada cualquier observación o nota marginal." rows="3"></textarea>
-              </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="notes">Notas</label>
+              <textarea name="notes" value={form.notes} onChange={handleChange} className="form-textarea rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="notes" placeholder="Añada cualquier observación o nota marginal." rows="3"></textarea>
             </div>
 
             <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
