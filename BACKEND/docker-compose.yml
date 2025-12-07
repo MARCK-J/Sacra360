@@ -17,6 +17,22 @@ services:
     networks:
       - sacra360_network
 
+  # Redis para cache y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: sacra360_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sacra360_network
+
   # MinIO para almacenamiento de archivos
   minio:
     image: minio/minio:latest
@@ -38,6 +54,54 @@ services:
     networks:
       - sacra360_network
 
+  # API Gateway - Puerto 8000
+  api-gateway:
+    build:
+      context: ./HTTP
+      dockerfile: Dockerfile
+    container_name: sacra360_gateway
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - DOCUMENTS_SERVICE_URL=http://documents-service:8002
+      - OCR_SERVICE_URL=http://ocr-service:8003
+      - HTR_SERVICE_URL=http://htr-service:8004
+      - AI_SERVICE_URL=http://ai-service:8005
+      - REPORTS_SERVICE_URL=http://reports-service:8006
+      - FILES_SERVICE_URL=http://files-service:8007
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      - sacra360_network
+
+  # AuthProfiles Service - Puerto 8001
+  auth-service:
+    build:
+      context: ./server-sacra360/AuthProfiles-service
+      dockerfile: Dockerfile
+    container_name: sacra360_auth_service
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - sacra360_network
+
   # Documents Service - Puerto 8002
   documents-service:
     build:
@@ -45,40 +109,152 @@ services:
       dockerfile: Dockerfile
     container_name: sacra360_documents_service
     environment:
-      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin123
-      - OCR_SERVICE_URL=http://ocr-service:8003
+      - POSTGRES_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - FILES_SERVICE_URL=http://files-service:8007
     ports:
       - "8002:8002"
     depends_on:
       - postgres
-      - minio
+      - redis
+      - auth-service
     networks:
       - sacra360_network
 
-  # OCR Service - Puerto 8003
+  # OCR Service - Puerto 8003 (CON SOPORTE GPU AMD/Vulkan)
   ocr-service:
     build:
       context: ./server-sacra360/OCR-service
       dockerfile: Dockerfile
     container_name: sacra360_ocr_service
+    # Para GPU AMD: exponer dispositivos de renderizado y DRI
+    devices:
+      - /dev/dri:/dev/dri  # Direct Rendering Infrastructure para AMD
     environment:
-      - DATABASE_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - DATABASE_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
+      - POSTGRES_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - FILES_SERVICE_URL=http://files-service:8007
+      - TESSERACT_CONFIG_PATH=/app/tesseract_configs
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_BUCKET=sacra360-documents
+      - MINIO_SECURE=false
+      - USE_GPU=1  # Activar detección de GPU
+      - FORCE_CPU=0  # No forzar CPU
     ports:
       - "8003:8003"
+    volumes:
+      - ./models/tesseract:/app/tesseract_configs
+      - /dev/dri:/dev/dri:rw  # Acceso a GPU AMD
     depends_on:
       - postgres
+      - redis
       - minio
+    networks:
+      - sacra360_network
+    # Privilegios necesarios para acceso a GPU AMD
+    privileged: true
+
+  # HTR Service - Puerto 8004
+  htr-service:
+    build:
+      context: ./server-sacra360/HTR-service
+      dockerfile: Dockerfile
+    container_name: sacra360_htr_service
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - FILES_SERVICE_URL=http://files-service:8007
+      - MODEL_PATH=/app/models
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./models/htr:/app/models
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - sacra360_network
+
+  # AI Processing Service - Puerto 8005
+  ai-service:
+    build:
+      context: ./server-sacra360/AI-Processing-service
+      dockerfile: Dockerfile
+    container_name: sacra360_ai_service
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - DOCUMENTS_SERVICE_URL=http://documents-service:8002
+      - MODEL_PATH=/app/models
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./models/ai:/app/models
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+      - documents-service
+    networks:
+      - sacra360_network
+
+  # Reports Service - Puerto 8006
+  reports-service:
+    build:
+      context: ./server-sacra360/Reports-service
+      dockerfile: Dockerfile
+    container_name: sacra360_reports_service
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - DOCUMENTS_SERVICE_URL=http://documents-service:8002
+    ports:
+      - "8006:8006"
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+      - documents-service
+    networks:
+      - sacra360_network
+
+  # File Storage Service - Puerto 8007
+  files-service:
+    build:
+      context: ./server-sacra360/File-Storage-service
+      dockerfile: Dockerfile
+    container_name: sacra360_files_service
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - AUTH_SERVICE_URL=http://auth-service:8001
+    ports:
+      - "8007:8007"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - auth-service
     networks:
       - sacra360_network
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
   minio_data:
     driver: local

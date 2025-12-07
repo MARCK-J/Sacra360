@@ -1,19 +1,27 @@
 # OCR Service - Sacra360
-# Dependencias específicas para el microservicio de OCR
+# Dependencias específicas para el microservicio de OCR con soporte GPU AMD/NVIDIA
 
 # Framework web
 fastapi==0.104.1
 uvicorn==0.24.0
 
-# Base de datos
-sqlalchemy==1.4.46
-psycopg2-binary==2.9.7
-
 # OCR y procesamiento de imágenes
-opencv-python==4.8.1.78
+opencv-python-headless==4.12.0.88  # Versión sin GUI para servidores
 pytesseract==0.3.10
 Pillow==10.0.1
-numpy==1.24.3
+numpy==2.2.0
+pdf2image==1.17.0        # Para convertir PDF a imágenes
+easyocr==1.7.2           # OCR mejorado con deep learning
+pandas==2.2.3            # Para procesamiento de datos tabulares
+matplotlib==3.9.3        # Para visualizaciones (requerido por easyocr)
+
+# PyTorch (CPU por defecto, compatible con AMD si tiene ROCm instalado)
+# Nota: torch y torchvision se instalan en Dockerfile con versión específica
+# torch==2.1.0
+# torchvision==0.16.0
+
+# Soporte para GPU AMD (OpenCL)
+pyopencl>=2023.1        # Para detectar y usar GPUs AMD via OpenCL
 
 # Validación y serialización
 pydantic==1.10.13
@@ -25,3 +33,6 @@ requests==2.31.0         # Para testing
 
 # Object Storage
 minio==7.2.0            # Cliente para Minio object storage
+
+# Logging y monitoreo
+loguru==0.7.2           # Logging avanzado

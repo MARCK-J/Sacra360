@@ -92,7 +92,9 @@ async def procesar_imagen_ocr(
                 detail="El archivo está vacío"
             )
         
-        logger.info(f"Archivo leído: {len(contenido_archivo)} bytes")
+        # Detectar si es PDF
+        es_pdf = archivo.content_type == 'application/pdf'
+        logger.info(f"Archivo leído: {len(contenido_archivo)} bytes. Es PDF: {es_pdf}")
         
         # Subir archivo a Minio
         try:
@@ -110,14 +112,15 @@ async def procesar_imagen_ocr(
         # Configurar servicio de base de datos
         db_service = DatabaseService(db) if guardar_en_bd else None
         
-        # Procesar imagen con OCR
+        # Procesar imagen/PDF con OCR v2
         resultado = ocr_service.procesar_imagen(
             imagen_bytes=contenido_archivo,
             libros_id=libros_id,
             tipo_sacramento=tipo_sacramento,
             guardar_en_bd=guardar_en_bd,
             db_service=db_service,
-            minio_info=minio_result  # Pasar información de Minio
+            minio_info=minio_result,  # Pasar información de Minio
+            es_pdf=es_pdf  # Indicar si requiere conversión PDF
         )
         
         logger.info(f"Procesamiento completado. Tuplas extraídas: {resultado.total_tuplas}")
