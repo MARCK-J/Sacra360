@@ -15,6 +15,10 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.6"
   },
+  "optionalDependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1"
+  },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@tailwindcss/container-queries": "^0.1.1",

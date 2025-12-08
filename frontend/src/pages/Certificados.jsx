@@ -1,6 +1,100 @@
 import Layout from '../components/Layout'
+import { useCallback } from 'react'
 
 export default function Certificados() {
+  const handlePrint = useCallback((elementId) => {
+    const el = document.getElementById(elementId)
+    if (!el) return alert('Preview no disponible para imprimir')
+    const content = el.innerHTML
+    const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0')
+    if (!win) return alert('No se pudo abrir la ventana de impresión')
+    const style = `
+      <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #111827; }
+        .certificate-container { width: 100%; }
+        .text-center { text-align: center; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .font-extrabold { font-weight: 800; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-sm { font-size: .875rem; }
+        .mt-6 { margin-top: 1.5rem; }
+      </style>
+    `
+    win.document.open()
+    win.document.write(`<!doctype html><html><head><title>Certificado</title>${style}</head><body><div class="certificate-container">${content}</div></body></html>`)
+    win.document.close()
+    // Wait for images/fonts to load
+    win.focus()
+    setTimeout(() => {
+      try {
+        win.print()
+      } catch (e) {
+        console.error(e)
+        alert('Error al intentar imprimir/exportar. Usa la opción de imprimir del navegador.')
+      }
+    }, 400)
+  }, [])
+
+  const handleExportPDF = useCallback((elementId) => {
+    const generateAndDownload = async () => {
+      let html2canvas = null
+      let jsPDF = null
+      try {
+        const modCanvas = await import('html2canvas')
+        html2canvas = modCanvas.default || modCanvas
+        const modPdf = await import('jspdf')
+        jsPDF = modPdf.jsPDF || modPdf.default || modPdf
+      } catch (err) {
+        // dynamic import failed — fall back to print dialog
+        console.warn('PDF libs not available, falling back to print dialog', err)
+        return handlePrint(elementId)
+      }
+
+      const el = document.getElementById(elementId)
+      if (!el) return alert('Preview no disponible para exportar')
+      const originalBg = el.style.backgroundColor
+      el.style.backgroundColor = '#ffffff'
+      try {
+        // ensure web fonts have loaded so canvas text matches on-screen
+        try { if (document.fonts && document.fonts.ready) await document.fonts.ready } catch (e) {}
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = pdf.internal.pageSize.getHeight()
+
+        const canvasWidth = canvas.width
+        const canvasHeight = canvas.height
+        const pageHeightPx = Math.floor(canvasWidth * (pdfHeight / pdfWidth))
+
+        let position = 0
+        while (position < canvasHeight) {
+          const sliceHeight = Math.min(pageHeightPx, canvasHeight - position)
+          const pageCanvas = document.createElement('canvas')
+          pageCanvas.width = canvasWidth
+          pageCanvas.height = sliceHeight
+          const ctx = pageCanvas.getContext('2d')
+          ctx.drawImage(canvas, 0, position, canvasWidth, sliceHeight, 0, 0, canvasWidth, sliceHeight)
+          const pageImgData = pageCanvas.toDataURL('image/png')
+          const pageHeightMm = (sliceHeight * pdfWidth) / canvasWidth
+          pdf.addImage(pageImgData, 'PNG', 0, 0, pdfWidth, pageHeightMm)
+          position += sliceHeight
+          if (position < canvasHeight) pdf.addPage()
+        }
+
+        const filename = `certificado-${Date.now()}.pdf`
+        pdf.save(filename)
+      } catch (err) {
+        console.error('PDF export error', err)
+        alert('Error al generar PDF. Se abrirá el diálogo de impresión como respaldo.')
+        handlePrint(elementId)
+      } finally {
+        el.style.backgroundColor = originalBg
+      }
+    }
+    generateAndDownload()
+  }, [handlePrint])
   return (
     <Layout title="Generación de Certificados">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -71,12 +165,12 @@ export default function Certificados() {
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-xl font-bold">Vista Previa</h3>
               <div className="flex gap-2">
-                <button className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Imprimir</button>
-                <button className="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Exportar PDF</button>
+                <button onClick={() => handlePrint('certificate-preview')} className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Imprimir</button>
+                <button onClick={() => handleExportPDF('certificate-preview')} className="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Exportar PDF</button>
               </div>
             </div>
             <div className="rounded-lg border border-dashed border-border-light dark:border-border-dark p-6 bg-background-light dark:bg-background-dark">
-              <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow p-8">
+              <div id="certificate-preview" className="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow p-8">
                 <div className="text-center mb-6">
                   <h4 className="text-2xl font-extrabold">Certificado de Bautizo</h4>
                   <p className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">Parroquia Nuestra Señora de la Paz</p>
