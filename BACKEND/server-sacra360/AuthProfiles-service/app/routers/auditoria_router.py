@@ -50,17 +50,17 @@ def verificar_es_admin(usuario_actual: Usuario):
 @router.get("", response_model=List[AuditoriaResponse])
 async def listar_auditoria(
     usuario_id: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
-    accion: Optional[str] = Query(None, description="Filtrar por tipo de acci├│n (LOGIN_EXITOSO, LOGIN_FALLIDO, LOGOUT, etc.)"),
+    accion: Optional[str] = Query(None, description="Filtrar por tipo de acción (LOGIN_EXITOSO, LOGIN_FALLIDO, LOGOUT, etc.)"),
     fecha_inicio: Optional[date] = Query(None, description="Fecha inicio (formato: YYYY-MM-DD)"),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin (formato: YYYY-MM-DD)"),
-    search: Optional[str] = Query(None, description="B├║squeda en email o detalles"),
-    skip: int = Query(0, ge=0, description="Registros a saltar para paginaci├│n"),
-    limit: int = Query(50, ge=1, le=500, description="L├¡mite de registros a retornar"),
+    search: Optional[str] = Query(None, description="Búsqueda en email o detalles"),
+    skip: int = Query(0, ge=0, description="Registros a saltar para paginación"),
+    limit: int = Query(50, ge=1, le=500, description="Límite de registros a retornar"),
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Listar logs de auditor├¡a de accesos con filtros
+    Listar logs de auditoría de accesos con filtros
     Solo accesible para administradores
     """
     # Verificar que sea admin

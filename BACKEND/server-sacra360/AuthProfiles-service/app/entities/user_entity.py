@@ -12,7 +12,6 @@ class Rol(Base):
     id_rol = Column(Integer, primary_key=True)
     nombre = Column(String(50), nullable=False, unique=True)
     descripcion = Column(Text)
-    activo = Column(Boolean, default=True)
     
     usuarios = relationship('Usuario', back_populates='rol')
 
