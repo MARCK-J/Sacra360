@@ -9,6 +9,14 @@ __pycache__/
 *.so
 .pytest_cache/
 
+# Virtual environments (CRITICAL - evita transferir 1GB+)
+venv/
+venv_*/
+.venv/
+env/
+ENV/
+virtualenv/
+
 # Archivos de entorno
 .env
 .env.local

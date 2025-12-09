@@ -9,6 +9,7 @@ import time
 import requests
 import json
 import logging
+import threading
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
@@ -118,25 +119,15 @@ class DigitalizacionService:
             response = UploadDocumentResponse(
                 success=True,
                 documento_id=documento_id,
-                mensaje="Documento procesado exitosamente",
+                mensaje="Documento subido exitosamente. OCR procesando en background..." if procesar_ocr else "Documento subido exitosamente",
                 archivo_url=minio_info['url'],
-                estado=EstadoProcesamiento.COMPLETADO if procesar_ocr else EstadoProcesamiento.SUBIDO,
+                estado=EstadoProcesamiento.PROCESANDO if procesar_ocr else EstadoProcesamiento.SUBIDO,
                 tiempo_upload=tiempo_total,
-                ocr_procesado=procesar_ocr and ocr_resultado is not None
+                ocr_procesado=False  # Siempre False porque el OCR se procesa en background
             )
             
-            if ocr_resultado:
-                response.ocr_resultado = ocr_resultado
-                response.total_tuplas = ocr_resultado.get('total_tuplas', 0)
-                response.calidad_general = ocr_resultado.get('calidad_general', 0)
-                response.tiempo_ocr = ocr_resultado.get('tiempo_procesamiento', 0)
-                
-                # Crear registros de validación para las tuplas OCR
-                await self._crear_registros_validacion(
-                    documento_id=documento_id,
-                    total_tuplas=ocr_resultado.get('total_tuplas', 0),
-                    db=db
-                )
+            # No agregamos info del OCR porque aún está procesando
+            # El frontend debe consultar /api/v1/ocr/progreso/{documento_id}
             
             return response
             
@@ -226,31 +217,41 @@ class DigitalizacionService:
         libro_id: int,
         tipo_sacramento: int
     ) -> Optional[Dict[str, Any]]:
-        """Llama al OCR service para procesar el documento usando endpoint interno"""
-        try:
-            # Llamar al OCR service endpoint que procesa desde BD
-            ocr_url = f"{self.ocr_service_url}/api/v1/ocr/procesar-desde-bd/{documento_id}"
-            
-            logger.info(f"Llamando OCR service: {ocr_url}")
-            
-            response = requests.post(
-                url=ocr_url,
-                timeout=60  # Timeout de 60 segundos
-            )
-            
-            if response.status_code == 200:
-                ocr_resultado = response.json()
-                logger.info(f"OCR procesado exitosamente. Tuplas: {ocr_resultado.get('total_tuplas', 0)}")
-                return ocr_resultado
-            else:
-                logger.error(f"Error OCR: HTTP {response.status_code} - {response.text}")
-                return None
+        """Inicia el procesamiento OCR de forma COMPLETAMENTE asíncrona usando threading"""
+        
+        def _llamar_ocr_service():
+            """Función que se ejecuta en un thread separado para llamar al OCR service"""
+            try:
+                ocr_url = f"{self.ocr_service_url}/api/v1/ocr/procesar-desde-bd/{documento_id}"
+                logger.info(f"🔄 [Thread] Llamando OCR service: {ocr_url}")
                 
-        except requests.exceptions.Timeout:
-            logger.error("Timeout llamando al OCR service")
-            return None
+                # Llamada bloqueante pero en thread separado
+                response = requests.post(url=ocr_url, timeout=600)  # 10 minutos de timeout
+                
+                if response.status_code == 200:
+                    logger.info(f"✅ [Thread] OCR completado para documento {documento_id}")
+                else:
+                    logger.error(f"❌ [Thread] OCR falló HTTP {response.status_code}")
+                    
+            except Exception as e:
+                logger.error(f"❌ [Thread] Error en OCR: {e}")
+        
+        try:
+            # Iniciar el procesamiento OCR en un thread separado (fire-and-forget)
+            thread = threading.Thread(target=_llamar_ocr_service, daemon=True)
+            thread.start()
+            
+            logger.info(f"✅ OCR iniciado en background (thread separado) para documento {documento_id}")
+            
+            # Retornar inmediatamente sin esperar
+            return {
+                'estado': 'procesando',
+                'mensaje': 'OCR procesando en background',
+                'documento_id': documento_id
+            }
+                
         except Exception as e:
-            logger.error(f"Error procesando OCR: {e}")
+            logger.error(f"❌ Error iniciando thread OCR: {e}")
             return None
     
     async def _crear_registros_validacion(

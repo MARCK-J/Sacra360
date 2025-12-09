@@ -1,30 +1,31 @@
-# OCR Service - Sacra360
-# Dependencias específicas para el microservicio de OCR con soporte GPU AMD/NVIDIA
+# OCR Service - Sacra360 OCR V2
+# Dependencias para microservicio de OCR CPU-only con EasyOCR
 
 # Framework web
 fastapi==0.104.1
 uvicorn==0.24.0
 
 # OCR y procesamiento de imágenes
-opencv-python-headless==4.12.0.88  # Versión sin GUI para servidores
-pytesseract==0.3.10
+opencv-python-headless==4.8.1.78   # Versión sin GUI para servidores
 Pillow==10.0.1
-numpy==2.2.0
-pdf2image==1.17.0        # Para convertir PDF a imágenes
+numpy==1.24.3
+PyMuPDF==1.23.8          # Para convertir PDF a imágenes (más rápido que pdf2image)
 easyocr==1.7.2           # OCR mejorado con deep learning
-pandas==2.2.3            # Para procesamiento de datos tabulares
-matplotlib==3.9.3        # Para visualizaciones (requerido por easyocr)
+pandas==2.1.4            # Para procesamiento de datos tabulares
+matplotlib==3.8.2        # Para visualizaciones (requerido por easyocr)
 
-# PyTorch (CPU por defecto, compatible con AMD si tiene ROCm instalado)
+# PyTorch CPU-only
 # Nota: torch y torchvision se instalan en Dockerfile con versión específica
-# torch==2.1.0
-# torchvision==0.16.0
+# torch==2.5.1+cpu
+# torchvision==0.20.1+cpu
 
-# Soporte para GPU AMD (OpenCL)
-pyopencl>=2023.1        # Para detectar y usar GPUs AMD via OpenCL
+# Database
+psycopg2-binary==2.9.9   # PostgreSQL driver
+sqlalchemy==2.0.23       # ORM para base de datos
 
 # Validación y serialización
-pydantic==1.10.13
+pydantic==2.5.0
+pydantic-settings==2.1.0
 
 # Utilidades
 python-multipart==0.0.6  # Para manejar uploads
@@ -34,5 +35,5 @@ requests==2.31.0         # Para testing
 # Object Storage
 minio==7.2.0            # Cliente para Minio object storage
 
-# Logging y monitoreo
+# Logging
 loguru==0.7.2           # Logging avanzado

@@ -128,8 +128,12 @@ const ValidacionOCRModal = ({
 
   /**
    * Valida el tipo de dato según el campo
+   * Acepta tanto col_X como nombres de campo
    */
   const validarTipoDato = (nombreCampo, valor) => {
+    // Mapear col_X a nombre de campo si es necesario
+    const nombreCampoReal = COL_TO_FIELD_MAP[nombreCampo] || nombreCampo;
+    
     // Campos numéricos (fechas)
     const camposNumericos = ['dia_nacimiento', 'mes_nacimiento', 'ano_nacimiento', 
                              'dia_bautismo', 'mes_bautismo', 'ano_bautismo'];
@@ -137,12 +141,12 @@ const ValidacionOCRModal = ({
     // Campos alfabéticos (nombres)
     const camposAlfabeticos = ['nombre_confirmando', 'padres', 'padrinos'];
 
-    if (camposNumericos.includes(nombreCampo)) {
+    if (camposNumericos.includes(nombreCampoReal)) {
       // Solo permitir números
       return valor.replace(/[^0-9]/g, '');
     }
     
-    if (camposAlfabeticos.includes(nombreCampo)) {
+    if (camposAlfabeticos.includes(nombreCampoReal)) {
       // Solo permitir letras, espacios, acentos y caracteres especiales de nombres
       return valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.]/g, '');
     }
@@ -187,15 +191,31 @@ const ValidacionOCRModal = ({
   const validarTupla = async (accion) => {
     if (!tuplas[tuplaActual]) return;
 
-    // Validar que se haya seleccionado una institución
-    if (!institucionSeleccionada) {
-      setError('Debe seleccionar una Institución/Parroquia antes de validar');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     const tupla = tuplas[tuplaActual];
+
+    // Si la acción es rechazar, no necesitamos validar institución ni datos
+    if (accion === 'rechazar') {
+      await registrarTupla({
+        documento_id: documentoId,
+        tupla_numero: tupla.tupla_numero,
+        tupla_id_ocr: tupla.id_ocr,
+        usuario_validador_id: 4,
+        institucion_id: null,
+        datos_validados: {},
+        observaciones: observaciones || 'Tupla rechazada',
+        accion: 'rechazar'
+      });
+      return;
+    }
+
+    // Para aprobar o corregir, validar que se haya seleccionado una institución
+    if (!institucionSeleccionada) {
+      setError('Debe seleccionar una Institución/Parroquia antes de validar');
+      setLoading(false);
+      return;
+    }
 
     // Construir datos_validados con valores corregidos o originales
     const datosValidados = {};
@@ -291,12 +311,16 @@ const ValidacionOCRModal = ({
       }
 
       const resultado = await response.json();
-      console.log('✅ Tupla validada:', resultado);
+      console.log('✅ Tupla procesada:', resultado);
 
-      // Mostrar notificación de éxito
+      // Mostrar notificación de éxito según el tipo de acción
+      const mensaje = resultado.estado === 'rechazado'
+        ? `⏭️ Tupla ${tupla.tupla_numero} rechazada`
+        : `✅ Tupla ${tupla.tupla_numero} registrada - Persona: ${resultado.persona_id}, Sacramento: ${resultado.sacramento_id}`;
+      
       setNotificacion({
         tipo: 'success',
-        mensaje: `✅ Tupla ${tupla.tupla_numero} registrada - Persona: ${resultado.persona_id}, Sacramento: ${resultado.sacramento_id}`
+        mensaje
       });
 
       // Ocultar notificación después de 3 segundos
@@ -373,25 +397,46 @@ const ValidacionOCRModal = ({
   };
 
   /**
-   * Orden de campos según la tabla de las hojas
+   * Mapeo de col_X a nombres de campos
+   * col_4 NO se incluye (parroquia/institución - no se valida)
+   */
+  const COL_TO_FIELD_MAP = {
+    'col_0': 'nombre_confirmando',
+    'col_1': 'dia_nacimiento',
+    'col_2': 'mes_nacimiento',
+    'col_3': 'ano_nacimiento',
+    // col_4 NO se mapea (parroquia - no se valida)
+    'col_5': 'dia_bautismo',
+    'col_6': 'mes_bautismo',
+    'col_7': 'ano_bautismo',
+    'col_8': 'padres',
+    'col_9': 'padrinos'
+  };
+
+  /**
+   * Orden de campos según la tabla de las hojas (sin col_4)
    */
   const ORDEN_CAMPOS = [
-    'nombre_confirmando',
-    'dia_nacimiento',
-    'mes_nacimiento',
-    'ano_nacimiento',
-    'dia_bautismo',
-    'mes_bautismo',
-    'ano_bautismo',
-    'padres',
-    'padrinos'
+    'col_0',  // nombre_confirmando
+    'col_1',  // dia_nacimiento
+    'col_2',  // mes_nacimiento
+    'col_3',  // ano_nacimiento
+    // col_4 omitido (parroquia)
+    'col_5',  // dia_bautismo
+    'col_6',  // mes_bautismo
+    'col_7',  // ano_bautismo
+    'col_8',  // padres
+    'col_9'   // padrinos
   ];
 
   /**
-   * Ordena los campos según el orden definido
+   * Ordena los campos según el orden definido y FILTRA col_4
    */
   const ordenarCampos = (campos) => {
-    return [...campos].sort((a, b) => {
+    // FILTRAR col_4 (parroquia) antes de ordenar
+    const camposFiltrados = campos.filter(campo => campo.campo !== 'col_4');
+    
+    return [...camposFiltrados].sort((a, b) => {
       const indexA = ORDEN_CAMPOS.indexOf(a.campo);
       const indexB = ORDEN_CAMPOS.indexOf(b.campo);
       return indexA - indexB;
@@ -400,26 +445,34 @@ const ValidacionOCRModal = ({
 
   /**
    * Obtiene la etiqueta amigable del campo
+   * Acepta tanto col_X como nombres de campo
    */
   const obtenerEtiquetaCampo = (nombreCampo) => {
+    // Mapear col_X a nombre de campo si es necesario
+    const nombreCampoReal = COL_TO_FIELD_MAP[nombreCampo] || nombreCampo;
+    
     const etiquetas = {
-      'nombre_confirmando': 'CONFIRMANDO (Nombre - Ap. Paterno - Ap. Materno)',
+      'nombre_confirmando': 'Nombre del Confirmado',
       'dia_nacimiento': 'Día de Nacimiento',
       'mes_nacimiento': 'Mes de Nacimiento',
       'ano_nacimiento': 'Año de Nacimiento',
       'dia_bautismo': 'Día de Bautismo',
       'mes_bautismo': 'Mes de Bautismo',
       'ano_bautismo': 'Año de Bautismo',
-      'padres': 'PADRES (Nombres - Ap. Paterno - Ap. Materno)',
-      'padrinos': 'PADRINOS (Nombres - Ap. Paterno - Ap. Materno)'
+      'padres': 'Padres (Nombres - Ap. Paterno - Ap. Materno)',
+      'padrinos': 'Padrinos (Nombres - Ap. Paterno - Ap. Materno)'
     };
-    return etiquetas[nombreCampo] || nombreCampo.replace(/_/g, ' ');
+    return etiquetas[nombreCampoReal] || nombreCampoReal.replace(/_/g, ' ');
   };
 
   /**
    * Obtiene el placeholder según el tipo de campo
+   * Acepta tanto col_X como nombres de campo
    */
   const obtenerPlaceholder = (nombreCampo) => {
+    // Mapear col_X a nombre de campo si es necesario
+    const nombreCampoReal = COL_TO_FIELD_MAP[nombreCampo] || nombreCampo;
+    
     const placeholders = {
       'nombre_confirmando': 'Ej: Juan - Pérez - García',
       'dia_nacimiento': 'Día (1-31)',
@@ -431,7 +484,7 @@ const ValidacionOCRModal = ({
       'padres': 'Nombres - Ap. Paterno - Ap. Materno',
       'padrinos': 'Nombres - Ap. Paterno - Ap. Materno'
     };
-    return placeholders[nombreCampo] || 'Ingrese el valor';
+    return placeholders[nombreCampoReal] || 'Ingrese el valor';
   };
 
   /**
@@ -453,11 +506,6 @@ const ValidacionOCRModal = ({
     };
 
     const tieneCorreccion = correcciones[idLocal];
-
-    // Filtrar campo parroquia_bautismo (no nos sirve)
-    if (campo.campo === 'parroquia_bautismo') {
-      return null;
-    }
 
     return (
       <div key={idLocal} className="bg-gray-50 p-4 rounded-lg border">
