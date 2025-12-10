@@ -503,6 +503,61 @@ async def eliminar_usuario(
         )
 
 
+@router.patch("/{usuario_id}/activar")
+async def activar_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(get_current_user)
+):
+    """
+    Reactivar un usuario desactivado
+    - Requiere: rol de Administrador
+    - Cambia el estado de activo=False a activo=True
+    """
+    verificar_es_admin(usuario_actual)
+    
+    try:
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
+        
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Usuario con ID {usuario_id} no encontrado"
+            )
+        
+        if usuario.activo:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El usuario ya est├í activo"
+            )
+        
+        # Reactivar usuario
+        usuario.activo = True
+        db.commit()
+        
+        # Registrar auditor├¡a
+        registrar_auditoria(
+            db=db,
+            usuario_id=usuario_actual.id_usuario,
+            accion="ACTIVAR_USUARIO",
+            detalles=f"Usuario reactivado: {usuario.email} (ID: {usuario.id_usuario})"
+        )
+        
+        logger.info(f"Usuario {usuario_id} reactivado por admin ID: {usuario_actual.id_usuario}")
+        
+        return {"message": f"Usuario {usuario.email} reactivado exitosamente"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al reactivar usuario: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al reactivar usuario"
+        )
+
+
 @router.get("/roles/listar")
 async def listar_roles(
     db: Session = Depends(get_db),

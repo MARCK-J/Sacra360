@@ -1,0 +1,104 @@
+@startuml Esquema de Despliegue - Sacra360
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Esquema de Despliegue Docker - Sistema Sacra360
+
+' Nodo físico
+node "Servidor Host" {
+  
+  ' Docker Engine
+  node "Docker Engine" {
+    
+    ' Red Docker
+    cloud "sacra360_network" {
+      
+      ' Bases de Datos
+      database "PostgreSQL\n:5432" as postgres #90CAF9
+      database "Redis\n:6379" as redis #81C784
+      database "MinIO\n:9000/:9001" as minio #FFB74D
+      
+      ' API Gateway
+      component "API Gateway\n:8000" as gateway #FFA726
+      
+      ' Microservicios
+      component "AuthProfiles\n:8004" as auth #BA68C8
+      component "Documents\n:8002" as docs #9575CD
+      component "OCR\n:8003" as ocr #7986CB
+      component "HTR\n:8005" as htr #5C6BC0
+      component "AI Processing\n:8006" as ai #42A5F5
+      component "File Storage\n:8007" as files #29B6F6
+      component "Reports\n:8008" as reports #03A9F4
+      
+      ' Relaciones bases de datos
+      auth --> postgres
+      auth --> redis
+      docs --> postgres
+      docs --> redis
+      ocr --> postgres
+      htr --> postgres
+      ai --> postgres
+      files --> postgres
+      files --> minio
+      reports --> postgres
+      reports --> redis
+      
+      ' Relaciones entre servicios
+      docs --> auth
+      ocr --> auth
+      ocr --> files
+      htr --> auth
+      htr --> files
+      ai --> auth
+      ai --> docs
+      files --> auth
+      reports --> auth
+      reports --> docs
+      
+      ' Gateway a servicios
+      gateway --> auth
+      gateway --> docs
+      gateway --> ocr
+      gateway --> files
+      gateway --> reports
+    }
+    
+    ' Volúmenes
+    storage "postgres_data" as vol1
+    storage "redis_data" as vol2
+    storage "minio_data" as vol3
+    
+    postgres -down-> vol1
+    redis -down-> vol2
+    minio -down-> vol3
+  }
+}
+
+' Clientes externos
+actor "Usuario" as user
+component "React App\n:5173" as frontend
+
+user --> frontend
+frontend --> gateway : "HTTP :8000"
+
+legend right
+  **Contenedores (10):**
+  - PostgreSQL 15
+  - Redis 7
+  - MinIO S3
+  - API Gateway
+  - 7 Microservicios
+  
+  **Red:**
+  - sacra360_network (bridge)
+  
+  **Volúmenes:**
+  - postgres_data (~5GB)
+  - redis_data (~500MB)
+  - minio_data (~50GB)
+  
+  **Ver detalles completos en:**
+  - arquitectura-contenedores.md
+end legend
+
+@enduml

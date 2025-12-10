@@ -1,0 +1,153 @@
+@startuml Diagrama de Estados - Documento Digitalizado
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Diagrama de Estados - Ciclo de Vida de un Documento Digitalizado
+
+[*] --> Subido : Usuario sube documento
+
+state Subido {
+  [*] --> ValidandoFormato
+  ValidandoFormato --> FormatoValido : Formato correcto (JPG, PNG, PDF)
+  ValidandoFormato --> FormatoInvalido : Formato no soportado
+  FormatoInvalido --> [*] : Rechazar documento
+}
+
+Subido --> Almacenado : Guardar en MinIO\ny registrar en BD
+
+state Almacenado {
+  state "En Cola OCR" as ColaOCR
+  [*] --> ColaOCR
+  note right of ColaOCR
+    documento_digitalizado.ocr_texto = NULL
+    documento_digitalizado.confianza = 0
+  end note
+}
+
+Almacenado --> ProcesandoOCR : Iniciar procesamiento
+
+state ProcesandoOCR {
+  [*] --> Preprocesamiento
+  Preprocesamiento --> EjecutandoTesseract
+  EjecutandoTesseract --> ExtrayendoCampos
+  ExtrayendoCampos --> CalculandoConfianza
+}
+
+ProcesandoOCR --> OCRCompletado : Texto extraído
+
+state OCRCompletado {
+  state "Verificando Confianza" as VerifConf
+  [*] --> VerifConf
+  VerifConf --> AltaConfianza : confianza >= 0.7
+  VerifConf --> BajaConfianza : confianza < 0.7
+  
+  AltaConfianza --> AutoValidado
+  note right of AutoValidado
+    ocr_resultado.validado = true
+    Puede pasar directamente
+    a creación de registro
+  end note
+  
+  BajaConfianza --> RequiereRevision
+  note right of RequiereRevision
+    ocr_resultado.validado = false
+    Enviado a cola de
+    Revisión OCR
+  end note
+}
+
+OCRCompletado --> EnRevision : confianza < 0.7
+
+state EnRevision {
+  [*] --> EsperandoRevisor
+  EsperandoRevisor --> SiendoRevisado : Revisor asigna documento
+  
+  state SiendoRevisado {
+    [*] --> ComparandoImagenTexto
+    ComparandoImagenTexto --> CorrigiendoCampos
+    CorrigiendoCampos --> ValidandoCorrecciones
+  }
+  
+  SiendoRevisado --> CorreccionesGuardadas : Guardar cambios
+  
+  note right of CorreccionesGuardadas
+    Se crean registros en
+    correccion_documento
+    con valor_original y
+    valor_corregido
+  end note
+}
+
+EnRevision --> Validado : Correcciones completadas
+
+AutoValidado --> Validado
+OCRCompletado --> Validado : Si confianza >= 0.7
+
+state Validado {
+  [*] --> DisponibleParaRegistro
+  note right of DisponibleParaRegistro
+    ocr_resultado.validado = true
+    Documento listo para
+    crear sacramento
+  end note
+}
+
+Validado --> AsociadoASacramento : Usuario crea sacramento
+
+state AsociadoASacramento {
+  [*] --> PersonaCreada : Si persona no existe
+  [*] --> PersonaEncontrada : Si persona existe
+  
+  PersonaCreada --> SacramentoCreado
+  PersonaEncontrada --> SacramentoCreado
+  
+  state SacramentoCreado {
+    [*] --> RegistroBasico
+    RegistroBasico --> DetallesEspecificos
+    DetallesEspecificos --> VinculoDocumento
+    
+    note right of VinculoDocumento
+      sacramentos.libro_id
+      detalles_X.sacramento_id
+      Documento queda vinculado
+      al registro sacramental
+    end note
+  }
+}
+
+AsociadoASacramento --> Procesado : Completar registro
+
+state Procesado {
+  [*] --> DisponibleConsulta
+  
+  note right of DisponibleConsulta
+    documento_digitalizado.procesado = true
+    Disponible para:
+    - Búsquedas
+    - Certificados
+    - Consultas
+    - Reportes
+  end note
+}
+
+Procesado --> Archivado : Archivar después de N días
+
+state Archivado {
+  [*] --> AlmacenamientoLargoPlazo
+  note right of AlmacenamientoLargoPlazo
+    Se puede mover a storage
+    de menor costo.
+    Metadatos permanecen en BD
+  end note
+}
+
+Archivado --> [*]
+
+note right of [*]
+  Estados especiales:
+  - Error OCR: Reintento automático
+  - Documento corrupto: Manual
+  - Duplicado: Fusionar con existente
+end note
+
+@enduml

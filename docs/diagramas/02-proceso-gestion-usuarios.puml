@@ -1,0 +1,198 @@
+@startuml Proceso de Gestión de Usuarios
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Gestión de Usuarios - Sacra360
+
+actor Administrador as admin
+participant "Frontend\nUsuarios.jsx" as frontend
+participant "AuthProfiles\nService" as auth
+participant "PostgreSQL" as db
+
+== Crear Usuario ==
+admin -> frontend: Click "Crear Usuario"
+activate frontend
+
+frontend -> frontend: Abrir modal\ncon formulario vacío
+
+admin -> frontend: Llenar formulario:\n- Nombre, apellidos\n- Email único\n- Contraseña (min 8 chars)\n- Rol (1-4)\n- Estado: Activo
+
+frontend -> frontend: Validar datos:\n- Campos requeridos\n- Formato email\n- Longitud contraseña
+
+alt Validación exitosa
+    frontend -> auth: POST /api/v1/usuarios\nAuthorization: Bearer {token}\n{nombre, apellidos, email, contrasenia, rol_id}
+    activate auth
+    
+    auth -> auth: Verificar permisos\n(usuarios.create)
+    
+    auth -> db: SELECT COUNT(*)\nWHERE email = ?
+    activate db
+    db --> auth: count
+    deactivate db
+    
+    alt Email único
+        auth -> auth: Hash contraseña\nbcrypt.hashpw(12 rounds)
+        
+        auth -> db: INSERT INTO usuarios\n(nombre, apellidos, email, contrasenia, rol_id, activo, fecha_creacion)
+        activate db
+        db --> auth: usuario creado\n{id_usuario}
+        deactivate db
+        
+        auth -> db: INSERT INTO auditoria\n(CREAR_USUARIO, admin_id, usuario_id)
+        activate db
+        db --> auth: OK
+        deactivate db
+        
+        auth --> frontend: 201 Created\n{usuario completo}
+        frontend -> frontend: Cerrar modal\nActualizar lista
+        frontend --> admin: "Usuario creado\nexitosamente"
+        
+    else Email duplicado
+        auth --> frontend: 400 Bad Request\n{detail: "Email ya existe"}
+        frontend --> admin: Mostrar error
+    end
+    
+    deactivate auth
+    
+else Validación fallida
+    frontend --> admin: Resaltar campos\ncon error
+end
+
+deactivate frontend
+
+== Editar Usuario ==
+admin -> frontend: Click "Editar"\nen usuario
+activate frontend
+
+frontend -> auth: GET /api/v1/usuarios/{id}
+activate auth
+
+auth -> db: SELECT * FROM usuarios\nWHERE id_usuario = ?
+activate db
+db --> auth: Datos usuario
+deactivate db
+
+auth --> frontend: 200 OK\n{usuario}
+deactivate auth
+
+frontend -> frontend: Abrir modal\ncon datos precargados
+
+admin -> frontend: Modificar:\n- Nombre, apellidos\n- Email\n- Rol\n- Estado (activo/inactivo)
+
+frontend -> auth: PUT /api/v1/usuarios/{id}\n{datos actualizados}
+activate auth
+
+auth -> auth: Verificar permisos\n(usuarios.update)
+
+auth -> db: UPDATE usuarios\nSET ... WHERE id_usuario = ?
+activate db
+db --> auth: Filas afectadas
+deactivate db
+
+auth -> db: INSERT INTO auditoria\n(ACTUALIZAR_USUARIO, cambios)
+activate db
+db --> auth: OK
+deactivate db
+
+auth --> frontend: 200 OK\n{usuario actualizado}
+frontend -> frontend: Actualizar lista
+frontend --> admin: "Usuario actualizado"
+
+deactivate auth
+deactivate frontend
+
+== Cambiar Contraseña (Usuario) ==
+admin -> frontend: Ir a Mi Perfil
+activate frontend
+
+admin -> frontend: Click "Cambiar Contraseña"
+frontend -> frontend: Abrir modal
+
+admin -> frontend: Ingresar:\n- Contraseña actual\n- Nueva contraseña\n- Confirmar contraseña
+
+frontend -> frontend: Validar:\n- Todas las contraseñas\n- Nueva != Actual\n- Nueva == Confirmación\n- Longitud mínima 8
+
+frontend -> auth: PATCH /api/v1/usuarios/{id}/password\n{contrasenia}
+activate auth
+
+auth -> auth: Hash nueva contraseña\nbcrypt.hashpw()
+
+auth -> db: UPDATE usuarios\nSET contrasenia = ?\nWHERE id_usuario = ?
+activate db
+db --> auth: OK
+deactivate db
+
+auth -> db: INSERT INTO auditoria\n(CAMBIAR_CONTRASENA, usuario_id)
+activate db
+db --> auth: OK
+deactivate db
+
+auth --> frontend: 200 OK
+frontend --> admin: "Contraseña actualizada"
+
+deactivate auth
+deactivate frontend
+
+== Desactivar Usuario ==
+admin -> frontend: Click botón "Eliminar"\n(usuario activo)
+activate frontend
+
+frontend -> admin: Confirmar:\n"¿Desactivar usuario?"
+
+admin -> frontend: Confirmar
+
+frontend -> auth: DELETE /api/v1/usuarios/{id}
+activate auth
+
+auth -> auth: Verificar permisos\n(usuarios.delete)
+
+auth -> auth: Validar no sea\nsu propia cuenta
+
+auth -> db: UPDATE usuarios\nSET activo = false\nWHERE id_usuario = ?
+activate db
+db --> auth: OK
+deactivate db
+
+auth -> db: INSERT INTO auditoria\n(ELIMINAR_USUARIO, usuario_id)
+activate db
+db --> auth: OK
+deactivate db
+
+auth --> frontend: 200 OK
+frontend -> frontend: Actualizar lista\n(botón cambia a "Reactivar")
+frontend --> admin: "Usuario desactivado"
+
+deactivate auth
+deactivate frontend
+
+== Reactivar Usuario ==
+admin -> frontend: Click botón "Reactivar"\n(usuario inactivo)
+activate frontend
+
+frontend -> admin: Confirmar:\n"¿Reactivar usuario?"
+
+admin -> frontend: Confirmar
+
+frontend -> auth: PATCH /api/v1/usuarios/{id}/activar
+activate auth
+
+auth -> auth: Verificar permisos\n(usuarios.update)
+
+auth -> db: UPDATE usuarios\nSET activo = true\nWHERE id_usuario = ?
+activate db
+db --> auth: OK
+deactivate db
+
+auth -> db: INSERT INTO auditoria\n(ACTIVAR_USUARIO, usuario_id)
+activate db
+db --> auth: OK
+deactivate db
+
+auth --> frontend: 200 OK
+frontend -> frontend: Actualizar lista\n(botón cambia a "Eliminar")
+frontend --> admin: "Usuario reactivado"
+
+deactivate auth
+deactivate frontend
+
+@enduml

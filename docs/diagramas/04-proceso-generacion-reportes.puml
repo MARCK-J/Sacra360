@@ -1,0 +1,230 @@
+@startuml Proceso de Generación de Reportes
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Generación de Reportes y Estadísticas - Sacra360
+
+actor Administrador as admin
+participant "Frontend\nReportes.jsx" as frontend
+participant "AuthProfiles\nService" as auth
+participant "Reports\nService\n:8006" as reports
+participant "PostgreSQL" as db
+participant "Redis\nCache" as redis
+
+== Cargar Dashboard de Reportes ==
+admin -> frontend: Acceder a\n"/reportes"
+activate frontend
+
+frontend -> frontend: Verificar permisos\ncanAccessModule('reportes')
+
+frontend -> frontend: Estado inicial:\ndias = 30 (últimos 30 días)
+
+frontend -> auth: GET /api/v1/reportes/usuarios?dias=30\nAuthorization: Bearer {token}
+activate auth &
+frontend -> auth: GET /api/v1/reportes/accesos?dias=30
+activate auth &
+frontend -> auth: GET /api/v1/reportes/estadisticas
+activate auth
+
+note right of frontend
+  Llamadas paralelas
+  para optimizar carga
+end note
+
+== Reporte de Usuarios ==
+auth -> auth: Verificar permisos\n(reportes.read)
+
+auth -> redis: GET cache:reportes:usuarios:30d
+activate redis
+redis --> auth: null (no existe)
+deactivate redis
+
+auth -> db: SELECT COUNT(*) as total,\n  SUM(CASE WHEN activo THEN 1 END) as activos,\n  SUM(CASE WHEN NOT activo THEN 1 END) as inactivos\nFROM usuarios
+activate db
+db --> auth: Totales usuarios
+deactivate db
+
+auth -> db: SELECT r.nombre as rol_nombre,\n  COUNT(*) as cantidad,\n  ROUND(COUNT(*) * 100.0 / ?, 2) as porcentaje\nFROM usuarios u\nJOIN roles r ON u.rol_id = r.id_rol\nGROUP BY r.nombre\nORDER BY cantidad DESC
+activate db
+db --> auth: Usuarios por rol
+deactivate db
+
+auth -> db: SELECT COUNT(*) as nuevos\nFROM usuarios\nWHERE fecha_creacion >= NOW() - INTERVAL '? days'
+activate db
+db --> auth: Usuarios nuevos
+deactivate db
+
+auth -> auth: Construir respuesta:\n{total_usuarios, usuarios_activos,\nusuarios_inactivos, usuarios_por_rol[],\nusuarios_nuevos}
+
+auth -> redis: SET cache:reportes:usuarios:30d\nEX 300 (5 minutos)
+activate redis
+redis --> auth: OK
+deactivate redis
+
+auth --> frontend: 200 OK\n{reporte_usuarios}
+deactivate auth
+
+== Reporte de Accesos ==
+auth -> auth: Verificar permisos\n(reportes.read)
+
+auth -> redis: GET cache:reportes:accesos:30d
+activate redis
+redis --> auth: null
+deactivate redis
+
+auth -> db: SELECT COUNT(*) as total_accesos\nFROM auditoria\nWHERE fecha >= NOW() - INTERVAL '? days'\nAND accion LIKE 'LOGIN%'
+activate db
+db --> auth: Total accesos
+deactivate db
+
+auth -> db: SELECT ROUND(COUNT(*)::numeric / ?, 2) as promedio\nFROM auditoria\nWHERE fecha >= NOW() - INTERVAL '? days'\nGROUP BY DATE(fecha)
+activate db
+db --> auth: Promedio diario
+deactivate db
+
+auth -> db: SELECT COUNT(DISTINCT usuario_id) as usuarios_unicos\nFROM auditoria\nWHERE fecha >= NOW() - INTERVAL '? days'
+activate db
+db --> auth: Usuarios únicos
+deactivate db
+
+auth -> db: SELECT EXTRACT(HOUR FROM fecha) as hora,\n  COUNT(*) as accesos\nFROM auditoria\nWHERE fecha >= NOW() - INTERVAL '? days'\nGROUP BY hora\nORDER BY hora
+activate db
+db --> auth: Accesos por hora
+deactivate db
+
+auth -> db: SELECT u.nombre, u.apellido_paterno,\n  COUNT(*) as total_acciones\nFROM auditoria a\nJOIN usuarios u ON a.usuario_id = u.id_usuario\nWHERE a.fecha >= NOW() - INTERVAL '? days'\nGROUP BY u.id_usuario, u.nombre, u.apellido_paterno\nORDER BY total_acciones DESC\nLIMIT 10
+activate db
+db --> auth: Top usuarios activos
+deactivate db
+
+auth -> db: SELECT accion,\n  COUNT(*) as cantidad\nFROM auditoria\nWHERE fecha >= NOW() - INTERVAL '? days'\nGROUP BY accion\nORDER BY cantidad DESC
+activate db
+db --> auth: Accesos por tipo
+deactivate db
+
+auth -> auth: Construir respuesta JSON
+
+auth -> redis: SET cache:reportes:accesos:30d\nEX 300
+activate redis
+redis --> auth: OK
+deactivate redis
+
+auth --> frontend: 200 OK\n{reporte_accesos}
+deactivate auth
+
+== Estadísticas Generales ==
+auth -> auth: Verificar permisos
+
+auth -> redis: GET cache:reportes:estadisticas
+activate redis
+redis --> auth: null
+deactivate redis
+
+auth -> db: SELECT\n  (SELECT COUNT(*) FROM usuarios) as total_usuarios,\n  (SELECT COUNT(*) FROM sacramentos) as total_sacramentos,\n  (SELECT COUNT(*) FROM documento_digitalizado) as docs_digitalizados,\n  (SELECT COUNT(*) FROM auditoria WHERE fecha >= NOW() - INTERVAL '24 hours') as accesos_24h
+activate db
+db --> auth: Estadísticas generales
+deactivate db
+
+auth -> db: SELECT ts.nombre,\n  COUNT(*) as cantidad\nFROM sacramentos s\nJOIN tipos_sacramentos ts ON s.tipo_id = ts.id_tipo\nGROUP BY ts.nombre
+activate db
+db --> auth: Sacramentos por tipo
+deactivate db
+
+auth -> redis: SET cache:reportes:estadisticas\nEX 60 (1 minuto)
+activate redis
+redis --> auth: OK
+deactivate redis
+
+auth --> frontend: 200 OK\n{estadisticas}
+deactivate auth
+
+frontend -> frontend: Renderizar dashboard:\n- 7 cards con métricas\n- Gráficos de distribución\n- Tablas de top usuarios
+
+frontend --> admin: Mostrar reportes\ncon visualización
+
+deactivate frontend
+
+== Cambiar Período de Tiempo ==
+admin -> frontend: Seleccionar período:\n"Últimos 7 días"
+activate frontend
+
+frontend -> frontend: setDias(7)
+
+frontend -> frontend: useEffect detecta cambio
+
+frontend -> auth: GET /api/v1/reportes/usuarios?dias=7
+activate auth &
+frontend -> auth: GET /api/v1/reportes/accesos?dias=7
+activate auth
+
+auth -> redis: GET cache:reportes:usuarios:7d
+activate redis
+redis --> auth: Datos en caché
+deactivate redis
+
+auth --> frontend: 200 OK (desde caché)
+deactivate auth
+
+auth -> redis: GET cache:reportes:accesos:7d
+activate redis
+redis --> auth: Datos en caché
+deactivate redis
+
+auth --> frontend: 200 OK (desde caché)
+deactivate auth
+
+frontend -> frontend: Actualizar visualización\ncon nuevos datos
+
+frontend --> admin: Dashboard actualizado\npara últimos 7 días
+
+deactivate frontend
+
+== Exportar Reporte (Futuro) ==
+admin -> frontend: Click "Exportar PDF"
+activate frontend
+
+frontend -> reports: POST /api/v1/reports/export\n{tipo: 'usuarios', formato: 'pdf', dias: 30}
+activate reports
+
+reports -> auth: GET datos reporte
+activate auth
+auth -> db: Consultas SQL
+activate db
+db --> auth: Datos
+deactivate db
+auth --> reports: Datos reporte
+deactivate auth
+
+reports -> reports: Generar PDF\ncon librería reportlab/jsPDF
+
+reports -> files: Guardar PDF temporal
+activate files
+files -> minio: PUT /reports/{uuid}.pdf
+activate minio
+minio --> files: URL
+deactivate minio
+files --> reports: URL temporal
+deactivate files
+
+reports --> frontend: 200 OK\n{download_url, expires_in: 3600}
+frontend -> frontend: Abrir en nueva pestaña\no descargar
+
+deactivate reports
+frontend --> admin: Archivo descargado
+
+deactivate frontend
+
+== Auditoría de Reportes ==
+auth -> db: INSERT INTO auditoria\n(usuario_id, accion='VER_REPORTE', registro_afectado='REPORTES')
+activate db
+db --> auth: OK
+deactivate db
+
+note right of db
+  Todos los accesos
+  a reportes quedan
+  registrados para
+  trazabilidad
+end note
+
+@enduml

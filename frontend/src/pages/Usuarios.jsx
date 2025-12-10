@@ -147,28 +147,6 @@ export default function Usuarios() {
     }
   }
 
-  const handleCambiarContrasena = async (usuarioId) => {
-    const nuevaContrasena = prompt('Ingrese la nueva contraseña (mínimo 8 caracteres):')
-    
-    if (!nuevaContrasena) return
-    
-    if (nuevaContrasena.length < 8) {
-      alert('La contraseña debe tener al menos 8 caracteres')
-      return
-    }
-
-    try {
-      const headers = { Authorization: `Bearer ${token}` }
-      await axios.patch(`${AUTH_API_URL}/api/v1/usuarios/${usuarioId}/password`, {
-        contrasenia: nuevaContrasena
-      }, { headers })
-      alert('Contraseña actualizada exitosamente')
-    } catch (error) {
-      console.error('Error al cambiar contraseña:', error)
-      alert(error.response?.data?.detail || 'Error al cambiar contraseña')
-    }
-  }
-
   const handleEliminar = async (usuario) => {
     if (!confirm(`¿Estás seguro de desactivar al usuario ${usuario.nombre} ${usuario.apellido_paterno}?`)) {
       return
@@ -184,6 +162,25 @@ export default function Usuarios() {
     } catch (error) {
       console.error('Error al eliminar usuario:', error)
       setError(error.response?.data?.detail || 'Error al eliminar usuario')
+      setTimeout(() => setError(''), 3000)
+    }
+  }
+
+  const handleReactivar = async (usuario) => {
+    if (!confirm(`¿Estás seguro de reactivar al usuario ${usuario.nombre} ${usuario.apellido_paterno}?`)) {
+      return
+    }
+
+    try {
+      const headers = { Authorization: `Bearer ${token}` }
+      await axios.patch(`${AUTH_API_URL}/api/v1/usuarios/${usuario.id_usuario}/activar`, {}, { headers })
+      setSuccess('Usuario reactivado exitosamente')
+      await cargarDatos()
+      
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (error) {
+      console.error('Error al reactivar usuario:', error)
+      setError(error.response?.data?.detail || 'Error al reactivar usuario')
       setTimeout(() => setError(''), 3000)
     }
   }
@@ -282,25 +279,24 @@ export default function Usuarios() {
                             </button>
                           </PermissionGuard>
                           
-                          <PermissionGuard module="usuarios" action="update">
-                            <button
-                              onClick={() => handleCambiarContrasena(usuario.id_usuario)}
-                              className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400"
-                              title="Cambiar contraseña"
-                            >
-                              <span className="material-symbols-outlined text-base">lock_reset</span>
-                            </button>
-                          </PermissionGuard>
-                          
                           <PermissionGuard module="usuarios" action="delete">
-                            <button
-                              onClick={() => handleEliminar(usuario)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400"
-                              title="Desactivar"
-                              disabled={!usuario.activo}
-                            >
-                              <span className="material-symbols-outlined text-base">delete</span>
-                            </button>
+                            {usuario.activo ? (
+                              <button
+                                onClick={() => handleEliminar(usuario)}
+                                className="text-red-600 hover:text-red-800 dark:text-red-400"
+                                title="Desactivar usuario"
+                              >
+                                <span className="material-symbols-outlined text-base">delete</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleReactivar(usuario)}
+                                className="text-green-600 hover:text-green-800 dark:text-green-400"
+                                title="Reactivar usuario"
+                              >
+                                <span className="material-symbols-outlined text-base">refresh</span>
+                              </button>
+                            )}
                           </PermissionGuard>
                         </div>
                       </td>

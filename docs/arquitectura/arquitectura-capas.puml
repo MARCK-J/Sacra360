@@ -1,0 +1,141 @@
+@startuml Arquitectura en Capas - Sacra360
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Arquitectura en Capas - Sistema Sacra360
+
+package "Capa de Presentación" <<Layer 1>> #E3F2FD {
+  [React SPA\nVite + React Router] as frontend
+  [Componentes UI\nTailwind CSS] as components
+  [State Management\nContext API] as state
+  [HTTP Client\nAxios] as http
+}
+
+package "Capa de API Gateway" <<Layer 2>> #FFF9C4 {
+  [API Gateway\nPuerto: 8000] as gateway
+  [Autenticación\nCentralizada] as authGW
+  [Rate Limiting\nGlobal] as rateLimitGW
+  [Load Balancer] as lb
+}
+
+package "Capa de Lógica de Negocio" <<Layer 3>> #C8E6C9 {
+  
+  package "AuthProfiles :8004" {
+    [Autenticación JWT]
+    [RBAC (144 permisos)]
+    [Gestión Usuarios]
+    [Auditoría]
+    [Reportes]
+  }
+  
+  package "Documents :8002" {
+    [CRUD Sacramentos]
+    [CRUD Personas]
+    [Búsquedas]
+    [Validaciones]
+  }
+  
+  package "OCR :8003" {
+    [Tesseract Engine]
+    [Preprocesamiento]
+    [Extracción]
+  }
+  
+  package "HTR :8004" {
+    [Modelo ML]
+    [Reconocimiento\nManuscritos]
+  }
+  
+  package "AI :8005" {
+    [OpenAI API]
+    [NLP]
+    [Enhancement]
+  }
+  
+  package "Files :8007" {
+    [Upload Handler]
+    [MinIO Client]
+    [Validación]
+  }
+  
+  package "Reports :8006" {
+    [PDF Generator]
+    [Excel Export]
+    [Analytics]
+  }
+}
+
+package "Capa de Acceso a Datos" <<Layer 4>> #FFCCBC {
+  [SQLAlchemy ORM] as orm
+  [Redis Client] as redisClient
+  [MinIO SDK] as minioSDK
+  [Connection Pool] as pool
+}
+
+package "Capa de Persistencia" <<Layer 5>> #E1BEE7 {
+  database "PostgreSQL 15\nPuerto: 5432" as db
+  database "Redis 7\nPuerto: 6379" as cache
+  database "MinIO S3\nPuerto: 9000" as storage
+}
+
+package "Capa de Infraestructura" <<Layer 6>> #B2DFDB {
+  [Docker Engine] as docker
+  [Docker Compose] as compose
+  [Docker Network\nsacra360_network] as network
+  [Docker Volumes] as volumes
+}
+
+' Relaciones
+frontend --> gateway : HTTPS
+gateway --> [Autenticación JWT]
+gateway --> [CRUD Sacramentos]
+gateway --> [Tesseract Engine]
+gateway --> [Upload Handler]
+gateway --> [PDF Generator]
+
+[Autenticación JWT] --> orm
+[CRUD Sacramentos] --> orm
+[Tesseract Engine] --> orm
+[Tesseract Engine] --> minioSDK
+[Upload Handler] --> minioSDK
+[Reportes] --> redisClient
+
+orm --> pool
+redisClient --> cache
+minioSDK --> storage
+pool --> db
+
+db --> docker
+cache --> docker
+storage --> docker
+docker --> compose
+compose --> network
+network --> volumes
+
+note right of gateway
+  Punto de entrada único
+  Enrutamiento inteligente
+  Autenticación centralizada
+end note
+
+note right of [Autenticación JWT]
+  JWT HS256
+  Expiración: 30 min
+  RBAC: 144 permisos
+  Rate limit: 100/min
+end note
+
+note right of db
+  14 tablas
+  Pool: 5-20 conexiones
+  Backup diario
+  Índices optimizados
+end note
+
+note right of compose
+  10 containers
+  1 red bridge
+  3 volúmenes persistentes
+end note
+
+@enduml

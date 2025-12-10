@@ -67,13 +67,22 @@ export default function Layout({ title, children }) {
                 </p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
-            >
-              <span className="material-symbols-outlined text-sm">logout</span>
-              <span>Cerrar Sesión</span>
-            </button>
+            <div className="space-y-2">
+              <Link
+                to="/perfil"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">person</span>
+                <span>Mi Perfil</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">logout</span>
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           </div>
         </aside>
         <main className="flex-1">

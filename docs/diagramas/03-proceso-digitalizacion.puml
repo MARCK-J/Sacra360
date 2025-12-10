@@ -1,0 +1,221 @@
+@startuml Proceso de Digitalización de Documentos
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Proceso de Digitalización de Documentos Sacramentales - Sacra360
+
+actor Digitalizador as digit
+participant "Frontend\nDigitalización" as frontend
+participant "Documents\nService\n:8002" as docs
+participant "File Storage\nService\n:8007" as files
+participant "MinIO\nStorage" as minio
+participant "OCR Service\n:8003" as ocr
+participant "HTR Service\n:8004" as htr
+participant "PostgreSQL" as db
+
+== Subir Documento ==
+digit -> frontend: Seleccionar archivo\n(imagen/PDF)
+activate frontend
+
+frontend -> frontend: Validar archivo:\n- Formato (jpg, png, pdf)\n- Tamaño máximo\n- Calidad mínima
+
+digit -> frontend: Completar metadatos:\n- Libro asociado\n- Tipo sacramento\n- Folio/Número
+
+frontend -> files: POST /api/v1/files/upload\nMultipart: {file, metadata}\nAuthorization: Bearer {token}
+activate files
+
+files -> files: Generar UUID\npara archivo
+
+files -> files: Validar formato\ny tamaño
+
+files -> minio: PUT /sacra360/{uuid}\nfile binary
+activate minio
+minio --> files: URL del archivo
+deactivate minio
+
+files -> db: INSERT INTO documento_digitalizado\n(libros_id, tipo_sacramento, imagen_url, fecha_procesamiento)
+activate db
+db --> files: {id_documento}
+deactivate db
+
+files --> frontend: 201 Created\n{id_documento, url}
+deactivate files
+
+frontend --> digit: "Archivo subido\nProcesando OCR..."
+
+== Procesamiento OCR ==
+frontend -> ocr: POST /api/v1/ocr/process\n{id_documento, imagen_url}\nAuthorization: Bearer {token}
+activate ocr
+
+ocr -> files: GET /api/v1/files/{uuid}
+activate files
+files -> minio: GET /sacra360/{uuid}
+activate minio
+minio --> files: Binary image
+deactivate minio
+files --> ocr: Image data
+deactivate files
+
+ocr -> ocr: Preprocesar imagen:\n- Binarización\n- Deskew\n- Noise reduction
+
+ocr -> ocr: Ejecutar Tesseract OCR\nIdioma: Español\nModelo: manuscrito antiguo
+
+ocr -> ocr: Extraer campos:\n- Nombres\n- Fechas\n- Lugares\n- Relaciones familiares
+
+loop Para cada campo extraído
+    ocr -> db: INSERT INTO ocr_resultado\n(documento_id, campo, valor_extraido, confianza)
+    activate db
+    db --> ocr: {id_ocr}
+    deactivate db
+end
+
+ocr -> db: UPDATE documento_digitalizado\nSET ocr_texto = texto_completo,\nconfianza = promedio
+activate db
+db --> ocr: OK
+deactivate db
+
+ocr --> frontend: 200 OK\n{campos_extraidos[], confianza_promedio}
+deactivate ocr
+
+alt Confianza < 70%
+    frontend --> digit: "Requiere revisión manual"
+    note right
+        Se envía a la cola
+        de Revisión OCR
+    end note
+else Confianza >= 70%
+    frontend --> digit: "Texto extraído\nconfianza alta"
+end
+
+deactivate frontend
+
+== Procesamiento HTR (Escritura Manual) ==
+digit -> frontend: Solicitar HTR para\ndocumento manuscrito
+activate frontend
+
+frontend -> htr: POST /api/v1/htr/process\n{id_documento, imagen_url}
+activate htr
+
+htr -> files: GET imagen
+activate files
+files --> htr: Image data
+deactivate files
+
+htr -> htr: Cargar modelo HTR\n(TensorFlow/PyTorch)
+
+htr -> htr: Segmentar líneas\nde texto manuscrito
+
+htr -> htr: Reconocer caracteres\npor línea
+
+htr -> htr: Post-procesamiento:\n- Corrección ortográfica\n- Contexto histórico\n- Nombres propios
+
+loop Para cada línea reconocida
+    htr -> db: INSERT INTO ocr_resultado\n(documento_id, campo, valor_extraido, fuente_modelo='HTR')
+    activate db
+    db --> htr: OK
+    deactivate db
+end
+
+htr --> frontend: 200 OK\n{texto_manuscrito, confianza}
+deactivate htr
+
+frontend --> digit: "HTR completado"
+
+deactivate frontend
+
+== Validación y Corrección ==
+digit -> frontend: Ir a "Revisión OCR"
+activate frontend
+
+frontend -> docs: GET /api/v1/documents/pending-review
+activate docs
+
+docs -> db: SELECT d.*, o.*\nFROM documento_digitalizado d\nJOIN ocr_resultado o\nWHERE validado = false\nOR confianza < 0.7
+activate db
+db --> docs: Lista documentos pendientes
+deactivate db
+
+docs --> frontend: 200 OK\n{documentos[]}
+deactivate docs
+
+frontend --> digit: Mostrar documentos\ncon campos extraídos
+
+digit -> frontend: Revisar y corregir:\n- Nombres mal leídos\n- Fechas incorrectas\n- Faltantes
+
+digit -> frontend: Guardar correcciones
+
+frontend -> docs: POST /api/v1/documents/corrections\n{id_documento, correcciones[]}
+activate docs
+
+loop Para cada corrección
+    docs -> db: INSERT INTO correccion_documento\n(ocr_resultado_id, usuario_id, valor_original, valor_corregido)
+    activate db
+    db --> docs: OK
+    deactivate db
+    
+    docs -> db: UPDATE ocr_resultado\nSET valor_extraido = valor_corregido,\nvalidado = true
+    activate db
+    db --> docs: OK
+    deactivate db
+end
+
+docs -> db: INSERT INTO auditoria\n(VALIDAR_OCR, documento_id)
+activate db
+db --> docs: OK
+deactivate db
+
+docs --> frontend: 200 OK
+frontend --> digit: "Correcciones guardadas"
+
+deactivate docs
+deactivate frontend
+
+== Creación de Registro Sacramental ==
+digit -> frontend: "Crear Registro"\ndesde documento validado
+activate frontend
+
+frontend -> frontend: Cargar datos del OCR\nen formulario
+
+digit -> frontend: Completar/ajustar:\n- Persona (buscar o crear)\n- Tipo sacramento\n- Detalles específicos\n- Institución
+
+frontend -> docs: POST /api/v1/sacramentos\n{persona_id, tipo_id, detalles, documento_id}
+activate docs
+
+docs -> db: BEGIN TRANSACTION
+activate db
+
+alt Persona nueva
+    docs -> db: INSERT INTO personas\n(nombres, apellidos, fecha_nacimiento, padres)
+    db --> docs: {id_persona}
+end
+
+docs -> db: INSERT INTO sacramentos\n(persona_id, tipo_id, usuario_id, libro_id, fecha_sacramento)
+db --> docs: {id_sacramento}
+
+alt Bautizo
+    docs -> db: INSERT INTO detalles_bautizo\n(sacramento_id, padrino, ministro, foja, fecha)
+    db --> docs: OK
+else Matrimonio
+    docs -> db: INSERT INTO detalles_matrimonio\n(sacramento_id, esposos, padrinos, reg_civil)
+    db --> docs: OK
+else Confirmación
+    docs -> db: INSERT INTO detalles_confirmacion\n(sacramento_id, padrino, ministro, foja)
+    db --> docs: OK
+end
+
+docs -> db: UPDATE documento_digitalizado\nSET procesado = true
+db --> docs: OK
+
+docs -> db: INSERT INTO auditoria\n(CREAR_SACRAMENTO, id_sacramento)
+db --> docs: OK
+
+docs -> db: COMMIT
+deactivate db
+
+docs --> frontend: 201 Created\n{sacramento}
+frontend --> digit: "Sacramento registrado\nexitosamente"
+
+deactivate docs
+deactivate frontend
+
+@enduml

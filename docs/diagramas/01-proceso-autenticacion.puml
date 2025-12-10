@@ -1,0 +1,127 @@
+@startuml Proceso de Autenticación y Autorización
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam handwritten false
+
+title Proceso de Autenticación y Autorización - Sacra360
+
+actor Usuario as user
+participant "Frontend\n(React)" as frontend
+participant "AuthProfiles\nService\n:8004" as auth
+participant "PostgreSQL\nDatabase" as db
+participant "Otros\nMicroservicios" as services
+
+== Inicio de Sesión ==
+user -> frontend: Ingresa credenciales\n(email, contraseña)
+activate frontend
+
+frontend -> auth: POST /api/v1/auth/login\n{email, password}
+activate auth
+
+auth -> db: SELECT usuario\nWHERE email = ?
+activate db
+db --> auth: Datos del usuario
+deactivate db
+
+auth -> auth: Verificar contraseña\ncon bcrypt.verify()
+
+alt Credenciales válidas
+    auth -> auth: Generar JWT Token\n(HS256, exp: 30min)
+    
+    auth -> db: INSERT INTO auditoria\n(LOGIN, usuario_id, fecha)
+    activate db
+    db --> auth: Auditoría registrada
+    deactivate db
+    
+    auth --> frontend: 200 OK\n{token, user, permissions}
+    frontend -> frontend: Guardar token\nen localStorage
+    
+    frontend --> user: Redireccionar a\nDashboard
+    
+else Credenciales inválidas
+    auth -> db: INSERT INTO auditoria\n(LOGIN_FAILED, intento)
+    activate db
+    db --> auth: Auditoría registrada
+    deactivate db
+    
+    auth --> frontend: 401 Unauthorized\n{detail: "Credenciales inválidas"}
+    frontend --> user: Mostrar error
+end
+
+deactivate auth
+deactivate frontend
+
+== Acceso a Recurso Protegido ==
+user -> frontend: Acceder a módulo\n(ej: Usuarios)
+activate frontend
+
+frontend -> frontend: Verificar permisos\nlocales (canAccessModule)
+
+alt Tiene permisos en frontend
+    frontend -> services: GET /api/v1/usuarios\nAuthorization: Bearer {token}
+    activate services
+    
+    services -> auth: Validar token JWT
+    activate auth
+    auth -> auth: Decodificar y\nverificar firma
+    
+    alt Token válido
+        auth --> services: Usuario autenticado\n{id, rol, permisos}
+        
+        services -> services: Verificar permisos RBAC\nhas_permission(rol, modulo, accion)
+        
+        alt Tiene permisos
+            services -> db: Ejecutar consulta
+            activate db
+            db --> services: Datos solicitados
+            deactivate db
+            
+            services -> db: Registrar en auditoría
+            activate db
+            db --> services: OK
+            deactivate db
+            
+            services --> frontend: 200 OK\n{datos}
+            frontend --> user: Mostrar información
+            
+        else Sin permisos
+            services --> frontend: 403 Forbidden\n{detail: "Sin permisos"}
+            frontend --> user: Mostrar error de permisos
+        end
+        
+    else Token inválido/expirado
+        auth --> services: Token inválido
+        services --> frontend: 401 Unauthorized
+        frontend -> frontend: Limpiar localStorage
+        frontend --> user: Redireccionar a Login
+    end
+    
+    deactivate auth
+    deactivate services
+    
+else Sin permisos en frontend
+    frontend --> user: Ocultar opción\no mostrar mensaje
+end
+
+deactivate frontend
+
+== Cierre de Sesión ==
+user -> frontend: Click en "Cerrar Sesión"
+activate frontend
+
+frontend -> auth: POST /api/v1/auth/logout\nAuthorization: Bearer {token}
+activate auth
+
+auth -> db: INSERT INTO auditoria\n(LOGOUT, usuario_id, fecha)
+activate db
+db --> auth: OK
+deactivate db
+
+auth --> frontend: 200 OK
+frontend -> frontend: Limpiar localStorage\n(token, user, permissions)
+frontend --> user: Redireccionar a Login
+
+deactivate auth
+deactivate frontend
+
+@enduml

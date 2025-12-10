@@ -1,0 +1,347 @@
+@startuml Base de Datos Física - Sacra360
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FEFEFE
+
+' Configuración de estilos
+skinparam class {
+    BackgroundColor<<PK>> #E1F5FE
+    BackgroundColor<<FK>> #FFF9C4
+    BackgroundColor<<Table>> #FFFFFF
+    BorderColor #424242
+    ArrowColor #1976D2
+}
+
+' =====================================
+' TABLAS DE AUTENTICACIÓN Y USUARIOS
+' =====================================
+
+entity "Roles" as roles <<Table>> {
+  **id_rol** : serial <<PK>>
+  --
+  nombre : varchar(50) <<NOT NULL>>
+  descripcion : text
+  --
+  **Roles predefinidos:**
+  1 - Administrador
+  2 - Digitalizador
+  3 - Revisor
+  4 - Consultor
+}
+
+entity "usuarios" as usuarios <<Table>> {
+  **id_usuario** : serial <<PK>>
+  --
+  rol_id : int <<FK>> <<NOT NULL>>
+  nombre : varchar(50) <<NOT NULL>>
+  apellido_paterno : varchar(50) <<NOT NULL>>
+  apellido_materno : varchar(50) <<NOT NULL>>
+  email : varchar(100) <<NOT NULL>> <<UNIQUE>>
+  contrasenia : text <<NOT NULL>>
+  fecha_creacion : date <<NOT NULL>>
+  activo : boolean <<NOT NULL>>
+  --
+  **Índices:**
+  - idx_email (email)
+  - idx_rol_id (rol_id)
+  - idx_activo (activo)
+}
+
+entity "Auditoria" as auditoria <<Table>> {
+  **id_auditoria** : serial <<PK>>
+  --
+  usuario_id : int <<FK>> <<NOT NULL>>
+  accion : text <<NOT NULL>>
+  registro_afectado : text <<NOT NULL>>
+  Id_registro : int <<NOT NULL>>
+  fecha : timestamp <<NOT NULL>>
+  --
+  **Acciones comunes:**
+  - LOGIN / LOGOUT
+  - CREAR_USUARIO
+  - ACTUALIZAR_USUARIO
+  - ELIMINAR_USUARIO
+  - ACTIVAR_USUARIO
+  - CAMBIAR_CONTRASENA
+  - CREAR_SACRAMENTO
+  - VALIDAR_OCR
+  --
+  **Índices:**
+  - idx_usuario_id (usuario_id)
+  - idx_fecha (fecha)
+  - idx_accion (accion)
+}
+
+' =====================================
+' TABLAS DE PERSONAS Y SACRAMENTOS
+' =====================================
+
+entity "personas" as personas <<Table>> {
+  **id_persona** : serial <<PK>>
+  --
+  nombres : varchar(100) <<NOT NULL>>
+  apellido_paterno : varchar(50) <<NOT NULL>>
+  apellido_materno : varchar(50) <<NOT NULL>>
+  fecha_nacimiento : date <<NOT NULL>>
+  lugar_nacimiento : varchar(100) <<NOT NULL>>
+  nombre_padre : varchar(100) <<NOT NULL>>
+  nombre_madre : varchar(100) <<NOT NULL>>
+  --
+  **Índices:**
+  - idx_nombres_apellidos
+  - idx_fecha_nacimiento
+}
+
+entity "tipos_sacramentos" as tipos_sacramentos <<Table>> {
+  **id_tipo** : serial <<PK>>
+  --
+  nombre : varchar(50) <<NOT NULL>>
+  descripcion : text
+  --
+  **Tipos:**
+  1 - Bautismo
+  2 - Confirmación
+  3 - Matrimonio
+  4 - Primera Comunión
+  5 - Unción de Enfermos
+}
+
+entity "InstitucionesParroquias" as instituciones <<Table>> {
+  **id_institucion** : serial <<PK>>
+  --
+  nombre : varchar(100) <<NOT NULL>>
+  direccion : varchar(150)
+  telefono : varchar(15)
+  email : varchar(100)
+}
+
+entity "libros" as libros <<Table>> {
+  **id_libro** : serial <<PK>>
+  --
+  nombre : varchar(50) <<NOT NULL>>
+  fecha_inicio : date <<NOT NULL>>
+  fecha_fin : date <<NOT NULL>>
+  observaciones : text
+  --
+  **Ejemplos:**
+  - Libro de Bautismos 1950-1960
+  - Libro de Matrimonios 1980-1990
+  --
+  **Índices:**
+  - idx_fecha_inicio
+  - idx_fecha_fin
+}
+
+entity "sacramentos" as sacramentos <<Table>> {
+  **id_sacramento** : serial <<PK>>
+  --
+  persona_id : int <<FK>> <<NOT NULL>>
+  tipo_id : int <<FK>> <<NOT NULL>>
+  usuario_id : int <<FK>> <<NOT NULL>>
+  institucion_id : int <<FK>> <<NOT NULL>>
+  libro_id : int <<FK>> <<NOT NULL>>
+  fecha_sacramento : date <<NOT NULL>>
+  fecha_registro : timestamp <<NOT NULL>>
+  fecha_actualizacion : timestamp <<NOT NULL>>
+  --
+  **Índices:**
+  - idx_persona_id (persona_id)
+  - idx_tipo_id (tipo_id)
+  - idx_fecha_sacramento
+  - idx_libro_id (libro_id)
+}
+
+' =====================================
+' TABLAS DE DETALLES DE SACRAMENTOS
+' =====================================
+
+entity "detalles_bautizo" as bautizo <<Table>> {
+  **id_bautizo** : serial <<PK>>
+  --
+  sacramento_id : int <<FK>> <<NOT NULL>>
+  padrino : varchar(100) <<NOT NULL>>
+  ministro : varchar(100) <<NOT NULL>>
+  foja : varchar(10) <<NOT NULL>>
+  numero : varchar(10) <<NOT NULL>>
+  fecha_bautizo : date <<NOT NULL>>
+}
+
+entity "detalles_confirmacion" as confirmacion <<Table>> {
+  **id_confirmacion** : serial <<PK>>
+  --
+  sacramento_id : int <<FK>> <<NOT NULL>>
+  padrino : varchar(100) <<NOT NULL>>
+  ministro : varchar(100) <<NOT NULL>>
+  foja : varchar(10) <<NOT NULL>>
+  numero : varchar(10) <<NOT NULL>>
+  fecha_confirmacion : date <<NOT NULL>>
+}
+
+entity "detalles_matrimonio" as matrimonio <<Table>> {
+  **id_matrimonio** : serial <<PK>>
+  --
+  sacramento_id : int <<FK>> <<NOT NULL>>
+  nombre_esposo : varchar(100) <<NOT NULL>>
+  nombre_esposa : varchar(100) <<NOT NULL>>
+  apellido_peterno_esposo : varchar(50) <<NOT NULL>>
+  apellido_materno_esposo : varchar(50) <<NOT NULL>>
+  apellido_peterno_esposa : varchar(50) <<NOT NULL>>
+  apellido_materno_esposa : varchar(50) <<NOT NULL>>
+  nombre_padre_esposo : varchar(100) <<NOT NULL>>
+  nombre_madre_esposo : varchar(100) <<NOT NULL>>
+  nombre_padre_esposa : varchar(100) <<NOT NULL>>
+  nombre_madre_esposa : varchar(100) <<NOT NULL>>
+  padrino : varchar(100) <<NOT NULL>>
+  ministro : varchar(100) <<NOT NULL>>
+  foja : varchar(10) <<NOT NULL>>
+  numero : varchar(10) <<NOT NULL>>
+  reg_civil : varchar(100) <<NOT NULL>>
+  fecha_matrimonio : date <<NOT NULL>>
+  lugar_matrimonio : varchar(100) <<NOT NULL>>
+}
+
+' =====================================
+' TABLAS DE DIGITALIZACIÓN Y OCR
+' =====================================
+
+entity "documento_digitalizado" as documentos <<Table>> {
+  **id_documento** : serial <<PK>>
+  --
+  libros_id : int <<FK>> <<NOT NULL>>
+  tipo_sacramento : int <<FK>>
+  imagen_url : text <<NOT NULL>>
+  ocr_texto : text <<NOT NULL>>
+  modelo_fuente : varchar(100) <<NOT NULL>>
+  confianza : decimal(4,3) <<NOT NULL>>
+  fecha_procesamiento : timestamp <<NOT NULL>>
+  --
+  **Storage:** MinIO
+  **Formato:** JPG, PNG, PDF
+  --
+  **Índices:**
+  - idx_libros_id (libros_id)
+  - idx_fecha_procesamiento
+  - idx_confianza
+}
+
+entity "ocr_resultado" as ocr <<Table>> {
+  **id_ocr** : serial <<PK>>
+  --
+  documento_id : int <<FK>> <<NOT NULL>>
+  campo : varchar(50) <<NOT NULL>>
+  valor_extraido : text <<NOT NULL>>
+  confianza : decimal(4,3) <<NOT NULL>>
+  fuente_modelo : varchar(100) <<NOT NULL>>
+  validado : boolean <<NOT NULL>>
+  --
+  **Campos extraídos:**
+  - nombre_completo
+  - fecha_sacramento
+  - lugar
+  - padrinos
+  - ministro
+  - foja
+  - numero
+  --
+  **Modelos:**
+  - Tesseract OCR
+  - HTR (manuscritos)
+  --
+  **Índices:**
+  - idx_documento_id (documento_id)
+  - idx_validado (validado)
+  - idx_confianza
+}
+
+entity "correccion_documento" as correcciones <<Table>> {
+  **id_correccion** : serial <<PK>>
+  --
+  ocr_resultado_id : int <<FK>> <<NOT NULL>>
+  usuario_id : int <<FK>> <<NOT NULL>>
+  valor_original : text <<NOT NULL>>
+  valor_corregido : text <<NOT NULL>>
+  fecha : timestamp <<NOT NULL>>
+  --
+  **Propósito:**
+  Registrar todas las correcciones
+  manuales realizadas por
+  revisores sobre el OCR
+  --
+  **Índices:**
+  - idx_ocr_resultado_id
+  - idx_usuario_id (usuario_id)
+  - idx_fecha (fecha)
+}
+
+' =====================================
+' RELACIONES (FOREIGN KEYS)
+' =====================================
+
+' Usuarios y Roles
+roles ||--o{ usuarios : "tiene"
+usuarios ||--o{ auditoria : "genera"
+
+' Sacramentos
+personas ||--o{ sacramentos : "recibe"
+tipos_sacramentos ||--o{ sacramentos : "clasifica"
+usuarios ||--o{ sacramentos : "registra"
+instituciones ||--o{ sacramentos : "otorga"
+libros ||--o{ sacramentos : "contiene"
+
+' Detalles de Sacramentos
+sacramentos ||--|| bautizo : "tiene detalles"
+sacramentos ||--|| confirmacion : "tiene detalles"
+sacramentos ||--|| matrimonio : "tiene detalles"
+
+' Documentos y OCR
+libros ||--o{ documentos : "contiene"
+documentos ||--o{ ocr : "genera"
+ocr ||--o{ correcciones : "corrige"
+usuarios ||--o{ correcciones : "realiza"
+
+' Leyenda
+legend right
+  **Tipos de Datos PostgreSQL:**
+  - serial = auto-increment integer
+  - varchar(n) = string con límite
+  - text = string sin límite
+  - int = integer
+  - boolean = true/false
+  - date = fecha (YYYY-MM-DD)
+  - timestamp = fecha y hora completa
+  - decimal(4,3) = número decimal (ej: 0.850)
+  
+  **Notación:**
+  <<PK>> = Primary Key
+  <<FK>> = Foreign Key
+  <<NOT NULL>> = Campo obligatorio
+  <<UNIQUE>> = Valor único en la tabla
+  
+  **Cardinalidad:**
+  ||--o{ = Uno a muchos
+  ||--|| = Uno a uno
+end legend
+
+note as N1
+  **Base de Datos:** sacra360
+  **Motor:** PostgreSQL 15
+  **Puerto:** 5432
+  **Encoding:** UTF-8
+  **Total de Tablas:** 14
+  
+  **Tablas de Sistema:**
+  - Roles, usuarios, Auditoria
+  
+  **Tablas de Negocio:**
+  - personas, sacramentos, tipos_sacramentos
+  - InstitucionesParroquias, libros
+  - detalles_bautizo, detalles_confirmacion
+  - detalles_matrimonio
+  
+  **Tablas de Digitalización:**
+  - documento_digitalizado
+  - ocr_resultado
+  - correccion_documento
+end note
+
+@enduml

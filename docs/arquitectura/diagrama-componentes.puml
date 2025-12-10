@@ -1,0 +1,210 @@
+@startuml Diagrama de Componentes - Sacra360
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+
+title Diagrama de Componentes - Sistema Sacra360
+
+' =====================================
+' FRONTEND COMPONENTS
+' =====================================
+
+package "Frontend Application" {
+  component [App.jsx] as app
+  component [Router] as router
+  
+  package "Pages" {
+    component [Dashboard]
+    component [Usuarios]
+    component [Digitalizacion]
+    component [RevisionOCR]
+    component [Registros]
+    component [Reportes]
+    component [Perfil]
+  }
+  
+  package "Components" {
+    component [Layout]
+    component [PrivateRoute]
+    component [PermissionGuard]
+  }
+  
+  package "Context" {
+    component [AuthContext]
+  }
+  
+  package "Config" {
+    component [permissions.js] as permsConfig
+  }
+}
+
+' =====================================
+' BACKEND COMPONENTS
+' =====================================
+
+package "AuthProfiles Service :8004" {
+  component [main.py] as authMain
+  
+  package "Routers" {
+    component [auth_router] as authRouter
+    component [usuarios_router] as usersRouter
+    component [auditoria_router] as auditRouter
+    component [reportes_router] as reportsRouter
+  }
+  
+  package "Middleware" {
+    component [RateLimitMiddleware] as rateLimit
+    component [SecurityHeadersMiddleware] as secHeaders
+    component [permissions.py] as permsMiddleware
+  }
+  
+  package "Utils" {
+    component [auth_utils] as authUtils
+    component [get_password_hash] as bcryptHash
+    component [create_access_token] as jwtCreate
+    component [get_current_user] as getCurrentUser
+  }
+  
+  package "Entities" {
+    component [Usuario] as userEntity
+    component [Rol] as rolEntity
+    component [Auditoria] as auditEntity
+  }
+  
+  package "DTOs" {
+    component [LoginRequest] as loginDTO
+    component [UsuarioResponse] as userResponseDTO
+  }
+}
+
+package "Documents Service :8002" {
+  component [main.py] as docsMain
+  
+  package "Routers" {
+    component [sacramentos_router]
+    component [personas_router]
+  }
+  
+  package "Entities" {
+    component [Sacramento]
+    component [Persona]
+    component [DetallesBautizo]
+    component [DetallesMatrimonio]
+  }
+}
+
+package "OCR Service :8003" {
+  component [main.py] as ocrMain
+  
+  package "Processors" {
+    component [TesseractProcessor]
+    component [ImagePreprocessor]
+    component [FieldExtractor]
+  }
+  
+  package "Models" {
+    component [OCRResultado]
+  }
+}
+
+package "File Storage Service :8007" {
+  component [main.py] as filesMain
+  
+  package "Storage" {
+    component [MinIOClient]
+    component [FileValidator]
+    component [UploadHandler]
+  }
+}
+
+' =====================================
+' DATABASE COMPONENTS
+' =====================================
+
+package "PostgreSQL Database" {
+  database "usuarios" as dbUsers
+  database "sacramentos" as dbSacr
+  database "documento_digitalizado" as dbDocs
+  database "ocr_resultado" as dbOCR
+  database "Auditoria" as dbAudit
+}
+
+package "Redis Cache" {
+  storage "Sessions" as redisSessions
+  storage "Cache" as redisCache
+}
+
+package "MinIO Storage" {
+  storage "Bucket: sacra360" as minioBucket
+}
+
+' =====================================
+' RELACIONES
+' =====================================
+
+' Frontend
+app --> router
+router --> [Dashboard]
+router --> [Usuarios]
+router --> [Digitalizacion]
+[Usuarios] --> [Layout]
+[Usuarios] --> [PermissionGuard]
+[AuthContext] --> authRouter : JWT Token
+permsConfig --> [PermissionGuard] : RBAC Rules
+
+' AuthProfiles Service
+authMain --> authRouter
+authMain --> usersRouter
+authMain --> auditRouter
+authMain --> reportsRouter
+authMain --> rateLimit
+authMain --> secHeaders
+
+authRouter --> authUtils
+usersRouter --> permsMiddleware
+authUtils --> bcryptHash
+authUtils --> jwtCreate
+authUtils --> getCurrentUser
+
+authRouter --> userEntity
+usersRouter --> userEntity
+usersRouter --> rolEntity
+auditRouter --> auditEntity
+
+authRouter --> loginDTO
+usersRouter --> userResponseDTO
+
+userEntity --> dbUsers
+rolEntity --> dbUsers
+auditEntity --> dbAudit
+
+' Documents Service
+docsMain --> [sacramentos_router]
+docsMain --> [personas_router]
+[sacramentos_router] --> [Sacramento]
+[personas_router] --> [Persona]
+[Sacramento] --> dbSacr
+[Persona] --> dbSacr
+
+' OCR Service
+ocrMain --> [TesseractProcessor]
+[TesseractProcessor] --> [ImagePreprocessor]
+[TesseractProcessor] --> [FieldExtractor]
+[FieldExtractor] --> [OCRResultado]
+[OCRResultado] --> dbOCR
+
+' File Storage Service
+filesMain --> [UploadHandler]
+[UploadHandler] --> [FileValidator]
+[UploadHandler] --> [MinIOClient]
+[MinIOClient] --> minioBucket
+
+' Cache
+reportsRouter --> redisCache
+authRouter --> redisSessions
+
+' Inter-service
+[sacramentos_router] --> getCurrentUser : Auth validation
+[TesseractProcessor] --> [MinIOClient] : Get image
+
+@enduml

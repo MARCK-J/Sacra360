@@ -1,0 +1,163 @@
+@startuml Diagrama de Actividad - Flujo General del Sistema
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Diagrama de Actividad - Flujo General del Sistema Sacra360
+
+|Usuario|
+start
+:Acceder a Sacra360;
+
+|Sistema|
+:Mostrar pantalla de login;
+
+|Usuario|
+:Ingresar credenciales;
+
+|AuthProfiles Service|
+:Validar credenciales;
+
+if (Credenciales válidas?) then (sí)
+  :Generar JWT token;
+  :Registrar login en auditoría;
+  
+  |Frontend|
+  :Guardar token en localStorage;
+  :Cargar permisos del usuario;
+  :Redireccionar a Dashboard;
+  
+  |Usuario|
+  :Ver Dashboard con módulos\nsegún permisos;
+  
+  repeat
+    :Seleccionar módulo;
+    
+    |Frontend|
+    :Verificar permisos locales;
+    
+    if (Tiene permisos?) then (sí)
+      
+      partition "Módulos Disponibles" {
+        
+        if (Módulo seleccionado?) then (Digitalización)
+          :Subir documento;
+          |File Storage Service|
+          :Guardar en MinIO;
+          :Registrar en BD;
+          |OCR Service|
+          :Procesar con Tesseract;
+          :Extraer texto y campos;
+          |Sistema|
+          :Mostrar resultados;
+          
+        elseif (Revisión OCR)
+          |Usuario|
+          :Ver documentos pendientes;
+          :Corregir campos erróneos;
+          |Documents Service|
+          :Guardar correcciones;
+          :Marcar como validado;
+          
+        elseif (Registros)
+          |Usuario|
+          :Buscar/crear sacramento;
+          :Completar formulario;
+          |Documents Service|
+          :Validar datos;
+          :Crear persona (si es nueva);
+          :Crear sacramento y detalles;
+          :Vincular con documento;
+          
+        elseif (Usuarios)
+          |Usuario|
+          :Gestionar usuarios del sistema;
+          |AuthProfiles Service|
+          if (Acción?) then (Crear)
+            :Validar email único;
+            :Hash contraseña con bcrypt;
+            :Insertar en BD;
+          elseif (Editar)
+            :Actualizar datos;
+          elseif (Desactivar)
+            :Soft delete (activo=false);
+          elseif (Reactivar)
+            :Activar cuenta (activo=true);
+          endif
+          :Registrar en auditoría;
+          
+        elseif (Auditoría)
+          |Usuario|
+          :Ver logs del sistema;
+          :Filtrar por usuario/fecha;
+          |AuthProfiles Service|
+          :Consultar tabla auditoría;
+          :Aplicar filtros;
+          :Paginar resultados;
+          
+        elseif (Reportes)
+          |Usuario|
+          :Seleccionar período;
+          |AuthProfiles Service|
+          :Verificar caché Redis;
+          if (Existe en caché?) then (sí)
+            :Devolver desde caché;
+          else (no)
+            |PostgreSQL|
+            :Ejecutar queries agregadas;
+            :Calcular estadísticas;
+            |Redis|
+            :Guardar en caché (5 min);
+          endif
+          |Frontend|
+          :Renderizar gráficos;
+          :Mostrar métricas;
+          
+        elseif (Personas)
+          |Usuario|
+          :Buscar persona;
+          :Ver sacramentos recibidos;
+          |Documents Service|
+          :Consultar BD;
+          :Listar sacramentos;
+          
+        elseif (Mi Perfil)
+          |Usuario|
+          :Ver información personal;
+          :Cambiar contraseña;
+          |AuthProfiles Service|
+          :Validar contraseña actual;
+          :Hash nueva contraseña;
+          :Actualizar en BD;
+          
+        endif
+      }
+      
+      |Sistema|
+      :Registrar acción en auditoría;
+      :Devolver resultado;
+      
+    else (no)
+      :Mostrar error de permisos;
+    endif
+    
+  repeat while (Continuar usando el sistema?) is (sí)
+  
+  |Usuario|
+  :Click "Cerrar Sesión";
+  
+  |AuthProfiles Service|
+  :Registrar logout en auditoría;
+  
+  |Frontend|
+  :Limpiar localStorage;
+  :Redireccionar a login;
+  
+else (no)
+  :Registrar intento fallido;
+  :Mostrar error;
+  stop
+endif
+
+stop
+
+@enduml

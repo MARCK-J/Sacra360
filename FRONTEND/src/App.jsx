@@ -11,6 +11,7 @@ import Libros from './pages/Libros'
 import Usuarios from './pages/Usuarios'
 import Reportes from './pages/Reportes'
 import Certificados from './pages/Certificados'
+import Perfil from './pages/Perfil'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
       <Route path="/usuarios" element={<PrivateRoute><Usuarios /></PrivateRoute>} />
       <Route path="/reportes" element={<PrivateRoute><Reportes /></PrivateRoute>} />
       <Route path="/certificados" element={<PrivateRoute><Certificados /></PrivateRoute>} />
+      <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
       
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
