@@ -1,7 +1,33 @@
 import Layout from '../components/Layout'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export default function Certificados() {
+  const [sacramentos, setSacramentos] = useState([])
+  const [loadingList, setLoadingList] = useState(false)
+  const [errorList, setErrorList] = useState(null)
+  const [selected, setSelected] = useState(null)
+
+  useEffect(() => {
+    loadSacramentos()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function loadSacramentos() {
+    setLoadingList(true)
+    setErrorList(null)
+    try {
+      const res = await fetch('/api/v1/sacramentos/?limit=20')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : (data.sacramentos || data || [])
+      setSacramentos(list)
+      if (list.length > 0 && !selected) setSelected(list[0])
+    } catch (err) {
+      setErrorList(String(err))
+    } finally {
+      setLoadingList(false)
+    }
+  }
   const handlePrint = useCallback((elementId) => {
     const el = document.getElementById(elementId)
     if (!el) return alert('Preview no disponible para imprimir')
@@ -95,6 +121,12 @@ export default function Certificados() {
     }
     generateAndDownload()
   }, [handlePrint])
+  function getRowClass(r) {
+    const selId = selected && (selected.id_sacramento || selected.id)
+    const rowId = r && (r.id_sacramento || r.id)
+    return selId && rowId && selId === rowId ? 'bg-primary/5' : ''
+  }
+
   return (
     <Layout title="Generación de Certificados">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -171,64 +203,74 @@ export default function Certificados() {
             </div>
             <div className="rounded-lg border border-dashed border-border-light dark:border-border-dark p-6 bg-background-light dark:bg-background-dark">
               <div id="certificate-preview" className="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow p-8">
-                <div className="text-center mb-6">
-                  <h4 className="text-2xl font-extrabold">Certificado de Bautizo</h4>
-                  <p className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">Parroquia Nuestra Señora de la Paz</p>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <p><span className="font-semibold">Nombre:</span> Sofía Rodríguez</p>
-                  <p><span className="font-semibold">Padres:</span> Manuel Rodríguez y Laura García</p>
-                  <p><span className="font-semibold">Fecha de Bautizo:</span> 2020-03-15</p>
-                  <p><span className="font-semibold">Ministro:</span> Pbro. Juan Pérez</p>
-                  <p><span className="font-semibold">Libro / Foja / Nº:</span> 5 / 12 / 123</p>
-                </div>
-                <div className="mt-6 flex items-center justify-between">
+                {selected ? (
                   <div>
-                    <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Emitido por: Admin</p>
-                    <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Fecha: 2024-03-21</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                      <span className="material-symbols-outlined">workspace_premium</span>
+                    <div className="text-center mb-6">
+                      <h4 className="text-2xl font-extrabold">Certificado de {selected.tipo_nombre || selected.tipo_sacramento}</h4>
+                      <p className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">{selected.institucion_nombre || selected.sacrament_location || selected.institucion || 'Parroquia'}</p>
                     </div>
-                    <p className="text-xs mt-1">Sello Parroquial</p>
+                    <div className="space-y-3 text-sm">
+                      <p><span className="font-semibold">Nombre:</span> {selected.persona_nombre ?? selected.persona_id ?? selected.person_name ?? '-'}</p>
+                      <p><span className="font-semibold">Padres:</span> {selected.padres || (selected.padre ? `${selected.padre} y ${selected.madre}` : (selected.father_name || '') ) || '-'}</p>
+                      <p><span className="font-semibold">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
+                      <p><span className="font-semibold">Ministro:</span> {selected.ministro || selected.sacrament_minister || '-'}</p>
+                      <p><span className="font-semibold">Libro / Foja / Nº:</span> {selected.libro || selected.book_number || selected.libro_acta || (selected.libro_nro ? `${selected.libro_nro}` : '-')}</p>
+                    </div>
+                    <div className="mt-6 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Emitido por: Admin</p>
+                        <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Fecha: {new Date().toISOString().substring(0,10)}</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                          <span className="material-symbols-outlined">workspace_premium</span>
+                        </div>
+                        <p className="text-xs mt-1">Sello Parroquial</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center text-sm text-gray-500 py-8">No hay registro seleccionado</div>
+                )}
               </div>
             </div>
           </div>
 
           <div className="bg-white dark:bg-background-dark rounded-lg border border-border-light dark:border-border-dark p-6">
             <h3 className="text-lg font-semibold mb-4">Certificados Recientes</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700/50">
-                  <tr>
-                    <th className="px-6 py-3">Persona</th>
-                    <th className="px-6 py-3">Sacramento</th>
-                    <th className="px-6 py-3">Fecha</th>
-                    <th className="px-6 py-3">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { p: 'Sofía Rodríguez', t: 'Bautizo', f: '2024-03-21' },
-                    { p: 'Carlos López', t: 'Confirmación', f: '2024-03-18' },
-                    { p: 'Ana García', t: 'Matrimonio', f: '2024-03-15' },
-                  ].map((r) => (
-                    <tr key={r.p} className="bg-white dark:bg-background-dark border-b dark:border-gray-700">
-                      <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.p}</td>
-                      <td className="px-6 py-3">{r.t}</td>
-                      <td className="px-6 py-3">{r.f}</td>
-                      <td className="px-6 py-3">
-                        <button className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
-                        <button className="px-3 py-1 rounded bg-primary text-white hover:bg-primary/90">Reimprimir</button>
-                      </td>
+            {loadingList ? (
+              <p className="text-sm text-gray-500">Cargando...</p>
+            ) : errorList ? (
+              <p className="text-sm text-red-600">Error: {errorList}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                  <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                      <th className="px-6 py-3">ID</th>
+                      <th className="px-6 py-3">Persona</th>
+                      <th className="px-6 py-3">Sacramento</th>
+                      <th className="px-6 py-3">Fecha</th>
+                      <th className="px-6 py-3">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {sacramentos.map((r) => (
+                      <tr key={r.id_sacramento || r.id} className={`bg-white dark:bg-background-dark border-b dark:border-gray-700 ${getRowClass(r)}`}>
+                        <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.id_sacramento || r.id}</td>
+                        <td className="px-6 py-3">{r.persona_nombre ?? r.persona_id ?? r.person_name}</td>
+                        <td className="px-6 py-3">{r.tipo_nombre ?? r.tipo_sacramento}</td>
+                        <td className="px-6 py-3">{r.fecha_sacramento?.substring(0,10) || r.fecha}</td>
+                        <td className="px-6 py-3">
+                          <button onClick={() => setSelected(r)} className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
+                          <button onClick={() => { setSelected(r); handlePrint('certificate-preview') }} className="px-3 py-1 rounded bg-primary text-white hover:bg-primary/90">Reimprimir</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
       </div>
