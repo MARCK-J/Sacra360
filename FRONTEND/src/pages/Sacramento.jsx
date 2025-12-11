@@ -200,58 +200,89 @@ export default function Sacramento() {
               <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">
                 {form.tipo_sacramento === 1 ? 'Datos del Bautizado' : form.tipo_sacramento === 2 ? 'Datos del Confirmando' : form.tipo_sacramento === 3 ? 'Datos de los Contrayentes' : 'Datos del Fallecido'}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-name">Nombres y Apellidos</label>
-                  <input name="person_name" value={form.person_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-name" placeholder="Ingrese el nombre completo" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-birthdate">Fecha de Nacimiento</label>
-                  <input name="person_birthdate" value={form.person_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-birthdate" type="date" />
-                </div>
-              </div>
-              {/* Sección para segundo contrayente en Matrimonio */}
-              {form.tipo_sacramento === 3 && (
-                <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
-                  <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">Datos del Segundo Contrayente</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="spouse-name">Nombres y Apellidos (Contrayente 2)</label>
-                      <input name="spouse_name" value={form.spouse_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="spouse-name" placeholder="Ingrese el nombre completo" type="text" />
+              {form.tipo_sacramento === 3 ? (
+                <div className="flex flex-col gap-4">
+                  {/* Contrayente 1 box (same style as contrayente 2) */}
+                  <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">Datos del Contrayente 1</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-name">Nombres y Apellidos (Contrayente 1)</label>
+                        <input name="person_name" value={form.person_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-name" placeholder="Ingrese el nombre completo" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-birthdate">Fecha de Nacimiento (Contrayente 1)</label>
+                        <input name="person_birthdate" value={form.person_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-birthdate" type="date" />
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="spouse-birthdate">Fecha de Nacimiento (Contrayente 2)</label>
-                      <input name="spouse_birthdate" value={form.spouse_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="spouse-birthdate" type="date" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre (Contrayente 1)</label>
+                        <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre (Contrayente 1)</label>
+                        <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father2-name">Padre (Contrayente 2)</label>
-                      <input name="father2_name" value={form.father2_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father2-name" placeholder="Nombre completo del padre" type="text" />
+                  {/* Contrayente 2 box (existing fields but placed directly below) */}
+                  <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">Datos del Contrayente 2</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="spouse-name">Nombres y Apellidos (Contrayente 2)</label>
+                        <input name="spouse_name" value={form.spouse_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="spouse-name" placeholder="Ingrese el nombre completo" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="spouse-birthdate">Fecha de Nacimiento (Contrayente 2)</label>
+                        <input name="spouse_birthdate" value={form.spouse_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="spouse-birthdate" type="date" />
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother2-name">Madre (Contrayente 2)</label>
-                      <input name="mother2_name" value={form.mother2_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother2-name" placeholder="Nombre completo de la madre" type="text" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father2-name">Padre (Contrayente 2)</label>
+                        <input name="father2_name" value={form.father2_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father2-name" placeholder="Nombre completo del padre" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother2-name">Madre (Contrayente 2)</label>
+                        <input name="mother2_name" value={form.mother2_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother2-name" placeholder="Nombre completo de la madre" type="text" />
+                      </div>
                     </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-name">Nombres y Apellidos</label>
+                    <input name="person_name" value={form.person_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-name" placeholder="Ingrese el nombre completo" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-birthdate">Fecha de Nacimiento</label>
+                    <input name="person_birthdate" value={form.person_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-birthdate" type="date" />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Familiares</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre</label>
-                  <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre</label>
-                  <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
+            {form.tipo_sacramento !== 3 && (
+              <div className="flex flex-col gap-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Familiares</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre</label>
+                    <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre</label>
+                    <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {form.tipo_sacramento === 1 && (
               <div className="flex flex-col gap-4">
