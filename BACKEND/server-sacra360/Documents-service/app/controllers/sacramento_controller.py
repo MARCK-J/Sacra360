@@ -417,6 +417,24 @@ def get_sacramento(id: int, db: Session = Depends(get_db)):
 
 @router.put("/{id}")
 def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
+    # If client sent `observaciones` but the DB lacks that column, add it dynamically (safe for development).
+    try:
+        if 'observaciones' in payload:
+            try:
+                db.execute(text("ALTER TABLE sacramentos ADD COLUMN IF NOT EXISTS observaciones text"))
+                db.commit()
+            except Exception:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+    except Exception:
+        # defensive: ignore any problems while ensuring column exists
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
     # Construir SET dinámico permitiendo solo columnas esperadas
     allowed = {"persona_id", "tipo_id", "usuario_id", "institucion_id", "libro_id", "fecha_sacramento", "ministro", "padrinos", "observaciones", "folio", "numero_acta", "pagina"}
     updates = []
