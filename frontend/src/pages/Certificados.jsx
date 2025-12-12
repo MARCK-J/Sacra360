@@ -10,6 +10,24 @@ export default function Certificados() {
 
   useEffect(() => {
     loadSacramentos()
+    // If URL contains ?id=..., load that sacramento and set as selected (useful after creating)
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const idParam = params.get('id')
+      if (idParam) {
+        ;(async () => {
+          try {
+            const r = await fetch(`/api/v1/sacramentos/${idParam}`)
+            if (r.ok) {
+              const d = await r.json()
+              setSelected(d)
+            }
+          } catch (e) {
+            // ignore
+          }
+        })()
+      }
+    } catch (e) {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -223,8 +241,8 @@ export default function Certificados() {
                           : '-'
                       }</p>
                       <p><span className="font-semibold">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
-                      <p><span className="font-semibold">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_bautizo || selected.ministro_confirmacion || '-'}</p>
-                      <p><span className="font-semibold">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || '-'} / ${selected.numero_acta || selected.numero || '-'}`}</p>
+                      <p><span className="font-semibold">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_confirmacion || selected.ministro_bautizo || selected.ministro || '-'}</p>
+                      <p><span className="font-semibold">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || selected.folio_number || '-'} / ${selected.numero_acta || selected.numero || selected.record_number || '-'}`}</p>
                     </div>
                     <div className="mt-6 flex items-center justify-between">
                       <div>

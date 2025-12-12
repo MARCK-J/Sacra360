@@ -125,7 +125,15 @@ export default function Sacramento() {
           }
           throw new Error(`${res.status} ${detail}`)
       }
-      setMessage({ type: 'success', text: 'Sacramento creado (id: ' + (data?.id_sacramento || data?.id || 'ok') + ')' })
+      const createdId = data?.id_sacramento || data?.id || null
+      setMessage({ type: 'success', text: 'Sacramento creado (id: ' + (createdId || 'ok') + ')' })
+      if (createdId) {
+        try {
+          window.open(`/certificados?id=${createdId}`, '_blank')
+        } catch (e) {
+          // ignore
+        }
+      }
       // reset form or keep
     } catch (err) {
       setMessage({ type: 'error', text: String(err) })

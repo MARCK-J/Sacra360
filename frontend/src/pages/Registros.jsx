@@ -116,6 +116,7 @@ export default function Registros() {
 			fecha_sacramento: item.fecha_sacramento || '',
 			libro_id: item.libro_id || '',
 			observaciones: item.observaciones || item.observacion || '',
+			ministro: item.ministro || item.sacrament_minister || item.ministro_confirmacion || item.ministro_bautizo || '',
 			folio: item.foja || item.folio || '',
 			numero_acta: item.numero_acta || item.numero || '' ,
 			pagina: item.pagina || ''
@@ -130,6 +131,7 @@ export default function Registros() {
 		if (editForm.fecha_sacramento) payload.fecha_sacramento = editForm.fecha_sacramento
 		if (editForm.libro_id) payload.libro_id = Number(editForm.libro_id)
 		if (typeof editForm.observaciones === 'string') payload.observaciones = editForm.observaciones
+		if (typeof editForm.ministro === 'string' && editForm.ministro.trim() !== '') payload.ministro = editForm.ministro
 		if (editForm.folio) payload.folio = editForm.folio
 		if (editForm.numero_acta) payload.numero_acta = editForm.numero_acta
 		if (editForm.pagina) payload.pagina = editForm.pagina
@@ -245,6 +247,7 @@ export default function Registros() {
 							<div className="mb-3"><strong>Persona:</strong> {getPersonaLabel(viewItem)}</div>
 							<div className="mb-3"><strong>Sacramento:</strong> {getSacramentoType(viewItem)}</div>
 							<div className="mb-3"><strong>Fecha del sacramento:</strong> {viewItem.fecha_sacramento || '—'}</div>
+							<div className="mb-3"><strong>Ministro:</strong> {viewItem.ministro || viewItem.sacrament_minister || viewItem.ministro_confirmacion || viewItem.ministro_bautizo || '—'}</div>
 							<div className="mb-3"><strong>Parroquia / Institución:</strong> {viewItem.institucion_nombre || viewItem.institucion || '—'}</div>
 							<div className="mb-3"><strong>Libro:</strong> {viewItem.libro_nombre || viewItem.libro_id || '—'}</div>
 							<div className="mb-3"><strong>Foja / Folio:</strong> {viewItem.foja || viewItem.folio || '—'}</div>
@@ -285,6 +288,10 @@ export default function Registros() {
 							<div>
 								<label className="block text-sm mb-1">Libro (ID)</label>
 								<input type="text" value={editForm.libro_id || ''} onChange={(e) => setEditForm({...editForm, libro_id: e.target.value})} className="form-input w-full" />
+							</div>
+							<div>
+								<label className="block text-sm mb-1">Ministro</label>
+								<input type="text" value={editForm.ministro || ''} onChange={(e) => setEditForm({...editForm, ministro: e.target.value})} className="form-input w-full" />
 							</div>
 							<div className="sm:col-span-2">
 								<label className="block text-sm mb-1">Observaciones</label>

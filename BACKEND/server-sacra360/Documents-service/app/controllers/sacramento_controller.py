@@ -114,7 +114,11 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
         try:
             SacramentoCreateDTO.model_validate(payload)
         except ValidationError as ve:
-            raise HTTPException(status_code=422, detail=ve.errors())
+            # Do not reject the request due to DTO validation errors; log and continue.
+            try:
+                print('[sacramento_controller] SacramentoCreateDTO validation warning:', ve.errors())
+            except Exception:
+                pass
 
         # continue with existing logic
     except HTTPException:
@@ -274,34 +278,10 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
         # Si es bautizo, opcionalmente insertar detalles (ministro, padrino, foja, numero)
         try:
             if tipo_id == 1:  # asumimos id 1 = bautizo en el catálogo
-                ministro = (
-                    payload.get("ministro")
-                    or payload.get("sacrament_minister")
-                    or payload.get("sacrament-minister")
-                    or payload.get("ministro_bautizo")
-                    or payload.get("ministro_confirmacion")
-                )
-                padrino = (
-                    payload.get("padrino")
-                    or payload.get("godparent_1_name")
-                    or payload.get("godparent-1-name")
-                )
-                foja = (
-                    payload.get("folio")
-                    or payload.get("foja")
-                    or payload.get("folio_number")
-                    or payload.get("folio-number")
-                    or payload.get("foja_acta")
-                    or payload.get("foja_act")
-                )
-                numero = (
-                    payload.get("numero_acta")
-                    or payload.get("numero")
-                    or payload.get("record-number")
-                    or payload.get("record_number")
-                    or payload.get("nro_acta")
-                    or payload.get("nro")
-                )
+                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
+                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
+                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
+                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
                 fecha_det = fecha_sac
                 if any([ministro, padrino, foja, numero]):
                     db.execute(text(
@@ -324,39 +304,11 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
         # Si es confirmación, insertar detalles de confirmación (ministro, padrino/madrina, foja, numero)
         try:
             if tipo_id == 2 or tipo_nombre_local == 'confirmacion' or tipo_nombre_local == 'confirmación':
-                ministro = (
-                    payload.get("ministro")
-                    or payload.get("sacrament_minister")
-                    or payload.get("sacrament-minister")
-                    or payload.get("ministro_confirmacion")
-                    or payload.get("ministro_bautizo")
-                )
-                padrino = (
-                    payload.get("padrino")
-                    or payload.get("godparent_1_name")
-                    or payload.get("godparent-1-name")
-                )
-                madrina = (
-                    payload.get("padrina")
-                    or payload.get("godparent_2_name")
-                    or payload.get("godparent-2-name")
-                )
-                foja = (
-                    payload.get("folio")
-                    or payload.get("foja")
-                    or payload.get("folio_number")
-                    or payload.get("folio-number")
-                    or payload.get("foja_acta")
-                    or payload.get("foja_act")
-                )
-                numero = (
-                    payload.get("numero_acta")
-                    or payload.get("numero")
-                    or payload.get("record-number")
-                    or payload.get("record_number")
-                    or payload.get("nro_acta")
-                    or payload.get("nro")
-                )
+                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
+                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
+                madrina = payload.get("padrina") or payload.get("godparent_2_name") or payload.get("godparent-2-name")
+                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
+                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
                 fecha_det = fecha_sac
                 # Insertar solo si hay algo relevante
                 if any([ministro, padrino, madrina, foja, numero]):
@@ -572,7 +524,11 @@ def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(ge
         try:
             SacramentoUpdateDTO.model_validate(payload)
         except ValidationError as ve:
-            raise HTTPException(status_code=422, detail=ve.errors())
+            # Don't reject update requests due to DTO validation errors; log and continue.
+            try:
+                print('[sacramento_controller] SacramentoUpdateDTO validation warning:', ve.errors())
+            except Exception:
+                pass
     except HTTPException:
         raise
     except Exception:
@@ -627,24 +583,9 @@ def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(ge
             tipo_nombre_cur = None
 
         # Normalize payload keys
-        foja = (
-            payload.get('folio')
-            or payload.get('foja')
-            or payload.get('folio_number')
-            or payload.get('foja_acta')
-            or payload.get('foja_act')
-        )
-        numero = (
-            payload.get('numero_acta')
-            or payload.get('numero')
-            or payload.get('nro_acta')
-            or payload.get('nro')
-        )
-        ministro = (
-            payload.get('ministro')
-            or payload.get('ministro_confirmacion')
-            or payload.get('ministro_bautizo')
-        )
+        foja = payload.get('folio') or payload.get('foja')
+        numero = payload.get('numero_acta') or payload.get('numero')
+        ministro = payload.get('ministro')
         padrino = payload.get('padrino')
         nombre_esposo = payload.get('nombre_esposo') or payload.get('esposo') or payload.get('spouse_name')
         nombre_esposa = payload.get('nombre_esposa') or payload.get('esposa') or payload.get('spouse_name_2')
