@@ -300,7 +300,25 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
             # si la tabla no existe u ocurre error, revertir y continuar (no bloquear registro principal)
             db.rollback()
 
-        row = db.execute(text(
+        # Include detail tables (bautizo/confirmacion/matrimonio) so we can return saved foja/numero/pagina and spouse names
+        enriched_sql = text(
+            "SELECT s.*, ts.nombre as tipo_nombre, "
+            "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+            "ip.nombre AS institucion_nombre, "
+            "COALESCE(dbt.foja, dcf.foja, dmt.foja) AS foja, "
+            "COALESCE(dbt.numero, dcf.numero, dmt.numero) AS numero_acta, "
+            "dmt.nombre_esposo AS nombre_esposo, dmt.nombre_esposa AS nombre_esposa, "
+            "dbt.padrino AS padrino_bautizo, dcf.padrino AS padrino_confirmacion "
+            "FROM sacramentos s "
+            "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+            "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+            "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
+            "LEFT JOIN detalles_bautizo dbt ON dbt.sacramento_id = s.id_sacramento "
+            "LEFT JOIN detalles_confirmacion dcf ON dcf.sacramento_id = s.id_sacramento "
+            "LEFT JOIN detalles_matrimonio dmt ON dmt.sacramento_id = s.id_sacramento "
+            "WHERE s.id_sacramento = :id"
+        )
+        fallback_sql = text(
             "SELECT s.*, ts.nombre as tipo_nombre, "
             "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
             "ip.nombre AS institucion_nombre "
@@ -309,7 +327,16 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
             "LEFT JOIN personas p ON p.id_persona = s.persona_id "
             "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
             "WHERE s.id_sacramento = :id"
-        ), {"id": sac_id}).fetchone()
+        )
+        try:
+            row = db.execute(enriched_sql, {"id": sac_id}).fetchone()
+        except Exception:
+            # If the enriched query references columns that don't exist, fall back to safe select
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            row = db.execute(fallback_sql, {"id": sac_id}).fetchone()
         if not row:
             raise HTTPException(status_code=500, detail="Error al crear sacramento")
         # row._mapping is a Mapping of column_name -> value
@@ -337,12 +364,17 @@ def list_sacramentos(
         sql = (
             "SELECT s.*, ts.nombre as tipo_nombre, "
             "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
-            "ip.nombre AS institucion_nombre "
+            "ip.nombre AS institucion_nombre, "
+            "COALESCE(dbt.foja, dcf.foja, dmt.foja) AS foja, "
+            "COALESCE(dbt.numero, dcf.numero, dmt.numero) AS numero_acta, "
+            "dmt.nombre_esposo AS nombre_esposo, dmt.nombre_esposa AS nombre_esposa "
             "FROM sacramentos s "
                 "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
                 "LEFT JOIN personas p ON p.id_persona = s.persona_id "
                 "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
-                "LEFT JOIN detalles_bautizo dbt ON dbt.sacramento_id = s.id_sacramento"
+                "LEFT JOIN detalles_bautizo dbt ON dbt.sacramento_id = s.id_sacramento "
+                "LEFT JOIN detalles_confirmacion dcf ON dcf.sacramento_id = s.id_sacramento "
+                "LEFT JOIN detalles_matrimonio dmt ON dmt.sacramento_id = s.id_sacramento"
         )
         where = []
         params = {}
@@ -370,9 +402,28 @@ def list_sacramentos(
         params["lim"] = limit
         params["off"] = (page - 1) * limit
 
-        result = db.execute(text(sql), params)
-        rows = [dict(r._mapping) for r in result.fetchall()]
-        return rows
+        try:
+            result = db.execute(text(sql), params)
+            rows = [dict(r._mapping) for r in result.fetchall()]
+            return rows
+        except Exception:
+            # Fallback: run a safe query without referencing detalle_* columns (older DB schemas)
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            safe_sql = (
+                "SELECT s.*, ts.nombre as tipo_nombre, "
+                "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+                "ip.nombre AS institucion_nombre "
+                "FROM sacramentos s "
+                "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+                "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+                "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id"
+            )
+            result = db.execute(text(safe_sql + " ORDER BY s.fecha_sacramento DESC LIMIT :lim OFFSET :off"), params)
+            rows = [dict(r._mapping) for r in result.fetchall()]
+            return rows
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -400,7 +451,23 @@ def list_primeras_comuniones(db: Session = Depends(get_db)):
 
 @router.get("/{id}")
 def get_sacramento(id: int, db: Session = Depends(get_db)):
-    row = db.execute(text(
+    enriched_sql = text(
+        "SELECT s.*, ts.nombre as tipo_nombre, "
+        "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
+        "ip.nombre AS institucion_nombre, "
+        "COALESCE(dbt.foja, dcf.foja, dmt.foja) AS foja, "
+        "COALESCE(dbt.numero, dcf.numero, dmt.numero) AS numero_acta, "
+        "dmt.nombre_esposo AS nombre_esposo, dmt.nombre_esposa AS nombre_esposa "
+        "FROM sacramentos s "
+        "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
+        "LEFT JOIN personas p ON p.id_persona = s.persona_id "
+        "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
+        "LEFT JOIN detalles_bautizo dbt ON dbt.sacramento_id = s.id_sacramento "
+        "LEFT JOIN detalles_confirmacion dcf ON dcf.sacramento_id = s.id_sacramento "
+        "LEFT JOIN detalles_matrimonio dmt ON dmt.sacramento_id = s.id_sacramento "
+        "WHERE s.id_sacramento = :id"
+    )
+    fallback_sql = text(
         "SELECT s.*, ts.nombre as tipo_nombre, "
         "concat_ws(' ', p.nombres, p.apellido_paterno, p.apellido_materno) AS persona_nombre, "
         "ip.nombre AS institucion_nombre "
@@ -409,7 +476,15 @@ def get_sacramento(id: int, db: Session = Depends(get_db)):
         "LEFT JOIN personas p ON p.id_persona = s.persona_id "
         "LEFT JOIN institucionesparroquias ip ON ip.id_institucion = s.institucion_id "
         "WHERE s.id_sacramento = :id"
-    ), {"id": id}).fetchone()
+    )
+    try:
+        row = db.execute(enriched_sql, {"id": id}).fetchone()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        row = db.execute(fallback_sql, {"id": id}).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Sacramento no encontrado")
     return dict(row._mapping)
@@ -419,15 +494,17 @@ def get_sacramento(id: int, db: Session = Depends(get_db)):
 def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
     # If client sent `observaciones` but the DB lacks that column, add it dynamically (safe for development).
     try:
-        if 'observaciones' in payload:
-            try:
-                db.execute(text("ALTER TABLE sacramentos ADD COLUMN IF NOT EXISTS observaciones text"))
-                db.commit()
-            except Exception:
+        # Ensure certain optional columns exist in sacramentos table so updates won't fail on older schemas.
+        for col in ('observaciones', 'folio', 'numero_acta', 'pagina', 'foja'):
+            if col in payload:
                 try:
-                    db.rollback()
+                    db.execute(text(f"ALTER TABLE sacramentos ADD COLUMN IF NOT EXISTS {col} text"))
+                    db.commit()
                 except Exception:
-                    pass
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
     except Exception:
         # defensive: ignore any problems while ensuring column exists
         try:
@@ -448,6 +525,134 @@ def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(ge
     sql = text(f"UPDATE sacramentos SET {', '.join(updates)}, fecha_actualizacion = NOW() WHERE id_sacramento = :id")
     db.execute(sql, params)
     db.commit()
+    # After updating sacramentos, also upsert into the appropriate detalles_* table
+    try:
+        # determine tipo_id (may have been updated)
+        tr = db.execute(text("SELECT tipo_id FROM sacramentos WHERE id_sacramento = :id"), {"id": id}).fetchone()
+        tipo_id_cur = tr[0] if tr else None
+        tipo_nombre_cur = None
+        try:
+            if tipo_id_cur is not None:
+                tn = db.execute(text("SELECT nombre FROM tipos_sacramentos WHERE id_tipo = :id LIMIT 1"), {"id": tipo_id_cur}).fetchone()
+                if tn:
+                    tipo_nombre_cur = (tn[0] or '').lower()
+        except Exception:
+            tipo_nombre_cur = None
+
+        # Normalize payload keys
+        foja = payload.get('folio') or payload.get('foja')
+        numero = payload.get('numero_acta') or payload.get('numero')
+        ministro = payload.get('ministro')
+        padrino = payload.get('padrino')
+        nombre_esposo = payload.get('nombre_esposo') or payload.get('esposo') or payload.get('spouse_name')
+        nombre_esposa = payload.get('nombre_esposa') or payload.get('esposa') or payload.get('spouse_name_2')
+        reg_civil = payload.get('reg_civil')
+        fecha_mat = payload.get('fecha_matrimonio') or payload.get('fecha_sacramento')
+        lugar_mat = payload.get('lugar_matrimonio') or payload.get('lugar')
+
+        # helper to upsert into a details table
+        def _upsert_detail(table, cols_map):
+            # cols_map: dict of column_name -> value
+            if not any(v is not None for v in cols_map.values()):
+                return
+            exists = db.execute(text(f"SELECT 1 FROM {table} WHERE sacramento_id = :id LIMIT 1"), {"id": id}).fetchone()
+            if exists:
+                sets = []
+                params_local = {"id": id}
+                for col, val in cols_map.items():
+                    if val is not None:
+                        sets.append(f"{col} = :{col}")
+                        params_local[col] = val
+                if sets:
+                    sql_up = text(f"UPDATE {table} SET {', '.join(sets)} WHERE sacramento_id = :id")
+                    db.execute(sql_up, params_local)
+                    db.commit()
+            else:
+                # Provide defaults for NOT NULL required columns in detalle tables
+                params_local = {"sacramento_id": id}
+                # Defaults per table
+                if table == 'detalles_bautizo':
+                    defaults = {
+                        'padrino': '', 'ministro': '', 'foja': '', 'numero': '', 'fecha_bautizo': payload.get('fecha_sacramento') or datetime.now().date()
+                    }
+                elif table == 'detalles_confirmacion':
+                    defaults = {
+                        'padrino': '', 'ministro': '', 'foja': '', 'numero': '', 'fecha_confirmacion': payload.get('fecha_sacramento') or datetime.now().date()
+                    }
+                elif table == 'detalles_matrimonio':
+                    defaults = {
+                        'nombre_esposo': '', 'nombre_esposa': '', 'apellido_peterno_esposo': '', 'apellido_materno_esposo': '',
+                        'apellido_peterno_esposa': '', 'apellido_materno_esposa': '', 'nombre_padre_esposo': '', 'nombre_madre_esposo': '',
+                        'nombre_padre_esposa': '', 'nombre_madre_esposa': '', 'padrino': '', 'ministro': '', 'foja': '', 'numero': '',
+                        'reg_civil': '', 'fecha_matrimonio': payload.get('fecha_sacramento') or datetime.now().date(), 'lugar_matrimonio': ''
+                    }
+                else:
+                    defaults = {}
+                # Merge provided cols_map over defaults
+                merged = {**defaults, **{k: v for k, v in cols_map.items() if v is not None}}
+                cols = ['sacramento_id']
+                vals = [':sacramento_id']
+                for col, val in merged.items():
+                    cols.append(col)
+                    vals.append(f":{col}")
+                    params_local[col] = val
+                sql_ins = text(f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join(vals)})")
+                db.execute(sql_ins, params_local)
+                db.commit()
+
+        # Choose which detail table to update/insert
+        try:
+            # Bautizo
+            if tipo_id_cur == 1 or (isinstance(tipo_nombre_cur, str) and 'bautizo' in tipo_nombre_cur):
+                _upsert_detail('detalles_bautizo', {
+                    'padrino': padrino,
+                    'ministro': ministro,
+                    'foja': foja,
+                    'numero': numero,
+                    'fecha_bautizo': payload.get('fecha_sacramento')
+                })
+            # Confirmacion
+            elif tipo_id_cur == 2 or (isinstance(tipo_nombre_cur, str) and 'confirm' in tipo_nombre_cur):
+                _upsert_detail('detalles_confirmacion', {
+                    'padrino': padrino,
+                    'ministro': ministro,
+                    'foja': foja,
+                    'numero': numero,
+                    'fecha_confirmacion': payload.get('fecha_sacramento')
+                })
+            # Matrimonio
+            elif tipo_id_cur == 3 or (isinstance(tipo_nombre_cur, str) and 'matrim' in tipo_nombre_cur):
+                _upsert_detail('detalles_matrimonio', {
+                    'nombre_esposo': nombre_esposo,
+                    'nombre_esposa': nombre_esposa,
+                    'padrino': padrino,
+                    'ministro': ministro,
+                    'foja': foja,
+                    'numero': numero,
+                    'reg_civil': reg_civil,
+                    'fecha_matrimonio': fecha_mat,
+                    'lugar_matrimonio': lugar_mat
+                })
+            else:
+                # for other sacramentos, attempt to write to detalles_bautizo if fields match (safe fallback)
+                _upsert_detail('detalles_bautizo', {
+                    'padrino': padrino,
+                    'ministro': ministro,
+                    'foja': foja,
+                    'numero': numero,
+                    'fecha_bautizo': payload.get('fecha_sacramento')
+                })
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
     return get_sacramento(id, db)
 
 
