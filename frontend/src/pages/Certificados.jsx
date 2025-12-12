@@ -127,6 +127,32 @@ export default function Certificados() {
     return selId && rowId && selId === rowId ? 'bg-primary/5' : ''
   }
 
+  // Map tipo identifiers (id or numeric string) to human-friendly labels
+  const TIPO_MAP = {
+    1: 'bautizo',
+    2: 'confirmacion',
+    3: 'matrimonio',
+    4: 'defuncion',
+    5: 'primera comunion'
+  }
+
+  function getTipoLabel(item) {
+    if (!item) return '-'
+    const rawTipo = item.tipo_nombre || item.tipo_sacramento || item.tipo || item.tipo_id || item.tipoId
+    if (!rawTipo) return '-'
+    const s = String(rawTipo)
+    // If it's purely numeric (e.g. '4'), prefer mapping via number
+    let label = ''
+    if (/^\d+$/.test(s)) {
+      const n = Number(s)
+      label = TIPO_MAP[n] || `Tipo ${n}`
+    } else {
+      label = s
+    }
+    // Capitalize first letter for display
+    return label && typeof label === 'string' ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : label
+  }
+
   return (
     <Layout title="Generación de Certificados">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -206,7 +232,7 @@ export default function Certificados() {
                 {selected ? (
                   <div>
                     <div className="text-center mb-6">
-                      <h4 className="text-2xl font-extrabold">Certificado de {selected.tipo_nombre || selected.tipo_sacramento}</h4>
+                      <h4 className="text-2xl font-extrabold">Certificado de {getTipoLabel(selected)}</h4>
                       <p className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">{selected.institucion_nombre || selected.sacrament_location || selected.institucion || 'Parroquia'}</p>
                     </div>
                     <div className="space-y-3 text-sm">
@@ -264,7 +290,7 @@ export default function Certificados() {
                       <tr key={r.id_sacramento || r.id} className={`bg-white dark:bg-background-dark border-b dark:border-gray-700 ${getRowClass(r)}`}>
                         <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.id_sacramento || r.id}</td>
                         <td className="px-6 py-3">{r.persona_nombre ?? r.persona_id ?? r.person_name}</td>
-                        <td className="px-6 py-3">{r.tipo_nombre ?? r.tipo_sacramento}</td>
+                        <td className="px-6 py-3">{getTipoLabel(r)}</td>
                         <td className="px-6 py-3">{r.fecha_sacramento?.substring(0,10) || r.fecha}</td>
                         <td className="px-6 py-3">
                           <button onClick={() => setSelected(r)} className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
