@@ -114,6 +114,7 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:8001
       - FILES_SERVICE_URL=http://files-service:8007
       - OCR_SERVICE_URL=http://ocr-service:8003
+      - HTR_SERVICE_URL=http://htr-service:8004
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin123
@@ -127,6 +128,7 @@ services:
       - auth-service
       - minio
       - ocr-service
+      - htr-service
     networks:
       - sacra360_network
 
@@ -152,7 +154,7 @@ services:
       - MINIO_BUCKET=sacra360-documents
       - MINIO_SECURE=false
       - USE_GPU=1  # Activar detección de GPU
-      - FORCE_CPU=0  # No forzar CPU
+      - FORCE_CPU=1  # No forzar CPU
     ports:
       - "8003:8003"
     volumes:
@@ -174,7 +176,12 @@ services:
       dockerfile: Dockerfile
     container_name: sacra360_htr_service
     environment:
-      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - DATABASE_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_HTR_BUCKET=sacra360-documents
+      - MINIO_SECURE=false
       - REDIS_URL=redis://redis:6379
       - AUTH_SERVICE_URL=http://auth-service:8001
       - FILES_SERVICE_URL=http://files-service:8007

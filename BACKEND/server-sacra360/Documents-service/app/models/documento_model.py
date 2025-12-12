@@ -18,6 +18,7 @@ class DocumentoDigitalizado(Base):
     imagen_url = Column(Text, nullable=False)
     ocr_texto = Column(Text, nullable=False)
     modelo_fuente = Column(String(100), nullable=False)
+    modelo_procesamiento = Column(String(20), nullable=False, default='ocr', server_default='ocr')
     confianza = Column(Numeric(4,3), nullable=False)
     fecha_procesamiento = Column(DateTime, nullable=False, default=datetime.now)
     

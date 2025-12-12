@@ -420,7 +420,7 @@ const ValidacionOCRModal = ({
     'col_0',  // nombre_confirmando
     'col_1',  // dia_nacimiento
     'col_2',  // mes_nacimiento
-    'col_3',  // ano_nacimiento
+    'col_3',  // ano_nacimiento',
     // col_4 omitido (parroquia)
     'col_5',  // dia_bautismo
     'col_6',  // mes_bautismo

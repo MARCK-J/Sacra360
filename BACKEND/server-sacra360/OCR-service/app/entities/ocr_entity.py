@@ -38,8 +38,13 @@ class DocumentoDigitalizado(Base):
     confianza = Column(Numeric(4,3), nullable=False)
     fecha_procesamiento = Column(DateTime, nullable=False, default=datetime.utcnow)
     
+    # Campos para diferenciar OCR vs HTR (Migration_Add_HTR_Support.sql)
+    modelo_procesamiento = Column(String(20), nullable=False, default='ocr')
+    progreso_ocr = Column(Integer, nullable=True, default=0)
+    mensaje_progreso = Column(String(255), nullable=True)
+    
     # Relación con OCR resultados
     ocr_resultados = relationship("OcrResultado", backref="documento")
     
     def __repr__(self):
-        return f"<DocumentoDigitalizado(id_documento={self.id_documento}, imagen_url={self.imagen_url})>"
+        return f"<DocumentoDigitalizado(id_documento={self.id_documento}, modelo={self.modelo_procesamiento}, imagen_url={self.imagen_url})>"

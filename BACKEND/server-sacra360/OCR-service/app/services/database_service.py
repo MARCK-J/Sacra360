@@ -40,6 +40,7 @@ class DatabaseService:
             ocr_texto=ocr_texto,
             modelo_fuente=modelo_fuente,
             confianza=confianza,
+            modelo_procesamiento='ocr',
             fecha_procesamiento=datetime.utcnow()
         )
         
@@ -141,6 +142,7 @@ class DatabaseService:
             ocr_texto="",  # No se usa en V2
             modelo_fuente="EasyOCR V2",
             confianza=0.95,  # Confianza por defecto para V2
+            modelo_procesamiento='ocr',
             fecha_procesamiento=datetime.utcnow()
         )
         

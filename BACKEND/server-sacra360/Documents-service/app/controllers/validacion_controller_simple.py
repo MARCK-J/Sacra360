@@ -64,33 +64,51 @@ async def obtener_tuplas_pendientes(
         for tupla_row in tuplas_pendientes:
             tupla_numero = tupla_row[0]
             
-            # Obtener campos OCR para esta tupla
-            campos_ocr_raw = db.execute(
+            # Obtener datos OCR para esta tupla (formato JSONB datos_ocr)
+            tupla_ocr_raw = db.execute(
                 text("""
-                    SELECT id_ocr, campo, valor_extraido, confianza, validado, sacramento_id
+                    SELECT id_ocr, datos_ocr, confianza, validado, sacramento_id, fuente_modelo
                     FROM ocr_resultado 
                     WHERE documento_id = :doc_id AND tupla_numero = :tupla_num
-                    ORDER BY campo
+                    LIMIT 1
                 """),
                 {"doc_id": documento_id, "tupla_num": tupla_numero}
-            ).fetchall()
+            ).fetchone()
             
-            if campos_ocr_raw:
+            if tupla_ocr_raw:
+                id_ocr = tupla_ocr_raw[0]
+                datos_ocr = tupla_ocr_raw[1]  # JSONB dict
+                confianza = float(tupla_ocr_raw[2])
+                validado = tupla_ocr_raw[3]
+                sacramento_id = tupla_ocr_raw[4]
+                fuente_modelo = tupla_ocr_raw[5]
+                
+                # Convertir datos_ocr JSONB a formato campos_ocr para el frontend
                 campos_response = []
-                for campo_row in campos_ocr_raw:
-                    campos_response.append({
-                        "id_ocr": campo_row[0],
-                        "campo": campo_row[1],
-                        "valor_extraido": campo_row[2],
-                        "confianza": float(campo_row[3]),
-                        "validado": campo_row[4],
-                        "sacramento_id": campo_row[5]
-                    })
+                if isinstance(datos_ocr, dict):
+                    # Iterar sobre col_0 a col_9, omitiendo col_4 (parroquia - no se valida)
+                    for col_num in range(10):
+                        # Saltar col_4 (parroquia)
+                        if col_num == 4:
+                            continue
+                            
+                        col_key = f"col_{col_num}"
+                        if col_key in datos_ocr:
+                            campos_response.append({
+                                "id_ocr": id_ocr,
+                                "campo": col_key,
+                                "valor_extraido": datos_ocr[col_key],
+                                "confianza": confianza,
+                                "validado": validado,
+                                "sacramento_id": sacramento_id
+                            })
                 
                 tuplas_response.append({
                     "documento_id": documento_id,
                     "tupla_numero": tupla_numero,
+                    "id_ocr": id_ocr,
                     "campos_ocr": campos_response,
+                    "fuente_modelo": fuente_modelo,
                     "estado_validacion": "pendiente",
                     "total_tuplas_documento": total_tuplas
                 })
@@ -125,37 +143,68 @@ async def validar_tupla(
         observaciones = validacion_data.get("observaciones", "")
         accion = validacion_data["accion"]  # 'aprobar', 'corregir', 'rechazar'
         
-        # Aplicar correcciones si las hay
+        # Obtener el registro OCR actual
+        ocr_actual = db.execute(
+            text("""
+                SELECT id_ocr, datos_ocr, fuente_modelo 
+                FROM ocr_resultado 
+                WHERE documento_id = :doc_id AND tupla_numero = :tupla_num
+                LIMIT 1
+            """),
+            {"doc_id": documento_id, "tupla_num": tupla_numero}
+        ).fetchone()
+        
+        if not ocr_actual:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No se encontró tupla {tupla_numero} para documento {documento_id}"
+            )
+        
+        id_ocr = ocr_actual[0]
+        datos_ocr_originales = ocr_actual[1]  # JSONB dict
+        fuente_modelo = ocr_actual[2]
+        
+        # Aplicar correcciones al JSONB datos_ocr
+        datos_ocr_corregidos = dict(datos_ocr_originales) if isinstance(datos_ocr_originales, dict) else {}
+        
         if correcciones:
             for correccion in correcciones:
-                # Actualizar el valor en OCR resultado
-                db.execute(
-                    text("""
-                        UPDATE ocr_resultado 
-                        SET valor_extraido = :nuevo_valor, validado = true 
-                        WHERE id_ocr = :ocr_id
-                    """),
-                    {
-                        "nuevo_valor": correccion["valor_corregido"],
-                        "ocr_id": correccion["id_ocr"]
-                    }
-                )
+                campo = correccion.get("campo")  # 'col_1', 'col_2', etc.
+                valor_corregido = correccion.get("valor_corregido")
                 
-                # Crear registro de corrección (tabla simplificada)
-                db.execute(
-                    text("""
-                        INSERT INTO correccion_documento 
-                        (ocr_resultado_id, valor_original, valor_corregido, razon_correccion, usuario_corrector_id, fecha_correccion)
-                        VALUES (:ocr_id, :valor_orig, :valor_corr, :razon, :usuario_id, NOW())
-                    """),
-                    {
-                        "ocr_id": correccion["id_ocr"],
-                        "valor_orig": correccion["valor_original"],
-                        "valor_corr": correccion["valor_corregido"],
-                        "razon": correccion.get("comentario", "Corrección manual"),
-                        "usuario_id": usuario_id
-                    }
-                )
+                if campo and campo in datos_ocr_corregidos:
+                    # Guardar corrección en tabla correccion_documento
+                    db.execute(
+                        text("""
+                            INSERT INTO correccion_documento 
+                            (ocr_resultado_id, valor_original, valor_corregido, razon_correccion, usuario_id, fecha)
+                            VALUES (:ocr_id, :valor_orig, :valor_corr, :razon, :usuario_id, NOW())
+                        """),
+                        {
+                            "ocr_id": id_ocr,
+                            "valor_orig": datos_ocr_corregidos[campo],
+                            "valor_corr": valor_corregido,
+                            "razon": correccion.get("comentario", "Corrección manual"),
+                            "usuario_id": usuario_id
+                        }
+                    )
+                    
+                    # Actualizar el campo en datos_ocr
+                    datos_ocr_corregidos[campo] = valor_corregido
+            
+            # Actualizar datos_ocr con las correcciones
+            import json
+            db.execute(
+                text("""
+                    UPDATE ocr_resultado 
+                    SET datos_ocr = :datos_corregidos::jsonb, validado = true 
+                    WHERE id_ocr = :ocr_id
+                """),
+                {
+                    "datos_corregidos": json.dumps(datos_ocr_corregidos),
+                    "ocr_id": id_ocr
+                }
+            )
         
         # Actualizar estado de validación según la acción
         nuevo_estado = "validado" if accion in ["aprobar", "corregir"] else "rechazado"

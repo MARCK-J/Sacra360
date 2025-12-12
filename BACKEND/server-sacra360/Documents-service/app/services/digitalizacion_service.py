@@ -38,8 +38,9 @@ class DigitalizacionService:
         self.minio_bucket = os.getenv('MINIO_BUCKET', 'sacra360-documents')
         self.minio_secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
         
-        # URL del OCR Service
+        # URLs de servicios de procesamiento
         self.ocr_service_url = os.getenv('OCR_SERVICE_URL', 'http://localhost:8003')
+        self.htr_service_url = os.getenv('HTR_SERVICE_URL', 'http://localhost:8004')
         
         # Inicializar cliente MinIO
         self._init_minio_client()
@@ -66,7 +67,7 @@ class DigitalizacionService:
             raise
     
     async def procesar_documento(
-        self, 
+        self,
         archivo_bytes: bytes,
         archivo_nombre: str,
         content_type: str,
@@ -74,10 +75,14 @@ class DigitalizacionService:
         tipo_sacramento: int,
         institucion_id: int,
         procesar_ocr: bool = True,
+        modelo_procesamiento: str = 'ocr',
         db: Session = None
     ) -> UploadDocumentResponse:
         """
-        Procesa un documento completo: MinIO → BD → OCR
+        Procesa un documento completo: MinIO → BD → OCR/HTR
+        
+        Args:
+            modelo_procesamiento: 'ocr' para texto impreso, 'htr' para texto manuscrito
         """
         inicio_tiempo = time.time()
         
@@ -97,37 +102,41 @@ class DigitalizacionService:
                 libro_id=libro_id,
                 tipo_sacramento=tipo_sacramento,
                 nombre_archivo=archivo_nombre,
+                modelo_procesamiento=modelo_procesamiento,
                 db=db
             )
             
-            # 3. Procesar con OCR si se solicita
+            # 3. Procesar con OCR/HTR si se solicita
             ocr_resultado = None
             if procesar_ocr:
-                logger.info("Procesando con OCR...")
+                servicio_nombre = "HTR" if modelo_procesamiento == 'htr' else "OCR"
+                logger.info(f"Procesando con {servicio_nombre}...")
                 ocr_resultado = await self._procesar_ocr(
                     archivo_bytes=archivo_bytes,
                     archivo_nombre=archivo_nombre,
                     content_type=content_type,
                     documento_id=documento_id,
                     libro_id=libro_id,
-                    tipo_sacramento=tipo_sacramento
+                    tipo_sacramento=tipo_sacramento,
+                    modelo_procesamiento=modelo_procesamiento
                 )
             
             tiempo_total = time.time() - inicio_tiempo
             
             # Preparar respuesta
+            servicio_nombre = "HTR" if modelo_procesamiento == 'htr' else "OCR"
             response = UploadDocumentResponse(
                 success=True,
                 documento_id=documento_id,
-                mensaje="Documento subido exitosamente. OCR procesando en background..." if procesar_ocr else "Documento subido exitosamente",
+                mensaje=f"Documento subido exitosamente. {servicio_nombre} procesando en background..." if procesar_ocr else "Documento subido exitosamente",
                 archivo_url=minio_info['url'],
                 estado=EstadoProcesamiento.PROCESANDO if procesar_ocr else EstadoProcesamiento.SUBIDO,
                 tiempo_upload=tiempo_total,
-                ocr_procesado=False  # Siempre False porque el OCR se procesa en background
+                ocr_procesado=False  # Siempre False porque el OCR/HTR se procesa en background
             )
             
-            # No agregamos info del OCR porque aún está procesando
-            # El frontend debe consultar /api/v1/ocr/progreso/{documento_id}
+            # No agregamos info del OCR/HTR porque aún está procesando
+            # El frontend debe consultar /api/v1/ocr/progreso/{documento_id} o /api/v1/htr/progreso/{documento_id}
             
             return response
             
@@ -178,7 +187,8 @@ class DigitalizacionService:
         libro_id: int, 
         tipo_sacramento: int, 
         db: Session,
-        nombre_archivo: Optional[str] = None
+        nombre_archivo: Optional[str] = None,
+        modelo_procesamiento: str = 'ocr'
     ) -> int:
         """Guarda documento en base de datos y retorna ID"""
         try:
@@ -190,11 +200,12 @@ class DigitalizacionService:
                 tipo_sacramento=tipo_sacramento,
                 imagen_url=archivo_url,
                 nombre_archivo=nombre_archivo,
-                ocr_texto="",  # Se llenará después del OCR
-                modelo_fuente="",  # Se llenará después del OCR
-                confianza=0.0,  # Se llenará después del OCR
+                ocr_texto="",  # Se llenará después del OCR/HTR
+                modelo_fuente="",  # Se llenará después del OCR/HTR
+                confianza=0.0,  # Se llenará después del OCR/HTR
                 fecha_procesamiento=datetime.now(),
-                estado_procesamiento='pendiente'
+                estado_procesamiento='pendiente',
+                modelo_procesamiento=modelo_procesamiento  # 'ocr' o 'htr'
             )
             
             db.add(documento)
@@ -215,43 +226,52 @@ class DigitalizacionService:
         content_type: str,
         documento_id: int,
         libro_id: int,
-        tipo_sacramento: int
+        tipo_sacramento: int,
+        modelo_procesamiento: str = 'ocr'
     ) -> Optional[Dict[str, Any]]:
-        """Inicia el procesamiento OCR de forma COMPLETAMENTE asíncrona usando threading"""
+        """Inicia el procesamiento OCR/HTR de forma COMPLETAMENTE asíncrona usando threading"""
         
-        def _llamar_ocr_service():
-            """Función que se ejecuta en un thread separado para llamar al OCR service"""
+        def _llamar_servicio_procesamiento():
+            """Función que se ejecuta en un thread separado para llamar al servicio de procesamiento"""
             try:
-                ocr_url = f"{self.ocr_service_url}/api/v1/ocr/procesar-desde-bd/{documento_id}"
-                logger.info(f"🔄 [Thread] Llamando OCR service: {ocr_url}")
+                # Seleccionar URL según el modelo
+                if modelo_procesamiento == 'htr':
+                    service_url = f"{self.htr_service_url}/api/v1/htr/procesar-desde-bd/{documento_id}"
+                    servicio_nombre = "HTR"
+                else:
+                    service_url = f"{self.ocr_service_url}/api/v1/ocr/procesar-desde-bd/{documento_id}"
+                    servicio_nombre = "OCR"
+                
+                logger.info(f"🔄 [Thread] Llamando {servicio_nombre} service: {service_url}")
                 
                 # Llamada bloqueante pero en thread separado
-                response = requests.post(url=ocr_url, timeout=600)  # 10 minutos de timeout
+                response = requests.post(url=service_url, timeout=600)  # 10 minutos de timeout
                 
                 if response.status_code == 200:
-                    logger.info(f"✅ [Thread] OCR completado para documento {documento_id}")
+                    logger.info(f"✅ [Thread] {servicio_nombre} completado para documento {documento_id}")
                 else:
-                    logger.error(f"❌ [Thread] OCR falló HTTP {response.status_code}")
+                    logger.error(f"❌ [Thread] {servicio_nombre} falló HTTP {response.status_code}")
                     
             except Exception as e:
-                logger.error(f"❌ [Thread] Error en OCR: {e}")
+                logger.error(f"❌ [Thread] Error en {servicio_nombre}: {e}")
         
         try:
-            # Iniciar el procesamiento OCR en un thread separado (fire-and-forget)
-            thread = threading.Thread(target=_llamar_ocr_service, daemon=True)
+            # Iniciar el procesamiento en un thread separado (fire-and-forget)
+            thread = threading.Thread(target=_llamar_servicio_procesamiento, daemon=True)
             thread.start()
             
-            logger.info(f"✅ OCR iniciado en background (thread separado) para documento {documento_id}")
+            servicio_nombre = "HTR" if modelo_procesamiento == 'htr' else "OCR"
+            logger.info(f"✅ {servicio_nombre} iniciado en background (thread separado) para documento {documento_id}")
             
             # Retornar inmediatamente sin esperar
             return {
                 'estado': 'procesando',
-                'mensaje': 'OCR procesando en background',
+                'mensaje': f'{servicio_nombre} procesando en background',
                 'documento_id': documento_id
             }
                 
         except Exception as e:
-            logger.error(f"❌ Error iniciando thread OCR: {e}")
+            logger.error(f"❌ Error iniciando thread {servicio_nombre}: {e}")
             return None
     
     async def _crear_registros_validacion(
