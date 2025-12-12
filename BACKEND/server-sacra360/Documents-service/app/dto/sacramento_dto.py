@@ -1,3 +1,62 @@
+from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict
+from datetime import date
+
+
+class SacramentoCreateDTO(BaseModel):
+    model_config = ConfigDict(extra='allow', from_attributes=True)
+
+    tipo_sacramento: Optional[str] = Field(None)
+    tipo_id: Optional[int] = Field(None)
+    id_persona: Optional[int] = Field(None)
+    persona_id: Optional[int] = Field(None)
+    person_name: Optional[str] = Field(None)
+    fecha_sacramento: Optional[str] = Field(None)
+    libro_id: Optional[int] = Field(None)
+    institucion_id: Optional[int] = Field(None)
+    institucion: Optional[str] = Field(None)
+    usuario_registro_id: Optional[int] = Field(None)
+
+    # Detail fields
+    ministro: Optional[str] = Field(None)
+    padrino: Optional[str] = Field(None)
+    foja: Optional[str] = Field(None)
+    numero_acta: Optional[str] = Field(None)
+    nombre_esposo: Optional[str] = Field(None)
+    nombre_esposa: Optional[str] = Field(None)
+    reg_civil: Optional[str] = Field(None)
+
+
+class SacramentoUpdateDTO(BaseModel):
+    model_config = ConfigDict(extra='allow', from_attributes=True)
+
+    persona_id: Optional[int] = Field(None)
+    tipo_id: Optional[int] = Field(None)
+    usuario_id: Optional[int] = Field(None)
+    institucion_id: Optional[int] = Field(None)
+    libro_id: Optional[int] = Field(None)
+    fecha_sacramento: Optional[str] = Field(None)
+    ministro: Optional[str] = Field(None)
+    padrinos: Optional[str] = Field(None)
+    observaciones: Optional[str] = Field(None)
+    foja: Optional[str] = Field(None)
+    numero_acta: Optional[str] = Field(None)
+    pagina: Optional[str] = Field(None)
+
+
+class SacramentoResponseDTO(BaseModel):
+    model_config = ConfigDict(extra='allow', from_attributes=True)
+
+    id_sacramento: Optional[int]
+    persona_id: Optional[int]
+    tipo_id: Optional[int]
+    fecha_sacramento: Optional[date]
+    persona_nombre: Optional[str]
+    tipo_nombre: Optional[str]
+    institucion_nombre: Optional[str]
+    libro_id: Optional[int]
+    foja: Optional[str]
+    numero_acta: Optional[str]
 """
 DTOs para Sacramentos (Documents-service)
 Usa Pydantic V2 para validación y serialización

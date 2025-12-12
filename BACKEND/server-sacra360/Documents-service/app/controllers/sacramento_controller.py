@@ -5,6 +5,8 @@ from sqlalchemy import text
 from datetime import date, datetime
 
 from app.database import get_db
+from app.dto.sacramento_dto import SacramentoCreateDTO, SacramentoUpdateDTO
+from pydantic import ValidationError
 
 router = APIRouter(prefix="/sacramentos", tags=["Sacramentos"])
 
@@ -107,6 +109,20 @@ def _validate_sacramento_payload(tipo_id: int, payload: Dict[str, Any], db: Opti
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
     """Crear un sacramento. Usa los nombres de columnas que utiliza OCR/validación (tipo_id, persona_id, libro_id, etc.)."""
+    # Run pydantic validation if possible (non-destructive — we don't modify payload)
+    try:
+        try:
+            SacramentoCreateDTO.model_validate(payload)
+        except ValidationError as ve:
+            raise HTTPException(status_code=422, detail=ve.errors())
+
+        # continue with existing logic
+    except HTTPException:
+        raise
+    except Exception:
+        # If validation step unexpectedly fails, log/ignore and continue to avoid breaking behavior
+        pass
+
     try:
         # Validaciones mínimas
         tipo = payload.get("tipo_sacramento") or payload.get("tipo_id") or payload.get("tipo")
@@ -258,10 +274,34 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
         # Si es bautizo, opcionalmente insertar detalles (ministro, padrino, foja, numero)
         try:
             if tipo_id == 1:  # asumimos id 1 = bautizo en el catálogo
-                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
-                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
-                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
-                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
+                ministro = (
+                    payload.get("ministro")
+                    or payload.get("sacrament_minister")
+                    or payload.get("sacrament-minister")
+                    or payload.get("ministro_bautizo")
+                    or payload.get("ministro_confirmacion")
+                )
+                padrino = (
+                    payload.get("padrino")
+                    or payload.get("godparent_1_name")
+                    or payload.get("godparent-1-name")
+                )
+                foja = (
+                    payload.get("folio")
+                    or payload.get("foja")
+                    or payload.get("folio_number")
+                    or payload.get("folio-number")
+                    or payload.get("foja_acta")
+                    or payload.get("foja_act")
+                )
+                numero = (
+                    payload.get("numero_acta")
+                    or payload.get("numero")
+                    or payload.get("record-number")
+                    or payload.get("record_number")
+                    or payload.get("nro_acta")
+                    or payload.get("nro")
+                )
                 fecha_det = fecha_sac
                 if any([ministro, padrino, foja, numero]):
                     db.execute(text(
@@ -284,11 +324,39 @@ def create_sacramento(payload: Dict[str, Any], db: Session = Depends(get_db)):
         # Si es confirmación, insertar detalles de confirmación (ministro, padrino/madrina, foja, numero)
         try:
             if tipo_id == 2 or tipo_nombre_local == 'confirmacion' or tipo_nombre_local == 'confirmación':
-                ministro = payload.get("ministro") or payload.get("sacrament_minister") or payload.get("sacrament-minister")
-                padrino = payload.get("padrino") or payload.get("godparent_1_name") or payload.get("godparent-1-name")
-                madrina = payload.get("padrina") or payload.get("godparent_2_name") or payload.get("godparent-2-name")
-                foja = payload.get("folio") or payload.get("folio_number") or payload.get("folio-number")
-                numero = payload.get("numero_acta") or payload.get("record-number") or payload.get("record_number")
+                ministro = (
+                    payload.get("ministro")
+                    or payload.get("sacrament_minister")
+                    or payload.get("sacrament-minister")
+                    or payload.get("ministro_confirmacion")
+                    or payload.get("ministro_bautizo")
+                )
+                padrino = (
+                    payload.get("padrino")
+                    or payload.get("godparent_1_name")
+                    or payload.get("godparent-1-name")
+                )
+                madrina = (
+                    payload.get("padrina")
+                    or payload.get("godparent_2_name")
+                    or payload.get("godparent-2-name")
+                )
+                foja = (
+                    payload.get("folio")
+                    or payload.get("foja")
+                    or payload.get("folio_number")
+                    or payload.get("folio-number")
+                    or payload.get("foja_acta")
+                    or payload.get("foja_act")
+                )
+                numero = (
+                    payload.get("numero_acta")
+                    or payload.get("numero")
+                    or payload.get("record-number")
+                    or payload.get("record_number")
+                    or payload.get("nro_acta")
+                    or payload.get("nro")
+                )
                 fecha_det = fecha_sac
                 # Insertar solo si hay algo relevante
                 if any([ministro, padrino, madrina, foja, numero]):
@@ -499,6 +567,18 @@ def get_sacramento(id: int, db: Session = Depends(get_db)):
 
 @router.put("/{id}")
 def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
+    # Validate update payload non-destructively using pydantic
+    try:
+        try:
+            SacramentoUpdateDTO.model_validate(payload)
+        except ValidationError as ve:
+            raise HTTPException(status_code=422, detail=ve.errors())
+    except HTTPException:
+        raise
+    except Exception:
+        # ignore unexpected validation issues to preserve backward compatibility
+        pass
+
     # If client sent `observaciones` but the DB lacks that column, add it dynamically (safe for development).
     try:
         # Ensure certain optional columns exist in sacramentos table so updates won't fail on older schemas.
@@ -547,9 +627,24 @@ def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(ge
             tipo_nombre_cur = None
 
         # Normalize payload keys
-        foja = payload.get('folio') or payload.get('foja')
-        numero = payload.get('numero_acta') or payload.get('numero')
-        ministro = payload.get('ministro')
+        foja = (
+            payload.get('folio')
+            or payload.get('foja')
+            or payload.get('folio_number')
+            or payload.get('foja_acta')
+            or payload.get('foja_act')
+        )
+        numero = (
+            payload.get('numero_acta')
+            or payload.get('numero')
+            or payload.get('nro_acta')
+            or payload.get('nro')
+        )
+        ministro = (
+            payload.get('ministro')
+            or payload.get('ministro_confirmacion')
+            or payload.get('ministro_bautizo')
+        )
         padrino = payload.get('padrino')
         nombre_esposo = payload.get('nombre_esposo') or payload.get('esposo') or payload.get('spouse_name')
         nombre_esposa = payload.get('nombre_esposa') or payload.get('esposa') or payload.get('spouse_name_2')
