@@ -161,14 +161,41 @@ export default function Registros() {
 		if (!confirmDelete) return
 		try {
 			const id = confirmDelete.id_sacramento || confirmDelete.id || confirmDelete.id_sacrament
-			const res = await fetch(`${API_BASE}/api/v1/sacramentos/${id}`, { method: 'DELETE' })
-			if (!res.ok) throw new Error(await res.text())
+			// Try primary API host first
+			let res = null
+			try {
+				res = await fetch(`${API_BASE}/api/v1/sacramentos/${id}`, { method: 'DELETE' })
+				if (!res.ok) {
+					const body = await res.text().catch(() => res.statusText || '')
+					throw new Error(`HTTP ${res.status} ${body}`)
+				}
+			} catch (errPrimary) {
+				// Network error or CORS - attempt fallback to relative path (in case dev server proxies /api to backend)
+				console.warn('Primary delete failed, trying relative fallback:', errPrimary)
+				try {
+					res = await fetch(`/api/v1/sacramentos/${id}`, { method: 'DELETE' })
+					if (!res.ok) {
+						const body = await res.text().catch(() => res.statusText || '')
+						throw new Error(`HTTP ${res.status} ${body}`)
+					}
+				} catch (errFallback) {
+					// Throw a composed error so outer catch can present it
+					const primaryMsg = errPrimary && errPrimary.message ? String(errPrimary.message) : String(errPrimary)
+					const fallbackMsg = errFallback && errFallback.message ? String(errFallback.message) : String(errFallback)
+					throw new Error(`Primary: ${primaryMsg}; Fallback: ${fallbackMsg}`)
+				}
+			}
 			alert('Registro eliminado')
 			setConfirmDelete(null)
 			load()
 		} catch (err) {
-			console.error(err)
-			alert('Error al eliminar: ' + (err.message || err))
+			console.error('Error deleting sacramento:', err)
+			const msg = String(err && err.message ? err.message : err)
+			if (msg.includes('Failed to fetch') || msg.toLowerCase().includes('networkerror') || msg.toLowerCase().includes('primary:')) {
+				alert('Error al eliminar: no se pudo conectar con el servidor. Comprueba que el servicio `documents-service` esté en ejecución (por defecto en http://localhost:8002) y que no haya bloqueos de red/CORS.\nDetalles: ' + msg)
+			} else {
+				alert('Error al eliminar: ' + msg)
+			}
 		}
 	}
 

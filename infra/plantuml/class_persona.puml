@@ -1,0 +1,40 @@
+@startuml
+title Persona - Class Diagram
+skinparam classAttributeIconSize 0
+
+class PersonaController {
+  +create_persona(dto)
+  +get_persona(id)
+  +list_personas(filters)
+  +update_persona(id, dto)
+  +soft_delete(id)
+}
+
+class PersonaCreateDTO {
+  +nombres
+  +apellido_paterno
+  +apellido_materno
+  +fecha_nacimiento
+  +lugar_nacimiento
+  +nombre_padre
+  +nombre_madre
+}
+
+class PersonaModel {
+  +id_persona
+  +nombres
+  +apellido_paterno
+  +apellido_materno
+  +fecha_nacimiento
+  +lugar_nacimiento
+  +nombre_padre
+  +nombre_madre
+  +activo
+}
+
+PersonaController ..> PersonaCreateDTO : uses
+PersonaController --> PersonaModel : CRUD
+
+note right: Persona DTOs in `app/dto/persona_dto.py` (Pydantic V2)
+
+@enduml

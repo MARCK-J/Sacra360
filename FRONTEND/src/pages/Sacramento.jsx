@@ -5,6 +5,7 @@ import PARROQUIAS from '../data/parroquias'
 export default function Sacramento() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const [createdId, setCreatedId] = useState(null)
   const [form, setForm] = useState({
     tipo_sacramento: 1,
     fecha_sacramento: '',
@@ -125,15 +126,9 @@ export default function Sacramento() {
           }
           throw new Error(`${res.status} ${detail}`)
       }
-      const createdId = data?.id_sacramento || data?.id || null
-      setMessage({ type: 'success', text: 'Sacramento creado (id: ' + (createdId || 'ok') + ')' })
-      if (createdId) {
-        try {
-          window.open(`/certificados?id=${createdId}`, '_blank')
-        } catch (e) {
-          // ignore
-        }
-      }
+      const created = data?.id_sacramento || data?.id || null
+      setCreatedId(created)
+      setMessage({ type: 'success', text: 'Sacramento creado (id: ' + (created || 'ok') + '). Puedes abrir el certificado desde el botón.' })
       // reset form or keep
     } catch (err) {
       setMessage({ type: 'error', text: String(err) })
@@ -342,7 +337,14 @@ export default function Sacramento() {
             </div>
 
             {message && (
-              <div className={`mt-3 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</div>
+              <div className={`mt-3 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                <div>{message.text}</div>
+                {message.type === 'success' && createdId && (
+                  <div className="mt-2">
+                    <a href={`/certificados?id=${createdId}`} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 rounded bg-primary text-white text-sm">Ver Certificado</a>
+                  </div>
+                )}
+              </div>
             )}
 
           </form>

@@ -1,0 +1,31 @@
+@startuml
+title Libro - Class Diagram
+skinparam classAttributeIconSize 0
+
+class LibroController {
+  +create_libro(dto)
+  +get_libro(id)
+  +list_libros(filters)
+  +update_libro(id, dto)
+  +delete_libro(id)
+}
+
+class LibroCreateDTO {
+  +nombre
+  +fecha_inicio
+  +fecha_fin
+  +observaciones
+}
+
+class LibroModel {
+  +id_libro
+  +nombre
+  +fecha_inicio
+  +fecha_fin
+  +observaciones
+}
+
+LibroController ..> LibroCreateDTO : uses
+LibroController --> LibroModel : CRUD
+
+@enduml

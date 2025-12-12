@@ -738,6 +738,42 @@ def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(ge
 
 @router.delete("/{id}")
 def delete_sacramento(id: int, db: Session = Depends(get_db)):
-    db.execute(text("DELETE FROM sacramentos WHERE id_sacramento = :id"), {"id": id})
-    db.commit()
-    return {"message": "Sacramento eliminado"}
+    try:
+        # Delete detail rows first to avoid FK constraint errors on older schemas
+        # Use individual deletes so we don't rely on cascade rules in the DB.
+        try:
+            db.execute(text("DELETE FROM detalles_bautizo WHERE sacramento_id = :id"), {"id": id})
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        try:
+            db.execute(text("DELETE FROM detalles_confirmacion WHERE sacramento_id = :id"), {"id": id})
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        try:
+            db.execute(text("DELETE FROM detalles_matrimonio WHERE sacramento_id = :id"), {"id": id})
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+        # Now delete the sacramento itself
+        db.execute(text("DELETE FROM sacramentos WHERE id_sacramento = :id"), {"id": id})
+        db.commit()
+        return {"message": "Sacramento y detalles asociados eliminados"}
+    except HTTPException:
+        # Re-raise HTTPExceptions unchanged
+        raise
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        # Return a clear HTTP error so the frontend can display the server message
+        raise HTTPException(status_code=500, detail=str(e))
