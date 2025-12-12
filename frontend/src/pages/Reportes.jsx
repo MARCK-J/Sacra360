@@ -142,7 +142,38 @@ export default function Reportes() {
 
   function buildQuery() {
     const params = new URLSearchParams()
-    if (filtros.tipo) params.append('tipo_sacramento', filtros.tipo)
+    if (filtros.tipo) {
+      // The backend expects a tipo_sacramento name (e.g. 'bautizo').
+      // The select may provide an id (numeric) or a name. Try multiple resolutions to match DB values.
+      let tipoVal = filtros.tipo
+      const tryResolveById = (tid) => {
+        // 1) try tipoIdToNameRef (preserves catalog labels)
+        try {
+          const mapped = tipoIdToNameRef.current.get(Number(tid))
+          if (mapped) return mapped
+        } catch (e) {}
+        // 2) try `tipos` array
+        try {
+          const found = tipos && tipos.find((t) => Number(t.id) === Number(tid))
+          if (found && found.nombre) return found.nombre
+        } catch (e) {}
+        // 3) fallback to canonical map
+        if (SACRAMENTO_NAME_BY_CODE[String(tid)]) return SACRAMENTO_NAME_BY_CODE[String(tid)]
+        return String(tid)
+      }
+
+      if (/^\d+$/.test(String(tipoVal))) {
+        tipoVal = tryResolveById(tipoVal)
+      } else {
+        // if tipoVal is a string name, try to find the exact catalog label to guarantee match
+        const key = String(tipoVal).trim()
+        const byName = tipos && tipos.find((t) => String(t.nombre).toLowerCase() === String(key).toLowerCase())
+        if (byName && byName.nombre) tipoVal = byName.nombre
+      }
+
+      // final guard: ensure it's a trimmed string
+      params.append('tipo_sacramento', String(tipoVal).trim())
+    }
     if (filtros.fecha_inicio) params.append('fecha_inicio', filtros.fecha_inicio)
     if (filtros.fecha_fin) params.append('fecha_fin', filtros.fecha_fin)
     if (filtros.q) params.append('sacerdote', filtros.q)

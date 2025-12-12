@@ -404,8 +404,43 @@ def list_sacramentos(
         where = []
         params = {}
         if tipo_sacramento:
-            where.append("lower(ts.nombre)=lower(:tipo)")
-            params["tipo"] = tipo_sacramento
+            # Make matching tolerant: allow textual name, numeric code stored as nombre, or matching by id.
+            ts_val = tipo_sacramento
+            params["tipo"] = ts_val
+            tipo_code = None
+            tipo_num = None
+            try:
+                ts_str = str(ts_val).strip()
+                if ts_str.isdigit():
+                    tipo_code = ts_str
+                    tipo_num = int(ts_str)
+                else:
+                    # try to resolve name to id in tipos_sacramentos
+                    try:
+                        r = db.execute(text("SELECT id_tipo FROM tipos_sacramentos WHERE lower(nombre)=lower(:n) LIMIT 1"), {"n": ts_str}).fetchone()
+                        if r:
+                            tipo_num = r[0]
+                            tipo_code = str(tipo_num)
+                        else:
+                            # fallback mapping for common names
+                            default_map = {'bautizo': 1, 'confirmacion': 2, 'matrimonio': 3, 'defuncion': 4, 'primera comunion': 5}
+                            tipo_num = default_map.get(ts_str.lower())
+                            if tipo_num:
+                                tipo_code = str(tipo_num)
+                    except Exception:
+                        # ignore resolution errors and fall back to textual match only
+                        pass
+            except Exception:
+                ts_str = str(tipo_sacramento)
+
+            clauses = ["lower(ts.nombre)=lower(:tipo)"]
+            if tipo_code is not None:
+                clauses.append("ts.nombre = :tipo_code")
+                params["tipo_code"] = tipo_code
+            if tipo_num is not None:
+                clauses.append("ts.id_tipo = :tipo_num")
+                params["tipo_num"] = tipo_num
+            where.append("(" + " OR ".join(clauses) + ")")
         if fecha_inicio:
             where.append("s.fecha_sacramento >= :fi")
             params["fi"] = fecha_inicio
