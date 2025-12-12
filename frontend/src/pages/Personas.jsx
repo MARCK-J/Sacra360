@@ -1,190 +1,176 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
-import DuplicatesMergeModal from '../components/DuplicatesMergeModal'
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8002'
 
 export default function Personas() {
-  const [mergeOpen, setMergeOpen] = useState(false)
-  // Controlled form state
   const [nombres, setNombres] = useState('')
-  const [apellidos, setApellidos] = useState('')
+  const [apellidoPaterno, setApellidoPaterno] = useState('')
+  const [apellidoMaterno, setApellidoMaterno] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [lugarNacimiento, setLugarNacimiento] = useState('')
   const [padre, setPadre] = useState('')
   const [madre, setMadre] = useState('')
 
-  // Autocomplete / search
-  const [searchTerm, setSearchTerm] = useState('')
-  const [suggestions, setSuggestions] = useState([])
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
-  const debounceRef = useRef(null)
-
-  // Selected person and their sacramentos
-  const [selectedPerson, setSelectedPerson] = useState(null)
-  const [sacramentos, setSacramentos] = useState([])
+  const [persons, setPersons] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState(null)
 
   useEffect(() => {
-    // when selectedPerson changes, populate fields and load sacramentos
-    if (selectedPerson) {
-      setNombres(selectedPerson.nombres || '')
-      setApellidos(((selectedPerson.apellido_paterno || '') + ' ' + (selectedPerson.apellido_materno || '')).trim())
-      setFechaNacimiento(selectedPerson.fecha_nacimiento ? selectedPerson.fecha_nacimiento.substring(0,10) : '')
-      setLugarNacimiento(selectedPerson.lugar_nacimiento || '')
-      setPadre(selectedPerson.nombre_padre || selectedPerson.padre || '')
-      setMadre(selectedPerson.nombre_madre || selectedPerson.madre || '')
-      // fetch sacramentos for this person
-      fetch(`/api/v1/personas/${selectedPerson.id_persona || selectedPerson.id}/sacramentos`).then(async res => {
-        if (!res.ok) return setSacramentos([])
-        const data = await res.json()
-        setSacramentos(Array.isArray(data) ? data : (data.sacramentos || []))
-      }).catch(() => setSacramentos([]))
-    } else {
-      setSacramentos([])
-    }
-  }, [selectedPerson])
+    loadPersons()
+  }, [])
 
-  // debounce search
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!searchTerm || searchTerm.length < 2) {
-      setSuggestions([])
-      return
-    }
-    setLoadingSuggestions(true)
-    debounceRef.current = setTimeout(async () => {
-      try {
-        // if user typed a space, try to split into nombres and apellidos
-        const parts = searchTerm.trim().split(/\s+/)
-        let url = '/api/v1/personas/search/by-name?limit=10'
-        if (parts.length === 1) {
-          url += `&nombres=${encodeURIComponent(parts[0])}`
-        } else if (parts.length >= 2) {
-          // first token -> nombres, last token -> apellidos (best-effort)
-          const nombresPart = parts.slice(0, parts.length - 1).join(' ')
-          const apellidosPart = parts[parts.length - 1]
-          url += `&nombres=${encodeURIComponent(nombresPart)}&apellidos=${encodeURIComponent(apellidosPart)}`
-        }
-        const res = await fetch(url)
-        if (!res.ok) {
-          setSuggestions([])
+  async function loadPersons() {
+    setLoading(true)
+    try {
+      // Backend validates limit <= 100; request 100 to avoid 422
+      let res = await fetch(`${API_BASE}/api/v1/personas?limit=100`)
+      if (!res.ok) {
+        // If validation error due to params (422), retry without limit
+        if (res.status === 422) {
+          try {
+            res = await fetch(`${API_BASE}/api/v1/personas`)
+          } catch (e2) {
+            throw e2
+          }
         } else {
-          const data = await res.json()
-          setSuggestions(Array.isArray(data) ? data : (data.personas || data || []))
+          throw new Error(`HTTP ${res.status}`)
         }
-      } catch (e) {
-        setSuggestions([])
-      } finally {
-        setLoadingSuggestions(false)
       }
-    }, 300)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [searchTerm])
-
-  function handleSelectSuggestion(p) {
-    setSelectedPerson(p)
-    setSuggestions([])
-    setSearchTerm('')
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : (data.personas || data || [])
+      setPersons(list)
+      setMsg(null)
+    } catch (e) {
+      console.error('Error loading persons', e)
+      setPersons([])
+      setMsg({ type: 'error', text: 'No se pudieron cargar las personas: ' + (e.message || e) })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function handleClearSelection() {
-    setSelectedPerson(null)
-    setNombres('')
-    setApellidos('')
-    setFechaNacimiento('')
-    setLugarNacimiento('')
-    setPadre('')
-    setMadre('')
-    setSacramentos([])
+  async function handleCreate(e) {
+    e.preventDefault()
+    setMsg(null)
+    if (!nombres.trim()) {
+      setMsg({ type: 'error', text: 'El campo Nombres es obligatorio' })
+      return
+    }
+    const payload = {
+      nombres: nombres.trim(),
+      apellido_paterno: apellidoPaterno.trim() || undefined,
+      apellido_materno: apellidoMaterno.trim() || undefined,
+      fecha_nacimiento: fechaNacimiento || undefined,
+      lugar_nacimiento: lugarNacimiento.trim() || undefined,
+      nombre_padre: padre.trim() || undefined,
+      nombre_madre: madre.trim() || undefined
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/personas/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '')
+        throw new Error(txt || `HTTP ${res.status}`)
+      }
+      const data = await res.json().catch(() => null)
+      setMsg({ type: 'success', text: 'Persona creada correctamente' })
+      // reset form
+      setNombres('')
+      setApellidoPaterno('')
+      setApellidoMaterno('')
+      setFechaNacimiento('')
+      setLugarNacimiento('')
+      setPadre('')
+      setMadre('')
+      // reload list
+      loadPersons()
+    } catch (err) {
+      console.error('Create person error', err)
+      setMsg({ type: 'error', text: String(err.message || err) })
+    }
   }
 
   return (
-    <Layout title="Gestión de Personas">
-      <div className="bg-white dark:bg-background-dark/50 rounded-xl shadow-sm">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Datos Personales</h3>
-        </div>
-        <form className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="nombres">Nombres</label>
-              <input value={nombres} onChange={(e) => { setNombres(e.target.value); setSearchTerm(e.target.value) }} className="w-full rounded-lg bg-background-light dark:bg-background-dark border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary p-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" id="nombres" placeholder="Ingrese los nombres" type="text" />
-              {loadingSuggestions && <div className="text-xs text-gray-500 mt-1">Buscando...</div>}
-              {suggestions && suggestions.length > 0 && (
-                <ul className="mt-1 border rounded bg-white z-10 relative max-h-48 overflow-auto">
-                  {suggestions.map((s) => (
-                    <li key={s.id_persona || s.id} onClick={() => handleSelectSuggestion(s)} className="px-3 py-2 hover:bg-gray-100 cursor-pointer">
-                      <div className="text-sm font-medium">{`${s.nombres} ${s.apellido_paterno || ''} ${s.apellido_materno || ''}`.trim()}</div>
-                      <div className="text-xs text-gray-500">{s.fecha_nacimiento ? String(s.fecha_nacimiento).substring(0,10) : ''} {s.lugar_nacimiento ? `• ${s.lugar_nacimiento}` : ''}</div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="apellidos">Apellidos</label>
-              <input value={apellidos} onChange={(e) => setApellidos(e.target.value)} className="w-full rounded-lg bg-background-light dark:bg-background-dark border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary p-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" id="apellidos" placeholder="Ingrese los apellidos" type="text" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="fecha-nacimiento">Fecha de Nacimiento</label>
-              <input value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} className="w-full rounded-lg bg-background-light dark:bg-background-dark border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary p-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" id="fecha-nacimiento" type="date" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="lugar-nacimiento">Lugar de Nacimiento</label>
-              <input value={lugarNacimiento} onChange={(e) => setLugarNacimiento(e.target.value)} className="w-full rounded-lg bg-background-light dark:bg-background-dark border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary p-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" id="lugar-nacimiento" placeholder="Ingrese el lugar" type="text" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="padre">Padre</label>
-              <input value={padre} onChange={(e) => setPadre(e.target.value)} className="w-full rounded-lg bg-background-light dark:bg-background-dark border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary p-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" id="padre" placeholder="Ingrese el nombre del padre" type="text" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="madre">Madre</label>
-              <input value={madre} onChange={(e) => setMadre(e.target.value)} className="w-full rounded-lg bg-background-light dark:bg-background-dark border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary p-3 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" id="madre" placeholder="Ingrese el nombre de la madre" type="text" />
-            </div>
-            <div className="md:col-span-2 flex gap-2">
-              <button type="button" onClick={() => setMergeOpen(true)} className="px-4 py-2 rounded bg-primary text-white">Buscar duplicados</button>
-              <button type="button" onClick={handleClearSelection} className="px-4 py-2 rounded border">Limpiar</button>
-            </div>
+    <Layout title="Crear Persona">
+      <div className="bg-white dark:bg-background-dark/50 rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Crear nueva persona</h3>
+        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1">Nombres</label>
+            <input value={nombres} onChange={(e) => setNombres(e.target.value)} className="form-input w-full" />
           </div>
+          <div>
+            <label className="block text-sm mb-1">Apellido paterno</label>
+            <input value={apellidoPaterno} onChange={(e) => setApellidoPaterno(e.target.value)} className="form-input w-full" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Apellido materno</label>
+            <input value={apellidoMaterno} onChange={(e) => setApellidoMaterno(e.target.value)} className="form-input w-full" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Fecha de nacimiento</label>
+            <input type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} className="form-input w-full" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Lugar de nacimiento</label>
+            <input value={lugarNacimiento} onChange={(e) => setLugarNacimiento(e.target.value)} className="form-input w-full" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Padre</label>
+            <input value={padre} onChange={(e) => setPadre(e.target.value)} className="form-input w-full" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Madre</label>
+            <input value={madre} onChange={(e) => setMadre(e.target.value)} className="form-input w-full" />
+          </div>
+          <div className="md:col-span-2 flex gap-2 justify-end mt-2">
+            <button type="submit" className="px-4 py-2 rounded bg-primary text-white">Crear</button>
+          </div>
+          {msg && (
+            <div className={`md:col-span-2 mt-2 text-sm ${msg.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{msg.text}</div>
+          )}
         </form>
       </div>
 
       <div className="mt-8 bg-white dark:bg-background-dark/50 rounded-xl shadow-sm">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Historial de Sacramentos</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personas guardadas</h3>
         </div>
-        <div className="p-6">
-          <p className="text-sm text-gray-600">Historial de sacramentos asociados a la persona seleccionada.</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400">
-              <tr>
-                <th className="px-6 py-3" scope="col">Sacramento</th>
-                <th className="px-6 py-3" scope="col">Fecha</th>
-                <th className="px-6 py-3" scope="col">Lugar</th>
-                <th className="px-6 py-3" scope="col">Libro / Foja / Nº</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sacramentos.length === 0 ? (
-                <tr className="bg-white dark:bg-background-dark/50 border-b dark:border-gray-700">
-                  <td className="px-6 py-4" colSpan={4}>No hay sacramentos relacionados.</td>
+        <div className="overflow-x-auto p-4">
+          {loading ? (
+            <div className="text-sm text-gray-500">Cargando...</div>
+          ) : (
+            <table className="w-full text-sm text-left text-gray-500">
+              <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2">Nombre completo</th>
+                  <th className="px-4 py-2">Fecha nacimiento</th>
+                  <th className="px-4 py-2">Lugar</th>
+                  <th className="px-4 py-2">Padre / Madre</th>
                 </tr>
-              ) : (
-                sacramentos.map((s) => (
-                  <tr key={s.id_sacramento || s.id} className="bg-white dark:bg-background-dark/50 border-b dark:border-gray-700">
-                    <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" scope="row">{s.tipo_nombre || s.tipo_sacramento || s.tipo}</th>
-                    <td className="px-6 py-4">{s.fecha_sacramento?.substring(0,10) || s.fecha || '-'}</td>
-                    <td className="px-6 py-4">{s.institucion_nombre || s.institucion || '-'}</td>
-                    <td className="px-6 py-4">{`${s.libro_nombre || s.libro || (s.libro_id ? `Libro ${s.libro_id}` : '-') } / ${s.foja || s.folio || '-'} / ${s.numero_acta || s.numero || '-'}`}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {persons.length === 0 ? (
+                  <tr><td colSpan={4} className="px-4 py-6">No hay personas registradas.</td></tr>
+                ) : (
+                  persons.map((p) => (
+                    <tr key={p.id_persona || p.id} className="border-b">
+                      <td className="px-4 py-3 font-medium text-gray-900">{[p.nombres, p.apellido_paterno, p.apellido_materno].filter(Boolean).join(' ')}</td>
+                      <td className="px-4 py-3">{p.fecha_nacimiento ? String(p.fecha_nacimiento).substring(0,10) : '-'}</td>
+                      <td className="px-4 py-3">{p.lugar_nacimiento || '-'}</td>
+                      <td className="px-4 py-3">{(p.nombre_padre || '-') + ' / ' + (p.nombre_madre || '-')}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
-
-      <DuplicatesMergeModal open={mergeOpen} onClose={() => setMergeOpen(false)} />
     </Layout>
   )
 }
