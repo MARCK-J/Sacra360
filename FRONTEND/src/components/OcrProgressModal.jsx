@@ -1,34 +1,44 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useOcrProgress } from '../context/OcrProgressContext'
 
 /**
- * Modal de progreso de procesamiento OCR
+ * Modal de progreso de procesamiento OCR/HTR
  * Muestra una barra de progreso animada con el estado actual del procesamiento
  * Ahora usa el Context centralizado para evitar polling duplicado
+ * Soporta tanto OCR (texto mecanografiado) como HTR (texto manuscrito)
  */
 export default function OcrProgressModal({ documentoId, onComplete, onError }) {
   const { documentosEnProceso } = useOcrProgress()
   const [error, setError] = useState(null)
+  const navigate = useNavigate()
   
   // Obtener progreso del documento desde el Context
   const progreso = documentosEnProceso[documentoId] || {
     estado: 'iniciando',
     progreso: 0,
     mensaje: 'Iniciando procesamiento...',
-    etapa: 'init'
+    etapa: 'init',
+    modelo: 'OCR'  // Por defecto OCR
   }
+
+  // Determinar el nombre del modelo desde el mensaje o estado
+  const modeloNombre = progreso.mensaje?.includes('HTR') || progreso.etapa?.includes('htr') 
+    ? 'HTR' 
+    : 'OCR'
 
   useEffect(() => {
     // Monitorear cambios de estado para notificar completado/error
     if (progreso.estado === 'completado' && onComplete) {
-      console.log('✅ OCR completado para documento', documentoId)
-      setTimeout(() => onComplete(documentoId), 1000)
+      console.log(`✅ ${modeloNombre} completado para documento`, documentoId)
+      // Redirigir automáticamente a pantalla de revisión
+      navigate('/revision-ocr')
     } else if (progreso.estado === 'error') {
-      console.log('❌ OCR con error:', progreso.mensaje)
+      console.log(`❌ ${modeloNombre} con error:`, progreso.mensaje)
       setError(progreso.mensaje || 'Error en procesamiento')
       if (onError) onError(progreso.mensaje)
     }
-  }, [progreso.estado, documentoId, onComplete, onError, progreso.mensaje])
+  }, [progreso.estado, documentoId, onComplete, onError, progreso.mensaje, modeloNombre, navigate])
 
   // Determinar color según estado
   const getColorClass = () => {
@@ -52,7 +62,8 @@ export default function OcrProgressModal({ documentoId, onComplete, onError }) {
       case 'error':
         return '❌'
       case 'procesando_ocr':
-        return '🔍'
+      case 'procesando_htr':
+        return modeloNombre === 'HTR' ? '✍️' : '🔍'
       case 'descargando':
         return '⬇️'
       case 'guardando':
@@ -70,7 +81,7 @@ export default function OcrProgressModal({ documentoId, onComplete, onError }) {
           <div className="text-6xl mb-4 animate-pulse">
             {getIcon()}
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          <h2 className="text-2x - {modeloNombre}l font-bold text-gray-800 mb-2">
             Procesando Documento
           </h2>
           <p className="text-sm text-gray-600">
@@ -116,13 +127,12 @@ export default function OcrProgressModal({ documentoId, onComplete, onError }) {
           </div>
         </div>
 
-        {/* Info adicional para etapa de OCR */}
-        {progreso.estado === 'procesando_ocr' && (
+        {(progreso.estado === 'procesando_ocr' || progreso.estado === 'procesando_htr') && (
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
             <p className="text-sm text-blue-800">
               <strong>⏱️ Proceso en curso</strong>
               <br />
-              El análisis OCR puede tardar varios minutos dependiendo del tamaño y complejidad del documento.
+              El análisis {modeloNombre} puede tardar varios minutos dependiendo del tamaño y complejidad del documento.
             </p>
           </div>
         )}

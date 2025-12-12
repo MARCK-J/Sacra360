@@ -52,9 +52,10 @@ export function OcrProgressProvider({ children }) {
     }
 
     // Consultar cada documento (en paralelo para eficiencia)
+    // Ahora consulta Documents-service que redirige a OCR o HTR según el modelo
     const promesas = documentosIds.map(async (docId) => {
       try {
-        const response = await fetch(`http://localhost:8003/api/v1/ocr/progreso/${docId}`)
+        const response = await fetch(`http://localhost:8002/api/v1/digitalizacion/progreso/${docId}`)
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
@@ -70,10 +71,9 @@ export function OcrProgressProvider({ children }) {
 
     const resultados = await Promise.all(promesas)
 
-    // Actualizar estados y REMOVER documentos completados/con error
+    // Actualizar estados y MANTENER documentos completados para permitir redirección
     setDocumentosEnProceso(prev => {
       const nuevo = { ...prev }
-      const documentosARemover = []
       
       resultados.forEach(({ docId, data }) => {
         if (data && nuevo[docId]) {
@@ -83,23 +83,13 @@ export function OcrProgressProvider({ children }) {
             mensaje: data.mensaje
           })
           
-          // Si completó o hubo error, marcar para ELIMINAR del tracking
-          if (data.estado === 'completado' || data.estado === 'error') {
-            console.log(`✅ Documento ${docId} terminó con estado: ${data.estado} - REMOVIENDO del tracking`)
-            documentosARemover.push(docId)
-          } else {
-            // Solo actualizar si NO está completado
-            nuevo[docId] = {
-              ...data,
-              timestamp: Date.now()
-            }
+          // Actualizar estado siempre (incluso si está completado/error)
+          // El modal se encarga de redirigir y luego detener el seguimiento
+          nuevo[docId] = {
+            ...data,
+            timestamp: Date.now()
           }
         }
-      })
-      
-      // ELIMINAR documentos completados/error del tracking
-      documentosARemover.forEach(docId => {
-        delete nuevo[docId]
       })
 
       return nuevo
@@ -124,31 +114,18 @@ export function OcrProgressProvider({ children }) {
       return
     }
 
-    // Si ya hay polling activo, solo actualizar (no crear nuevo interval)
-    if (isPollingRef.current) {
-      console.log(`📊 Polling activo - ahora rastreando ${documentosIds.length} documento(s)`)
-      return
+    // Si hay documentos y NO hay polling activo, iniciarlo
+    if (!isPollingRef.current) {
+      console.log('🔄 Iniciando polling global cada 15 segundos')
+      isPollingRef.current = true
+      
+      // Primera consulta inmediata
+      consultarProgresos()
+      
+      // Luego cada 15 segundos para capturar cambios
+      intervalRef.current = setInterval(consultarProgresos, 15000)
     }
-
-    // Iniciar polling
-    console.log(`🔄 Iniciando polling global para ${documentosIds.length} documento(s)`)
-    isPollingRef.current = true
-
-    // Consultar inmediatamente
-    consultarProgresos()
-
-    // Consultar cada 3 segundos
-    intervalRef.current = setInterval(consultarProgresos, 3000)
-
-    // Cleanup
-    return () => {
-      if (intervalRef.current) {
-        console.log('🧹 Limpiando interval de polling')
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-        isPollingRef.current = false
-      }
-    }
+    // NO hacer cleanup aquí - solo detener cuando documentosIds.length === 0
   }, [documentosEnProceso, consultarProgresos])
 
   const value = {

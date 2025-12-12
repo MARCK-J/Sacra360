@@ -70,9 +70,9 @@ export default function RevisionOCR() {
     cerrarModal()
     // Actualizar lista de documentos
     setDocumentos(prev => prev.filter(doc => doc.id !== documentoId))
-    // Redirigir a registros
+    // Redirigir a registro de sacramento
     setTimeout(() => {
-      navigate('/registros')
+      navigate('/sacramento')
     }, 500)
   }
 

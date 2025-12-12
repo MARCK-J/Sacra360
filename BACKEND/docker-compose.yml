@@ -122,6 +122,8 @@ services:
       - MINIO_SECURE=false
     ports:
       - "8002:8002"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Acceso al socket de Docker para leer logs
     depends_on:
       - postgres
       - redis

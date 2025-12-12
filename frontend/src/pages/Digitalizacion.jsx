@@ -15,7 +15,8 @@ export default function Digitalizacion() {
   const [dragActive, setDragActive] = useState(false)
   const [formData, setFormData] = useState({
     sacramento: 0,
-    libro: 0
+    libro: 0,
+    modeloProcesamiento: 'ocr'  // 'ocr' o 'htr'
   })
   
   // Estado para el modal de progreso OCR
@@ -144,6 +145,7 @@ export default function Digitalizacion() {
         uploadData.append('tipo_sacramento', formData.sacramento)
         uploadData.append('libro_id', formData.libro)
         uploadData.append('institucion_id', '1')
+        uploadData.append('modelo_procesamiento', formData.modeloProcesamiento)
         uploadData.append('procesar_automaticamente', 'true')
 
         try {
@@ -168,8 +170,11 @@ export default function Digitalizacion() {
             
             // Si hay documento_id, iniciar seguimiento con Context
             if (result.documento_id) {
-              console.log('🔍 Iniciando seguimiento OCR para documento:', result.documento_id)
-              console.log('⏳ El procesamiento OCR toma aproximadamente 7 minutos')
+              const modeloNombre = formData.modeloProcesamiento === 'htr' ? 'HTR' : 'OCR'
+              const tiempoEstimado = formData.modeloProcesamiento === 'htr' ? '8-10 minutos' : '7 minutos'
+              
+              console.log(`🔍 Iniciando seguimiento ${modeloNombre} para documento:`, result.documento_id)
+              console.log(`⏳ El procesamiento ${modeloNombre} toma aproximadamente ${tiempoEstimado}`)
               
               // Iniciar seguimiento global
               iniciarSeguimiento(result.documento_id)
@@ -209,7 +214,7 @@ export default function Digitalizacion() {
         createdPreviewsRef.current.clear()
         return []
       })
-      setFormData({ sacramento: 0, libro: 0 })
+      setFormData({ sacramento: 0, libro: 0, modeloProcesamiento: 'ocr' })
 
     } catch (error) {
       console.error('❌ Error procesando archivos:', error)
@@ -255,7 +260,7 @@ export default function Digitalizacion() {
         {/* Formulario de Metadatos */}
         <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Información del Documento</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Sacramento *
@@ -292,6 +297,20 @@ export default function Digitalizacion() {
                     {libro.nombre}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tipo de Texto *
+              </label>
+              <select
+                name="modeloProcesamiento"
+                value={formData.modeloProcesamiento}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="ocr">📝 OCR - Textos mecanografiados</option>
+                <option value="htr">✍️ HTR - Textos manuscritos</option>
               </select>
             </div>
           </div>

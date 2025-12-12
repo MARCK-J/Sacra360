@@ -139,6 +139,177 @@ async def upload_document(
             detail=f"Error interno: {str(e)}"
         )
 
+@router.get("/progreso/{documento_id}")
+async def get_progreso_procesamiento(
+    documento_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene el progreso de procesamiento leyendo los logs de Docker
+    del contenedor OCR o HTR según corresponda
+    """
+    try:
+        from sqlalchemy import text
+        import subprocess
+        import re
+        
+        # Obtener modelo_procesamiento del documento
+        query = text("""
+            SELECT modelo_procesamiento 
+            FROM documento_digitalizado 
+            WHERE id_documento = :doc_id
+        """)
+        result = db.execute(query, {"doc_id": documento_id}).fetchone()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Documento {documento_id} no encontrado"
+            )
+        
+        modelo = result[0] or 'ocr'
+        
+        # Determinar nombre del contenedor según modelo
+        if modelo == 'htr':
+            container_name = "sacra360_htr_service"
+            modelo_upper = "HTR"
+        else:
+            container_name = "sacra360_ocr_service"
+            modelo_upper = "OCR"
+        
+        try:
+            # Leer logs del contenedor (últimas 200 líneas)
+            cmd = ["docker", "logs", container_name, "--tail", "200"]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            logs = result.stdout + result.stderr
+            
+            # Parsear logs para extraer progreso
+            estado = "procesando"
+            progreso = 0
+            mensaje = f"Procesando con {modelo_upper}..."
+            
+            # Buscar documento_id en logs
+            doc_pattern = rf"documento.*{documento_id}|ID=?{documento_id}|doc_id.*{documento_id}"
+            if not re.search(doc_pattern, logs, re.IGNORECASE):
+                return {
+                    "estado": "pendiente",
+                    "progreso": 0,
+                    "mensaje": f"Esperando inicio de procesamiento {modelo_upper}...",
+                    "etapa": "pendiente"
+                }
+            
+            # Para HTR: buscar filas procesadas
+            if modelo == 'htr':
+                # Buscar "✅ COMPLETADO: X filas válidas extraídas"
+                completado_match = re.search(r'✅ COMPLETADO:\s*(\d+)\s*filas válidas', logs)
+                if completado_match:
+                    return {
+                        "estado": "completado",
+                        "progreso": 100,
+                        "mensaje": f"HTR completado: {completado_match.group(1)} filas extraídas",
+                        "etapa": "completado"
+                    }
+                
+                # Contar TODAS las filas procesadas (válidas + saltadas por ruido)
+                filas_validas = len(re.findall(r'✅ VÁLIDA', logs))
+                filas_saltadas = len(re.findall(r'⏭️.*SALTADA|Fila.*SALTADA', logs))
+                total_procesadas = filas_validas + filas_saltadas
+                
+                # Buscar total estimado de filas detectadas
+                filas_detectadas_match = re.search(r'📍 Filas detectadas:\s*(\d+)', logs)
+                total_filas = int(filas_detectadas_match.group(1)) if filas_detectadas_match else 10
+                
+                if total_procesadas > 0:
+                    # Progreso basado en filas procesadas (válidas + ruido)
+                    progreso = min(int((total_procesadas / total_filas) * 85), 85)  # Max 85% durante procesamiento
+                    mensaje = f"HTR: {total_procesadas}/{total_filas} filas procesadas ({filas_validas} válidas)"
+                    estado = "procesando_htr"
+                elif "Detectando estructura" in logs:
+                    progreso = 10
+                    mensaje = "HTR: Detectando estructura de tabla..."
+                    estado = "procesando_htr"
+                elif "Convirtiendo PDF" in logs:
+                    progreso = 5
+                    mensaje = "HTR: Convirtiendo PDF a imagen..."
+                    estado = "procesando_htr"
+                else:
+                    progreso = 2
+                    mensaje = "HTR: Iniciando procesamiento..."
+                    estado = "procesando_htr"
+                    
+            # Para OCR: buscar progreso de EasyOCR
+            else:
+                # Buscar completado - DEBE ser mensaje final específico
+                if re.search(r'✅ PROCESAMIENTO COMPLETADO EXITOSAMENTE|✅ OCR completado:', logs):
+                    return {
+                        "estado": "completado",
+                        "progreso": 100,
+                        "mensaje": "OCR completado exitosamente",
+                        "etapa": "completado"
+                    }
+                
+                # Buscar progreso de lectura de celdas en logs de EasyOCR
+                # Patrón: "📊 Procesadas X/Y celdas" - ÚNICO indicador válido para evitar saltos
+                # Usar findall para encontrar TODAS las coincidencias y tomar la ÚLTIMA
+                ocr_cells_matches = re.findall(r'📊 Procesadas (\d+)/(\d+) celdas', logs)
+                
+                if ocr_cells_matches:
+                    # Tomar la ÚLTIMA coincidencia (progreso más reciente)
+                    procesadas, total = ocr_cells_matches[-1]
+                    procesadas = int(procesadas)
+                    total = int(total)
+                    # Progreso 0-95% basado en celdas procesadas
+                    progreso = min(int((procesadas / total) * 95), 95)
+                    mensaje = f"OCR: Leyendo {procesadas}/{total} celdas..."
+                    estado = "procesando_ocr"
+                else:
+                    # Antes de empezar a leer celdas, mantener en 0%
+                    progreso = 0
+                    mensaje = "OCR: Preparando documento..."
+                    estado = "procesando_ocr"
+            
+            # Buscar errores
+            if re.search(r'ERROR|Exception|Traceback|Failed', logs, re.IGNORECASE):
+                error_match = re.search(r'(ERROR|Exception):\s*(.+)', logs)
+                error_msg = error_match.group(2) if error_match else "Error en procesamiento"
+                return {
+                    "estado": "error",
+                    "progreso": 0,
+                    "mensaje": f"Error: {error_msg[:100]}",
+                    "etapa": "error"
+                }
+            
+            return {
+                "estado": estado,
+                "progreso": progreso,
+                "mensaje": mensaje,
+                "etapa": modelo
+            }
+            
+        except subprocess.TimeoutExpired:
+            logger.error(f"Timeout leyendo logs de {container_name}")
+            return {
+                "estado": "error",
+                "progreso": 0,
+                "mensaje": "Timeout consultando logs del contenedor"
+            }
+        except Exception as e:
+            logger.error(f"Error leyendo logs de Docker: {e}")
+            return {
+                "estado": "procesando",
+                "progreso": 10,
+                "mensaje": f"Procesando con {modelo_upper}... (sin acceso a logs)"
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo progreso: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo progreso: {str(e)}"
+        )
+
 @router.get("/status/{documento_id}", response_model=ProcessingStatusResponse)
 async def get_processing_status(
     documento_id: int,
