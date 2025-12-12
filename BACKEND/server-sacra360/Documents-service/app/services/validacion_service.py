@@ -5,6 +5,7 @@ Maneja la lógica de negocio para el proceso de validación tupla por tupla
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, desc, text
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import logging
 
@@ -763,32 +764,78 @@ class ValidacionService:
                 persona_id = persona_id_existente
                 logger.info(f"Usando persona existente con ID: {persona_id}")
             else:
-                # Crear nueva persona
-                insert_persona = text("""
-                    INSERT INTO personas (
-                        nombres, apellido_paterno, apellido_materno,
-                        fecha_nacimiento, fecha_bautismo,
-                        nombre_padre_nombre_madre, nombre_padrino_nombre_madrina
-                    ) VALUES (
-                        :nombres, :ap_paterno, :ap_materno,
-                        :fecha_nac, :fecha_bautismo,
-                        :padre_madre, :padrino_madrina
-                    )
-                    RETURNING id_persona
+                # VALIDACIÓN: Verificar si ya existe una persona con estos datos
+                # Criterio: nombres + apellidos + fecha_nacimiento + fecha_bautismo
+                check_duplicado = text("""
+                    SELECT id_persona 
+                    FROM personas 
+                    WHERE nombres = :nombres 
+                    AND apellido_paterno = :ap_paterno 
+                    AND apellido_materno = :ap_materno 
+                    AND fecha_nacimiento = :fecha_nac
+                    AND fecha_bautismo = :fecha_bautismo
+                    LIMIT 1
                 """)
                 
-                result_persona = db.execute(insert_persona, {
+                persona_existente = db.execute(check_duplicado, {
                     "nombres": nombres,
                     "ap_paterno": apellido_paterno,
                     "ap_materno": apellido_materno,
                     "fecha_nac": fecha_nacimiento,
-                    "fecha_bautismo": fecha_bautismo,
-                    "padre_madre": nombre_padre_nombre_madre,
-                    "padrino_madrina": nombre_padrino_nombre_madrina
-                })
+                    "fecha_bautismo": fecha_bautismo
+                }).fetchone()
                 
-                persona_id = result_persona.fetchone()[0]
-                logger.info(f"Persona creada con ID: {persona_id}")
+                if persona_existente:
+                    # Ya existe una persona con los mismos datos
+                    persona_id = persona_existente[0]
+                    logger.warning(f"Persona duplicada encontrada. Usando ID existente: {persona_id}")
+                    raise ValueError(
+                        f"Ya existe una persona registrada con el mismo nombre ({nombre_completo}), "
+                        f"fecha de nacimiento ({fecha_nacimiento}) y fecha de bautizo ({fecha_bautismo}). "
+                        f"Persona ID: {persona_id}"
+                    )
+                else:
+                    # Crear nueva persona
+                    try:
+                        insert_persona = text("""
+                            INSERT INTO personas (
+                                nombres, apellido_paterno, apellido_materno,
+                                fecha_nacimiento, fecha_bautismo,
+                                nombre_padre_nombre_madre, nombre_padrino_nombre_madrina
+                            ) VALUES (
+                                :nombres, :ap_paterno, :ap_materno,
+                                :fecha_nac, :fecha_bautismo,
+                                :padre_madre, :padrino_madrina
+                            )
+                            RETURNING id_persona
+                        """)
+                        
+                        result_persona = db.execute(insert_persona, {
+                            "nombres": nombres,
+                            "ap_paterno": apellido_paterno,
+                            "ap_materno": apellido_materno,
+                            "fecha_nac": fecha_nacimiento,
+                            "fecha_bautismo": fecha_bautismo,
+                            "padre_madre": nombre_padre_nombre_madre,
+                            "padrino_madrina": nombre_padrino_nombre_madrina
+                        })
+                        
+                        persona_id = result_persona.fetchone()[0]
+                        logger.info(f"Persona creada con ID: {persona_id}")
+                    except IntegrityError as e:
+                        # Capturar violación de constraint único de PostgreSQL
+                        if 'personas_datos_basicos_unique' in str(e):
+                            logger.warning(f"Intento de insertar persona duplicada: {nombre_completo}")
+                            raise ValueError(
+                                f"Esta persona ya está registrada en el sistema. "
+                                f"Nombre: {nombre_completo}, "
+                                f"Fecha de nacimiento: {fecha_nacimiento}, "
+                                f"Fecha de bautizo: {fecha_bautismo}. "
+                                f"Por favor, verifique los datos o use el registro existente."
+                            )
+                        else:
+                            # Otro tipo de error de integridad
+                            raise
             
             # 7. Insertar en tabla sacramentos
             insert_sacramento = text("""

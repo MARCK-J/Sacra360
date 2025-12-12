@@ -1,0 +1,49 @@
+@startuml
+title ER Diagram - Esquema simplificado (Documentos / OCR)
+hide circle
+
+entity "documento_digitalizado" as doc {
+  * id_documento : serial
+  --
+  libros_id : int
+  tipo_sacramento : int
+  imagen_url : text
+  ocr_texto : text
+  modelo_fuente : varchar
+  confianza : decimal
+  fecha_procesamiento : timestamp
+  modelo_procesamiento : varchar
+  progreso_ocr : int
+}
+
+entity "ocr_resultado" as ocr {
+  * id_ocr : serial
+  --
+  documento_id : int
+  tupla_numero : int
+  datos_ocr : jsonb
+  confianza : decimal
+  fuente_modelo : varchar
+  estado_validacion : varchar
+}
+
+entity "validacion_tuplas" as val {
+  * id_validacion : serial
+  --
+  documento_id : int
+  tupla_numero : int
+  estado : varchar
+  usuario_validador_id : int
+}
+
+entity "libros" as lib {
+  * id_libro : serial
+  --
+  nombre : varchar
+}
+
+doc ||--o{ ocr : "1..*"
+doc ||--o{ val : "1..*"
+lib ||--o{ doc : "1..*"
+
+@enduml

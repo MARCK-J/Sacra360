@@ -1,0 +1,23 @@
+@startuml
+title Sequence - Cambio de Modelo y Reprocesamiento
+actor User
+participant Frontend
+participant Documents as "Documents-service"
+participant OCR
+participant HTR
+participant Postgres
+
+User -> Frontend : Solicita cambiar modelo (htr/ocr)
+Frontend -> Documents : PUT /api/v1/digitalizacion/modelo/{documento_id}
+Documents -> Postgres : UPDATE documento_digitalizado SET modelo_procesamiento, estado='pendiente'
+Documents -> Postgres : DELETE FROM ocr_resultado WHERE documento_id = {id}
+Documents -> Documents : iniciar hilo/requeue para reprocesar
+alt nuevo_modelo == 'htr'
+  Documents -> HTR : POST /api/v1/htr/procesar-desde-bd/{documento_id}
+else
+  Documents -> OCR : POST /api/v1/ocr/procesar-desde-bd/{documento_id}
+end
+note over Documents: Reprocesamiento en background; respuesta inmediata a UI
+Documents -> Frontend : 200 OK {mensaje: 'reprocesando en background'}
+
+@enduml

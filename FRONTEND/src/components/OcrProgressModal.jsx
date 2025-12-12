@@ -9,7 +9,7 @@ import { useOcrProgress } from '../context/OcrProgressContext'
  * Soporta tanto OCR (texto mecanografiado) como HTR (texto manuscrito)
  */
 export default function OcrProgressModal({ documentoId, onComplete, onError }) {
-  const { documentosEnProceso } = useOcrProgress()
+  const { documentosEnProceso, detenerSeguimiento } = useOcrProgress()
   const [error, setError] = useState(null)
   const navigate = useNavigate()
   
@@ -31,14 +31,38 @@ export default function OcrProgressModal({ documentoId, onComplete, onError }) {
     // Monitorear cambios de estado para notificar completado/error
     if (progreso.estado === 'completado' && onComplete) {
       console.log(`✅ ${modeloNombre} completado para documento`, documentoId)
+      
+      // Detener seguimiento ANTES de redirigir
+      setTimeout(() => {
+        detenerSeguimiento(documentoId)
+        console.log(`🛑 Seguimiento detenido para documento completado: ${documentoId}`)
+      }, 1000) // Dar 1 segundo para que el usuario vea el estado completado
+      
       // Redirigir automáticamente a pantalla de revisión
       navigate('/revision-ocr')
     } else if (progreso.estado === 'error') {
       console.log(`❌ ${modeloNombre} con error:`, progreso.mensaje)
       setError(progreso.mensaje || 'Error en procesamiento')
+      
+      // Detener seguimiento en caso de error
+      setTimeout(() => {
+        detenerSeguimiento(documentoId)
+      }, 2000)
+      
       if (onError) onError(progreso.mensaje)
     }
-  }, [progreso.estado, documentoId, onComplete, onError, progreso.mensaje, modeloNombre, navigate])
+  }, [progreso.estado, documentoId, onComplete, onError, progreso.mensaje, modeloNombre, navigate, detenerSeguimiento])
+
+  // Cleanup cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      // Si el modal se cierra por cualquier razón, detener el seguimiento
+      // SOLO si el documento NO está en proceso activo
+      if (progreso.estado === 'completado' || progreso.estado === 'error') {
+        detenerSeguimiento(documentoId)
+      }
+    }
+  }, [documentoId, progreso.estado, detenerSeguimiento])
 
   // Determinar color según estado
   const getColorClass = () => {

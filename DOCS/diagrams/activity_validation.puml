@@ -1,0 +1,23 @@
+@startuml
+title Activity - Proceso de Validación de Tuplas OCR
+start
+ :Listar documentos con tuplas pendientes;
+ if (Documento seleccionado?) then (sí)
+   :Mostrar lista de tuplas pendientes;
+   if (Tupla válida?) then (sí)
+     :Marcar tupla como VALIDADA;
+     :Actualizar ocr_resultado.estado_validacion -> 'validado';
+   else (no)
+     :Editar valor (corrección);
+     :Guardar corrección en `correccion_documento`;
+     :Marcar tupla como 'corregido' o 'pendiente';
+   endif
+   if (Todas las tuplas validadas?) then (sí)
+     :Crear registro en `validacion_tuplas` como 'registrado' y opcional insertar en `sacramentos`;
+   endif
+ else (no)
+   stop
+ endif
+stop
+
+@enduml

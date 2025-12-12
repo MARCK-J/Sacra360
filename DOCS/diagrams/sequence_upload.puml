@@ -1,0 +1,26 @@
+@startuml
+title Sequence - Subida y Procesamiento de Documento
+actor User
+participant Frontend
+participant Documents as "Documents-service"
+participant MinIO
+participant Postgres
+participant OCR
+
+User -> Frontend : Selecciona archivo + metadatos
+Frontend -> Documents : POST /api/v1/digitalizacion/upload (FormData)
+Documents -> MinIO : PUT object (S3)
+Documents -> Postgres : INSERT documento_digitalizado
+Documents -> Frontend : 200 OK {documento_id}
+alt procesar_automaticamente
+  Documents -> OCR : POST /api/v1/ocr/procesar-desde-bd/{documento_id}
+  OCR -> MinIO : GET object
+  OCR -> OCR : procesar documento (OCR/HTR)
+  OCR -> Postgres : INSERT ocr_resultado / UPDATE documento_digitalizado.progreso_ocr
+  OCR -> Documents : callback no obligatorio (logs/estado actualizado)
+  Frontend -> Documents : GET /api/v1/digitalizacion/progreso/{documento_id}
+  Documents -> Postgres : SELECT progreso_ocr
+  Documents -> Frontend : {estado, progreso, mensaje}
+end
+
+@enduml
