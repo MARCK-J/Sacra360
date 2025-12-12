@@ -556,7 +556,9 @@ def update_sacramento(id: int, payload: Dict[str, Any], db: Session = Depends(ge
             pass
 
     # Construir SET dinámico permitiendo solo columnas esperadas
-    allowed = {"persona_id", "tipo_id", "usuario_id", "institucion_id", "libro_id", "fecha_sacramento", "ministro", "padrinos", "observaciones", "folio", "numero_acta", "pagina"}
+    # Note: `ministro` and `padrinos` are stored in detalle tables (detalles_bautizo/confirmacion/matrimonio),
+    # so they must not be included in the direct UPDATE of the `sacramentos` table which may not have those columns.
+    allowed = {"persona_id", "tipo_id", "usuario_id", "institucion_id", "libro_id", "fecha_sacramento", "observaciones", "folio", "numero_acta", "pagina"}
     updates = []
     params = {"id": id}
     for k, v in payload.items():
