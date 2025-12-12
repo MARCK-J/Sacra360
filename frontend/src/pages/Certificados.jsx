@@ -47,26 +47,36 @@ export default function Certificados() {
       setLoadingList(false)
     }
   }
+  // Shared CSS for printed/exported certificates (without <style> wrapper)
+  const CERT_CSS = `
+        @page { size: A4; margin: 18mm; }
+        :root{ --paper-bg: #f9fafb; --accent:#0b74ff; --muted:#6b7280; }
+        body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #0f172a; background: var(--paper-bg); padding: 12px; }
+        .certificate-wrapper{ max-width: 900px; margin: 0 auto; }
+        .certificate { background: #ffffff; border-radius: 12px; padding: 36px; box-shadow: 0 6px 20px rgba(15,23,42,0.06); border: 1px solid rgba(15,23,42,0.04); }
+        .cert-header { text-align: center; margin-bottom: 18px; }
+        .cert-title { font-weight: 800; font-size: 26px; letter-spacing: -0.02em; }
+        .cert-sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+        .cert-body { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; font-size: 15px; }
+        .field-label{ font-weight:600; display:inline-block; width:120px }
+        .contrayentes { display:flex; gap:18px; align-items:flex-start }
+        .spouse { flex:1; background:#fafafa; padding:10px; border-radius:8px; border:1px solid rgba(15,23,42,0.03) }
+        .footer { display:flex; justify-content:space-between; align-items:center; margin-top:20px }
+        .issuer { color:var(--muted); font-size:12px }
+        .seal { text-align:center }
+        .book-line{ color:var(--muted); font-size:14px }
+        @media print{
+          body { background: white; padding:0 }
+          .certificate { box-shadow: none; border: none; border-radius: 0; padding: 18mm }
+        }
+  `
   const handlePrint = useCallback((elementId) => {
     const el = document.getElementById(elementId)
     if (!el) return alert('Preview no disponible para imprimir')
     const content = el.innerHTML
     const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0')
     if (!win) return alert('No se pudo abrir la ventana de impresión')
-    const style = `
-      <style>
-        @page { size: A4; margin: 20mm; }
-        body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #111827; }
-        .certificate-container { width: 100%; }
-        .text-center { text-align: center; }
-        .mb-6 { margin-bottom: 1.5rem; }
-        .p-8 { padding: 2rem; }
-        .font-extrabold { font-weight: 800; }
-        .text-2xl { font-size: 1.5rem; }
-        .text-sm { font-size: .875rem; }
-        .mt-6 { margin-top: 1.5rem; }
-      </style>
-    `
+    const style = `<style>${CERT_CSS}</style>`
     win.document.open()
     win.document.write(`<!doctype html><html><head><title>Certificado</title>${style}</head><body><div class="certificate-container">${content}</div></body></html>`)
     win.document.close()
@@ -100,6 +110,21 @@ export default function Certificados() {
       const el = document.getElementById(elementId)
       if (!el) return alert('Preview no disponible para exportar')
       const originalBg = el.style.backgroundColor
+      // Ensure certificate CSS is present in the current document so exported PDF matches print template
+      let injectedStyle = null
+      let addedStyle = false
+      try {
+        injectedStyle = document.getElementById('cert-style')
+        if (!injectedStyle) {
+          injectedStyle = document.createElement('style')
+          injectedStyle.id = 'cert-style'
+          injectedStyle.innerHTML = CERT_CSS
+          document.head.appendChild(injectedStyle)
+          addedStyle = true
+        }
+      } catch (e) {
+        // ignore injection errors
+      }
       el.style.backgroundColor = '#ffffff'
       try {
         // ensure web fonts have loaded so canvas text matches on-screen
@@ -136,6 +161,10 @@ export default function Certificados() {
         handlePrint(elementId)
       } finally {
         el.style.backgroundColor = originalBg
+        // remove injected style if we added it
+        try {
+          if (addedStyle && injectedStyle && injectedStyle.parentNode) injectedStyle.parentNode.removeChild(injectedStyle)
+        } catch (e) {}
       }
     }
     generateAndDownload()
@@ -178,6 +207,40 @@ export default function Certificados() {
     const name = (r.persona_nombre || r.person_name || r.persona_id || '')
     return String(name).toLowerCase().includes(String(searchTerm).toLowerCase())
   })
+
+  // Helper to detect whether a sacramento is a matrimonio
+  function isMatrimonio(item) {
+    if (!item) return false
+    const raw = item.tipo_id || item.tipo || item.tipo_nombre || item.tipo_sacramento
+    if (raw == null) return false
+    if (typeof raw === 'number' || /^\d+$/.test(String(raw))) return Number(raw) === 3
+    return String(raw).toLowerCase().includes('matrim')
+  }
+
+  // Try many possible aliases to return the two spouse names for matrimonios
+  function getSpouseNames(item) {
+    if (!item) return ['-','-']
+    // Candidate sources for spouse 1 (esposo)
+    const s1 = item.nombre_esposo || item.esposo || item.spouse_name || item.spouse || item.persona_nombre || item.person_name || item.persona || item.nombre_conyuge || item.contrayente_1 || item.persona1 || null
+    // Candidate sources for spouse 2 (esposa)
+    const s2 = item.nombre_esposa || item.esposa || item.spouse_name_2 || item.spouse2 || item.person2_name || item.contrayente_2 || item.persona2_nombre || item.persona2 || null
+
+    const left = (s1 && String(s1).trim() !== '') ? s1 : null
+    const right = (s2 && String(s2).trim() !== '') ? s2 : null
+
+    // If only one side is present but there are other fields that may contain the second name, try alternate heuristics
+    if (!left && right) {
+      // try to use persona_nombre if present
+      const alt = item.persona_nombre || item.person_name || item.persona
+      return [alt || '-', right || '-']
+    }
+    if (!right && left) {
+      // try to get a second person from common alternate fields
+      const alt2 = item.nombre_conyuge || item.person2_name || item.persona2 || item.esposa || item.spouse2
+      return [left || '-', alt2 || '-']
+    }
+    return [left || '-', right || '-']
+  }
 
   return (
     <Layout title="Generación de Certificados">
@@ -227,33 +290,57 @@ export default function Certificados() {
             <div className="rounded-lg border border-dashed border-border-light dark:border-border-dark p-6 bg-background-light dark:bg-background-dark">
               <div id="certificate-preview" className="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow p-8">
                 {selected ? (
-                  <div>
-                    <div className="text-center mb-6">
-                      <h4 className="text-2xl font-extrabold">Certificado de {getTipoLabel(selected)}</h4>
-                      <p className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">{selected.institucion_nombre || selected.sacrament_location || selected.institucion || 'Parroquia'}</p>
-                    </div>
-                    <div className="space-y-3 text-sm">
-                      <p><span className="font-semibold">Nombre:</span> {selected.persona_nombre ?? selected.persona_id ?? selected.person_name ?? '-'}</p>
-                      <p><span className="font-semibold">Padres:</span> {
-                        selected.padres
-                        || ((selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name) || (selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name))
-                          ? `${selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name} y ${selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name}`
-                          : '-'
-                      }</p>
-                      <p><span className="font-semibold">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
-                      <p><span className="font-semibold">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_confirmacion || selected.ministro_bautizo || selected.ministro || '-'}</p>
-                      <p><span className="font-semibold">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || selected.folio_number || '-'} / ${selected.numero_acta || selected.numero || selected.record_number || '-'}`}</p>
-                    </div>
-                    <div className="mt-6 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Emitido por: Admin</p>
-                        <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Fecha: {new Date().toISOString().substring(0,10)}</p>
+                  <div className="certificate-wrapper">
+                    <div className="certificate">
+                      <div className="cert-header">
+                        <div className="cert-title">Certificado de {getTipoLabel(selected)}</div>
+                        <div className="cert-sub">{selected.institucion_nombre || selected.sacrament_location || selected.institucion || 'Parroquia'}</div>
                       </div>
-                      <div className="text-center">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                          <span className="material-symbols-outlined">workspace_premium</span>
+                      <div className="cert-body">
+                        {isMatrimonio(selected) ? (() => {
+                          const [esposoName, esposaName] = getSpouseNames(selected)
+                          return (
+                            <div>
+                              <div className="field-label font-semibold">Contrayentes:</div>
+                              <div className="contrayentes">
+                                <div className="spouse">
+                                  <div className="font-semibold">Esposo</div>
+                                  <div>{esposoName}</div>
+                                </div>
+                                <div className="spouse">
+                                  <div className="font-semibold">Esposa</div>
+                                  <div>{esposaName}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })() : (
+                          <p><span className="field-label">Nombre:</span> {selected.persona_nombre ?? selected.persona_id ?? selected.person_name ?? '-'}</p>
+                        )}
+
+                        <p><span className="field-label">Padres:</span> {
+                          selected.padres
+                          || ((selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name) || (selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name))
+                            ? `${selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name} y ${selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name}`
+                            : '-'
+                        }</p>
+
+                        <p><span className="field-label">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
+                        <p><span className="field-label">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_confirmacion || selected.ministro_bautizo || '-'}</p>
+                        <p className="book-line"><span className="field-label">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || selected.folio_number || '-'} / ${selected.numero_acta || selected.numero || selected.record_number || '-'}`}</p>
+
+                        <div className="footer">
+                          <div className="issuer">
+                            <div>Emitido por: Admin</div>
+                            <div>Fecha: {new Date().toISOString().substring(0,10)}</div>
+                          </div>
+                          <div className="seal">
+                            <div style={{height:56,width:56,borderRadius:28,background:'#eef6ff',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto'}}>
+                              <span className="material-symbols-outlined" style={{color:'#0b74ff'}}>workspace_premium</span>
+                            </div>
+                            <div style={{fontSize:12,marginTop:6,color:'#6b7280'}}>Sello Parroquial</div>
+                          </div>
                         </div>
-                        <p className="text-xs mt-1">Sello Parroquial</p>
                       </div>
                     </div>
                   </div>
