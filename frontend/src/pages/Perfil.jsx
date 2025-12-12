@@ -16,6 +16,33 @@ export default function Perfil() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [passwordStrength, setPasswordStrength] = useState({ strength: 0, label: '', color: '' })
+
+  // Función para calcular fortaleza de contraseña
+  const calcularFortalezaPassword = (password) => {
+    if (!password) {
+      return { strength: 0, label: '', color: '' }
+    }
+
+    let strength = 0
+    
+    // Criterios de fortaleza
+    if (password.length >= 8) strength += 25
+    if (password.length >= 12) strength += 15
+    if (/[a-z]/.test(password)) strength += 15
+    if (/[A-Z]/.test(password)) strength += 15
+    if (/[0-9]/.test(password)) strength += 15
+    if (/[^a-zA-Z0-9]/.test(password)) strength += 15
+
+    // Determinar nivel y color
+    if (strength < 40) {
+      return { strength, label: 'Débil', color: 'bg-red-500' }
+    } else if (strength < 70) {
+      return { strength, label: 'Media', color: 'bg-yellow-500' }
+    } else {
+      return { strength, label: 'Fuerte', color: 'bg-green-500' }
+    }
+  }
 
   const handleOpenModal = () => {
     setModalOpen(true)
@@ -26,6 +53,7 @@ export default function Perfil() {
     })
     setError('')
     setSuccess('')
+    setPasswordStrength({ strength: 0, label: '', color: '' })
   }
 
   const handleCloseModal = () => {
@@ -37,6 +65,7 @@ export default function Perfil() {
     })
     setError('')
     setSuccess('')
+    setPasswordStrength({ strength: 0, label: '', color: '' })
   }
 
   const handleChange = (e) => {
@@ -45,6 +74,11 @@ export default function Perfil() {
       ...prev,
       [name]: value
     }))
+
+    // Calcular fortaleza cuando cambia la nueva contraseña
+    if (name === 'contrasena_nueva') {
+      setPasswordStrength(calcularFortalezaPassword(value))
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -249,9 +283,50 @@ export default function Perfil() {
                     autoComplete="new-password"
                     minLength={8}
                   />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Mínimo 8 caracteres
-                  </p>
+                  
+                  {/* Indicador de fortaleza de contraseña */}
+                  {formData.contrasena_nueva && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          Fortaleza de contraseña:
+                        </span>
+                        <span className={`text-xs font-medium ${
+                          passwordStrength.label === 'Débil' ? 'text-red-600 dark:text-red-400' :
+                          passwordStrength.label === 'Media' ? 'text-yellow-600 dark:text-yellow-400' :
+                          'text-green-600 dark:text-green-400'
+                        }`}>
+                          {passwordStrength.label}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                          style={{ width: `${passwordStrength.strength}%` }}
+                        ></div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        <p>La contraseña debe contener:</p>
+                        <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                          <li className={formData.contrasena_nueva.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
+                            Mínimo 8 caracteres
+                          </li>
+                          <li className={/[A-Z]/.test(formData.contrasena_nueva) ? 'text-green-600 dark:text-green-400' : ''}>
+                            Al menos una mayúscula
+                          </li>
+                          <li className={/[a-z]/.test(formData.contrasena_nueva) ? 'text-green-600 dark:text-green-400' : ''}>
+                            Al menos una minúscula
+                          </li>
+                          <li className={/[0-9]/.test(formData.contrasena_nueva) ? 'text-green-600 dark:text-green-400' : ''}>
+                            Al menos un número
+                          </li>
+                          <li className={/[^a-zA-Z0-9]/.test(formData.contrasena_nueva) ? 'text-green-600 dark:text-green-400' : ''}>
+                            Caracteres especiales (recomendado)
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>

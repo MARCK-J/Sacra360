@@ -1,0 +1,289 @@
+ACTIVIDAD 1:	Relevamiento de información y de procesos					
+Nombre de la tarea			Día 	Semana	Mes	Total Horas
+1.1 Reuniones de coordinación con personal operativo de Archivo						
+1.1.1 Reuniones de coordinación con personal operativo de Archivo			Martes	3	Mayo	1:00
+1.1.2 Reuniones de coordinación internas			Miércoles	3	Julio	1:00
+1.1.3 Reuniones de coordinación internas                			Jueves	1	Agosto	0:30
+1.1.4 Reunion de coordinación con docente responsable del avance (Ing Pacheco)			Martes	1	Agosto	1:00
+1.1.6 Reunion extra con personal operativo de archivos para mayor detalle			Viernes	2	Agosto	1:30
+1.1.7 Reunion de coordinación interna con Ing Lourdes			Lunes	2	Agosto	1:30
+1.1.8 Reunion de coordinacion interna			Martes	3	Agosto	1:00
+1.1.9.Reunion de coordinacion interna 			Jueves	4	Agosto	1:00
+1.1.10 Reunion con Ing Pacheco 			Viernes	4	Agosto	1:30
+1.1.11 Reunion con Ing Pacheco			Lunes	4	Agosto	0:30
+1.1.12 Reunion con Ing Pacheco y Ing Lourdes			Miércoles	1	Septiembre	1:00
+1.1.13 Reuniones de coordinación con personal operativo de Archivo			Jueves	1	Septiembre	1:30
+1.1.14 Reunion con Ing Rivera y ayudantes			Jueves	1	Septiembre	1:00
+1.1.15 Reunion con Ing Pacheco			Jueves	1	Septiembre	1:00
+1.1.16 Reunion con Ing Pacheco			Miércoles	4	Septiembre	1:00
+1.1.17 Reunion con Ing Pacheco			Miércoles	1	Octubre	1:00
+1.1.18 Reunion con Ing Pacheco			Miércoles	2	Octubre	1:00
+1.1.19 Reunion con Ing Pacheco			Miércoles	3	Octubre	1:00
+1.1.20 Reunion con Ing Pacheco			Miércoles	4	Octubre	1:00
+1.1.21Reunion de coordinación internas			Miércoles	4	Octubre	0:30
+1.1.22 Reunion con personal operativo de archivos			Miércoles	1	Noviembre	1:00
+1.1.23 Reunion con Ing Pacheco			Miércoles	3	Noviembre	1:00
+1.1.24 Reunion de coordinación internas			Lunes	4	Noviembre	1:00
+1.1.24 Reunion de coordinación Ing Rivera			Miércoles	4	Noviembre	3:00
+						
+1.2. Actividades de identificación de información y documentos						
+1.2.1. Identificacion de informacion en los libros de sacramentos			Martes	3	Mayo	0:30
+1.2.2. Identificacion de flujo de trabajo (para el llenado de registros)			Viernes	2	Agosto	0:30
+						
+1.3 Relevamiento de tipos de documentos						
+1.3.1. Relevamiento de registros de Confirmacion, Bautizo, Matrimonio, Defuncion			Miércoles	3	Julio	1:00
+1.3.2 Relevamiento de certificados de Confirmacion, Bautizo, Matrimonio, Defuncion			Viernes	2	Agosto	0:30
+1.3.3 Relevamiento de  Indice de Libro de registro			Miércoles	4	Julio	0:30
+						
+1.4 Identificación de formato de documentos						
+1.4.1 Identificacion de formato de certificados			Viernes	2	Agosto	0:30
+1.4.2 Identificacion de formato de indice de libros			Miércoles	3	Julio	0:30
+1.4.3 Identificacion de arreglos en el formato de indice de libros 			Jueves	1	Septiembre	0:30
+						
+1.5 Identificación de datos de áreas de usuarios: arquidiócesis por departamento y parroquia						
+1.5.1 Identificacion de parroquias, colegios, instituciones			Miércoles	3	Julio	0:30
+1.5.2 Idenitificacion de actores en celebraciones (celebrantes por parroquia)			Lunes	4	Julio	0:30
+						
+1.6 Relevamiento de procedimientos de registro, búsqueda y generación de certificados						
+1.6.1 Relevamiento de procedimientos de registro de sacramentos (llenado de formulario y digitalizacion)			Miércoles	4	Julio	0:30
+1.6.2 Relevamiento de flujos de busquedas de sacramentos			Miércoles	4	Julio	0:30
+TOTAL HORAS ACTIVIDAD 1						33:00
+						
+ACTIVIDAD 2:	Análisis de infraestructura, herramientas y del proceso					
+Nombre de la tarea			Día 	Semana	Mes	Total Horas
+2.1 Analisis de los modulos requeridos						
+2.1.1 Modulo de usuarios						
+2.1.1.1 Identificación de actores y roles del módulo			Lunes	2	Agosto	1:00
+2.1.1.2 Identificación de entradas y salidas del módulo de usuarios			Lunes	2	Agosto	1:00
+2.1.1.3 Identificación de herramientas, tecnologías y mecanismos de autenticación			Miércoles	2	Agosto	0:30
+2.1.1.4 Definición del flujo de trabajo del módulo de gestión de usuarios			Miércoles	2	Agosto	1:30
+2.1.1.5 Identificación de restricciones, niveles de acceso y validaciones			Jueves	2	Agosto	1:00
+2.1.1.6 Redaccion de documento de niveles de accesos			Jueves	2	Agosto	1:00
+						
+2.2 Revision de infraestructura tecnologica disponible			Martes	3	Mayo	0:30
+2.3 Identificacion de servidores a usar			Viernes	4	Agosto	0:30
+2.4 Identificacion de framework del sistema			Viernes	4	Agosto	0:30
+2.5 Asignacion y division de tareas			Lunes	2	Agosto	0:30
+						
+TOTAL HORAS ACTIVIDAD 2						8:00
+						
+ACTIVIDAD 3:	"Diseño del sistema (módulos)				
+"					
+Nombre de la tarea			Día 	Semana	Mes	Total Horas
+3.1 Mockups						
+"3.1.1 Mockup de inicio de sesión	"			Lunes	4	Septiembre	2:30
+"3.1.2 Desarrollo del dashboard principal con navegación	"			Lunes	4	Septiembre	2:00
+"3.1.3 Diseño de módulo de gestión de usuarios y roles	"			Martes	4	Septiembre	2:00
+"3.1.4 Interfaz de gestión de personas	"			Martes	4	Septiembre	2:00
+"3.1.5 Diseño de gestión de libros	"			Miércoles	4	Septiembre	2:00
+"3.1.6 Interfaz de gestión de registros sacramentales	"			Miércoles	4	Septiembre	1:30
+"3.1.7 Módulo de digitalización de documentos	"			Jueves	4	Septiembre	2:30
+"3.1.9 Mockup de reportes generales	"			Viernes	4	Septiembre	2:00
+"3.1.10 Mockup de bitácora de auditoría	"			Viernes	4	Septiembre	1:00
+3.1.11 Mockup de registro digital de nuevos sacramentos        			Jueves	4	Noviembre	1:30
+						
+"3.1.12 Readaptación de mockup de gestión de usuarios en Figma por nuevos requerimientos"			Martes	2	Diciembre	2:30
+"3.1.13 Readaptación de mockup de auditoría en Figma por cambios en filtros y estructura"			Martes	2	Diciembre	2:00
+"3.1.14 Readaptación de mockup de reportes en Figma con nuevas estadísticas y gráficos"			Miércoles	2	Diciembre	2:30
+"3.1.15 Readaptación de mockup de perfil de usuario en Figma con sección de seguridad"			Miércoles	2	Diciembre	2:00
+"3.1.16 Ajustes finales y validación de mockups readaptados con equipo"			Jueves	2	Diciembre	1:30
+						
+"3.2 Gestión de los perfiles de usuario	"						
+"3.2.1 Definición de tipos de perfiles (Admin, Operador, Consulta)	"			Lunes	1	Octubre	1:00
+"3.2.2 Diseño de estructura de permisos por pantalla	"			Lunes	1	Octubre	1:30
+"3.2.3 Documentación de flujos de gestión de perfiles	"			Martes	1	Octubre	1:00
+						
+"3.3 Cambios de contraseña y bajas lógicas de usuarios	"						
+"3.3.1 Diseño de flujo de cambio de contraseña	"			Martes	1	Octubre	0:30
+"3.3.2 Definición de políticas de contraseñas	"			Martes	1	Octubre	0:30
+"3.3.3 Diseño de proceso de baja lógica de usuarios	"			Miércoles	1	Octubre	0:30
+						
+"3.4 Gestión de roles y accesos	"						
+"3.4.1 Definición de roles del sistema	"			Miércoles	1	Octubre	1:00
+"3.4.2 Matriz de permisos por módulo	"			Jueves	1	Octubre	0:30
+"3.4.3 Diseño de asignación de roles	"			Jueves	1	Octubre	0:30
+						
+"3.5 Gestión de seguridad	"						
+"3.5.1 Definición de políticas de seguridad del sistema	"			Jueves	1	Octubre	0:30
+"3.5.2 Diseño de sistema de auditoría conceptual	"			Viernes	1	Octubre	1:00
+"3.5.3 Definición de logs y monitoreo	"			Viernes	1	Octubre	0:30
+TOTAL HORAS ACTIVIDAD 3						38:30
+						
+ACTIVIDAD 4:						
+Nombre de la tarea			Día 	Semana	Mes	Total Horas
+4.1 Elaborar Endpoints de usuarios						
+4.1.1 Revision de arquitectura y base de datos existente			Lunes	2	Octubre	0:30
+4.1.2. Definir modelos Pydantic			Lunes	2	Octubre	1:00
+4.1.3 Validaciones de campos			Lunes	2	Octubre	1:00
+4.1.4 Pruebas de validacion			Lunes	2	Octubre	0:30
+4.1.5 Manejo de Errores			Martes	2	Octubre	1:00
+4.1.6. Documentacion README_SACRA360 (branch Diego)			Martes	2	Octubre	1:00
+4.1.7. Análisis de enpoints auth existentes			Lunes	1	Noviembre	0:30
+4.1.8. Implementación POST /auth/login  			Lunes	1	Noviembre	2:00
+4.1.9. Implementación POST /auth/register  			Martes	1	Noviembre	2:00
+4.1.10. Implementación GET /auth/me			Jueves	1	Noviembre	2:00
+4.1.11. Implementación GET /auth/change-password			Jueves	1	Noviembre	2:00
+4.1.12. Implementación POST/auth/logout			Viernes	1	Noviembre	1:30
+4.1.13. Implementación GET /auth/roles			Viernes	1	Noviembre	1:30
+4.1.14. Mejoras en usuarios_router.py (validaciones)			Lunes	1	Diciembre	1:30
+4.1.15. Endpoint POST /usuarios con validaciones			Lunes	1	Diciembre	1:30
+4.1.16. Endpoint PUT /usuarios/{id} actualización			Martes	1	Diciembre	1:00
+4.1.17. Endpoint DELETE /usuarios/{id} baja lógica			Martes	1	Diciembre	0:30
+4.1.18. Endpoint PATCH /usuarios/{id}/activar reactivación			Martes	2	Diciembre	0:30
+						
+4.2. Elaborar Autenticación y autorización JWT						
+4.2.1. Configuración de JWT en auth_utils.py			Martes	1	Noviembre	1:30
+4.2.2 Implementación create_access_token()			Miércoles	1	Noviembre	1:30
+4.2.3 Implementación get_current_user() middleware 			Miércoles	1	Noviembre	2:30
+4.2.4 Configuración bcrypt para passwords  			Viernes	1	Noviembre	1:30
+4.2.5 Pruebas de endpoints con Postman    			Viernes	1	Noviembre	0:30
+4.2.6 Validación de tokens en endpoints			Lunes	2	Noviembre	1:00
+4.2.7 Manejo de expiración de tokens			Lunes	2	Noviembre	1:00
+4.2.8 Refactor auth_utils.py con mejores prácticas			Miércoles	1	Diciembre	1:00
+						
+4.3. Elaborar endpoints de LOGS 						
+4.3.1 Análisis de tabla auditoria en BD			Lunes	2	Noviembre	0:30
+4.3.2. Creación de entidad Auditoria en user_entity.py			Martes	2	Noviembre	0:30
+4.3.3 Implementación función registrar_auditoria()			Martes	2	Noviembre	1:30
+4.3.4 Integración en endpoint /auth/login    			Lunes	4	Noviembre	1:00
+4.3.4 Endpoint GET /auditoria con filtros avanzados			Miércoles	1	Diciembre	1:30
+4.3.5 Paginación en auditoría			Miércoles	1	Diciembre	0:30
+4.3.6 Mejoras en auditoria_router.py			Miércoles	1	Diciembre	1:00
+						
+4.4. Proteger Endpoints con autenticación						
+4.4.1 Aplicar Depends(get_current_user) en /auth/me			Miércoles	2	Noviembre	1:00
+4.4.2 Proteger endpoint /auth/change-password  			Miércoles	2	Noviembre	0:30
+4.4.3 Proteger endpoint /auth/logout 			Miércoles	2	Noviembre	0:30
+4.4.4 Proteger endpoint /auth/roles  			Miércoles	2	Noviembre	0:30
+						
+4.5. Elaborar endpoints de roles y accesos						
+4.5.1 Análisis de tabla roles en BD  			Jueves	2	Noviembre	0:30
+4.5.2 Implementación GET /auth/roles (listar)			Jueves	2	Noviembre	1:00
+4.5.3 Verificación de relación usuario-rol			Jueves	2	Noviembre	1:00
+						
+4.6. Aplicar normas de seguridad						
+4.6.1 Configuración CORS en main.py                           			Viernes	2	Noviembre	1:00
+4.6.2 Validación con Pydantic en DTOs			Viernes	2	Noviembre	1:00
+4.6.3 Implementación bcrypt con salt                          			Viernes	2	Noviembre	1:00
+4.6.4 HTTPException con status codes        			Miércoles	4	Noviembre	1:00
+4.6.5 Logging de errores con logger 			Miércoles	4	Noviembre	1:00
+4.6.6 Implementación PasswordUtils con validaciones			Viernes	2	Noviembre	1:30
+4.6.7 Configuración OAuth2PasswordBearer   			Viernes	2	Noviembre	0:30
+4.6.8 Creación middleware/security.py con headers			Miércoles	1	Diciembre	1:30
+4.6.9 Implementación SecurityHeadersMiddleware			Miércoles	1	Diciembre	1:00
+4.6.10 Headers: X-Frame-Options, X-Content-Type-Options			Miércoles	1	Diciembre	0:30
+4.6.11 Headers: X-XSS-Protection, Strict-Transport-Security			Miércoles	1	Diciembre	0:30
+4.6.12 Content-Security-Policy configuration			Miércoles	1	Diciembre	0:30
+4.6.13 Creación middleware/permissions.py RBAC			Jueves	1	Diciembre	1:30
+4.6.14 Implementación check_permissions() decorator			Jueves	1	Diciembre	1:00
+4.6.15 Sistema de permisos (permission guard)			Jueves	1	Diciembre	1:00
+						
+4.7. Generar reporte de usuarios y accesos						
+4.7.1 Creación routers/reportes_router.py			Viernes	1	Diciembre	1:00
+4.7.2 Endpoint GET /reportes/usuarios/resumen			Viernes	1	Diciembre	1:30
+4.7.3 Endpoint GET /reportes/usuarios/por-rol			Viernes	1	Diciembre	1:30
+4.7.4 Endpoint GET /reportes/usuarios/activos-inactivos			Viernes	1	Diciembre	1:00
+4.7.5 Endpoint GET /reportes/accesos/resumen			Viernes	1	Diciembre	1:00
+4.7.6 Endpoint GET /reportes/accesos/por-usuario			Viernes	1	Diciembre	1:00
+4.7.7 Endpoint GET /reportes/accesos/ultimos-accesos			Sabado	1	Diciembre	1:00
+4.7.8 Endpoint GET /reportes/estadisticas/generales			Sabado	1	Diciembre	1:30
+4.7.9 Filtros por periodo (7/30/90/365 días)			Sabado	1	Diciembre	1:00
+4.7.10 Documentación README reportes			Sabado	1	Diciembre	0:30
+TOTAL HORAS ACTIVIDAD 4						69:00
+						
+ACTIVIDAD 5:						
+Nombre de la tarea			Día 	Semana	Mes	Total Horas
+Tarea 1: Diagramas de bases de datos físicas						
+5.1.1 Creación diagrama físico completo			Lunes	2	Diciembre	1:30
+5.1.2 Documentación técnica base de datos física			Lunes	2	Diciembre	2:00
+5.1.3 Definición de índices y relaciones			Lunes	2	Diciembre	0:30
+5.1.4 Scripts SQL de ejemplo y consultas útiles			Lunes	2	Diciembre	0:30
+						
+Tarea 2: Esquema de arquitectura						
+5.2.1 Diagrama arquitectura de microservicios			Lunes	2	Diciembre	1:00
+5.2.2 Diagrama arquitectura en capas 			Martes	2	Diciembre	1:00
+5.2.3 Diagrama de componentes detallado			Martes	2	Diciembre	1:30
+5.2.4 Documentación completa arquitectura			Martes	2	Diciembre	2:00
+5.2.5 Documentación de patrones de diseño aplicados			Martes	2	Diciembre	1:00
+5.2.6 Documentación de flujos de datos			Martes	2	Diciembre	1:00
+						
+Tarea 3: Esquema de despliegue						
+5.3.1 Creación diagrama esquema-despliegue.puml			Martes	2	Diciembre	1:30
+5.3.2 Documentación arquitectura-contenedores.md			Martes	2	Diciembre	2:00
+						
+Tarea 4: Procesos con UML						
+5.4.1 Creación diagrama proceso autenticación (LOGIN/JWT)			Domingo	1	Diciembre	0:30
+5.4.2 Creación diagrama proceso gestión usuarios (CRUD)			Domingo	1	Diciembre	0:30
+5.4.3 Creación diagrama proceso digitalización documentos			Domingo	1	Diciembre	0:30
+5.4.4 Creación diagrama proceso generación reportes			Domingo	1	Diciembre	0:30
+5.4.5 Creación diagrama de actividad del sistema completo			Domingo	1	Diciembre	1:00
+5.4.6 Creación diagrama de estados de documento			Domingo	1	Diciembre	1:00
+5.4.7 Documentación README de diagramas UML			Domingo	1	Diciembre	1:00
+5.4.8 Corrección esquema-arquitectura.puml			Jueves	2	Diciembre	0:30
+5.4.9 Corrección diagrama-estados-documento.puml			Jueves	2	Diciembre	0:30
+5.4.10 Corrección proceso-generacion-reportes.puml			Jueves	2	Diciembre	0:30
+						
+Tarea 5: Guía de configuración						
+5.5.1 Revisión de código (Auditoría/Reportes/Perfil)			Jueves	2	Diciembre	0:30
+5.5.2 Actualización introducción con 4 roles RBAC			Jueves	2	Diciembre	0:30
+5.5.3 Mejora y resumen sección 4 Auditoría			Jueves	2	Diciembre	1:00
+5.5.4 Mejora y resumen sección 5 Reportes			Jueves	2	Diciembre	1:00
+5.5.5 Actualización sección 6 Perfil según código real			Viernes	2	Diciembre	0:30
+						
+Tarea 6: Primeros pasos de despliegue						
+						
+Tarea 7: Despliegue del sistema						
+						
+TOTAL HORAS ACTIVIDAD 5						25:30
+						
+ACTIVIDAD 6:						
+Nombre de la tarea			Día 	Semana	Mes	Total Horas
+6.1. Modulo Backend						
+6.1.1 Test de autenticación basicos			Miércoles	4	Noviembre	1:00
+6.1.2 Creacion de SCHEMA DE AUTENTICACIÓN Y USUARIOS			Miércoles	4	Noviembre	1:30
+6.1.3 Adaptacion de docker a requerimientos de mi estacion			Lunes	1	Noviembre	1:30
+6.1.4 Configuracion de .env			Lunes	1	Noviembre	0:30
+						
+6.2. Modulo Frontend						
+6.2.1. Pantalla LogIn			Lunes	2	Octubre	3:00
+6.2.2. Pantalla Dashboard			Lunes	2	Octubre	3:00
+6.2.3. Pantalla Gestion de usuarios			Martes	2	Octubre	3:00
+6.2.4. Pantalla Usuarios			Miércoles	2	Octubre	2:30
+6.2.5. Pantalla Roles y permisos			Miércoles	2	Octubre	2:30
+6.2.6. Pantalla Gestion de personas			Miércoles	2	Octubre	2:00
+6.2.7. Pantalla Gestion de libros			Jueves	2	Octubre	3:00
+6.2.8. Pantalla Registros sacramentales			Jueves	2	Octubre	3:00
+6.2.9. Pantalla Digitalización de documentos			Jueves	2	Octubre	3:00
+6.2.10. Pantalla Reportes generales			Viernes	2	Octubre	3:00
+6.2.11. Pantalla Bitacora auditoría			Viernes	2	Octubre	2:30
+6.2.12. Modal datos duplicados			Martes	2	Octubre	2:00
+6.2.13. Layout global			Viernes	2	Octubre	1:30
+6.2.14 Adaptar diseño interfaz de Login.jsx			Lunes	4	Noviembre	0:30
+6.2.15 Integración con endpoint POST /auth/login			Lunes	4	Noviembre	1:00
+6.2.16 Manejo de respuesta JWT del backend			Lunes	4	Noviembre	0:30
+6.2.17 Integración Login.jsx funcional con backend			Miércoles	4	Noviembre	1:30
+6.2.18 Integración con API de estadísticas			Lunes	1	Diciembre	1:00
+6.2.19 Gráficos y visualización de datos			Lunes	1	Diciembre	1:30
+6.2.20 Implementación página Reportes.jsx completa			Lunes	1	Diciembre	1:30
+6.2.21 Integracion de filtros por periodo (7/30/90/365 días)			Martes	1	Diciembre	1:30
+6.2.22 Integracion API en Auditoría.jsx			Martes	1	Diciembre	2:00
+6.2.23 Arreglos pantalla Auditoria.jsx			Martes	1	Diciembre	2:00
+6.2.24 Implementacion pagina Auditoria.jsx completa			Martes	1	Diciembre	1:30
+6.2.25 Implementacion de filtros de busqueda			Martes	1	Diciembre	1:30
+6.2.26 Creación página Perfil.jsx completa			Viernes	1	Diciembre	1:00
+6.2.27 Vista usuario actual en pantalla perfil			Viernes	1	Diciembre	0:30
+6.2.28 Integracion cambio de contraseña personal			Viernes	1	Diciembre	1:00
+6.2.29 Arreglos paginación en Auditoría.jsx			Martes	2	Diciembre	0:30
+6.2.30 Mejoras de UI/UX en paginación (numeros, botones)			Martes	2	Diciembre	0:30
+6.2.31 Contador de páginas y registros			Martes	2	Diciembre	0:30
+						
+TOTAL HORAS ACTIVIDAD 6						58:30
+						
+ACTIVIDADES						TOTAL HORAS
+ACTIVIDAD 1:						33:00
+ACTIVIDAD 2:						8:00
+ACTIVIDAD 3:						38:30
+ACTIVIDAD 4:						69:00
+ACTIVIDAD 5:						25:30
+ACTIVIDAD 6:						58:30
+TOTAL PRÁCTICA PRE PROFESIONAL						232:30

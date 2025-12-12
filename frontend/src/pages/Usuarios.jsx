@@ -23,8 +23,42 @@ export default function Usuarios() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  
+  // Estados para filtros y búsqueda
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filtroRol, setFiltroRol] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
+
+  // Estado para fortaleza de contraseña
+  const [passwordStrength, setPasswordStrength] = useState({ strength: 0, label: '', color: '' })
 
   const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8004'
+
+  // Función para calcular fortaleza de contraseña
+  const calcularFortalezaPassword = (password) => {
+    if (!password) {
+      return { strength: 0, label: '', color: '' }
+    }
+
+    let strength = 0
+    
+    // Criterios de fortaleza
+    if (password.length >= 8) strength += 25
+    if (password.length >= 12) strength += 15
+    if (/[a-z]/.test(password)) strength += 15
+    if (/[A-Z]/.test(password)) strength += 15
+    if (/[0-9]/.test(password)) strength += 15
+    if (/[^a-zA-Z0-9]/.test(password)) strength += 15
+
+    // Determinar nivel y color
+    if (strength < 40) {
+      return { strength, label: 'Débil', color: 'bg-red-500' }
+    } else if (strength < 70) {
+      return { strength, label: 'Media', color: 'bg-yellow-500' }
+    } else {
+      return { strength, label: 'Fuerte', color: 'bg-green-500' }
+    }
+  }
 
   // Cargar usuarios y roles cuando el token esté disponible
   useEffect(() => {
@@ -97,6 +131,7 @@ export default function Usuarios() {
     })
     setError('')
     setSuccess('')
+    setPasswordStrength({ strength: 0, label: '', color: '' })
   }
 
   const handleInputChange = (e) => {
@@ -105,6 +140,11 @@ export default function Usuarios() {
       ...prev,
       [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value) : value
     }))
+
+    // Calcular fortaleza de contraseña cuando cambia el campo de contraseña
+    if (name === 'contrasenia') {
+      setPasswordStrength(calcularFortalezaPassword(value))
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -195,6 +235,34 @@ export default function Usuarios() {
     return colors[rolNombre] || 'bg-gray-100 text-gray-800'
   }
 
+  // Función para limpiar filtros
+  const limpiarFiltros = () => {
+    setSearchTerm('')
+    setFiltroRol('')
+    setFiltroEstado('')
+  }
+
+  // Filtrar usuarios según búsqueda y filtros
+  const usuariosFiltrados = usuarios.filter(usuario => {
+    // Filtro de búsqueda por nombre, email
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = searchTerm === '' || 
+      usuario.nombre.toLowerCase().includes(searchLower) ||
+      usuario.apellido_paterno.toLowerCase().includes(searchLower) ||
+      (usuario.apellido_materno && usuario.apellido_materno.toLowerCase().includes(searchLower)) ||
+      usuario.email.toLowerCase().includes(searchLower)
+
+    // Filtro por rol
+    const matchesRol = filtroRol === '' || usuario.nombre_rol === filtroRol
+
+    // Filtro por estado
+    const matchesEstado = filtroEstado === '' || 
+      (filtroEstado === 'activo' && usuario.activo) ||
+      (filtroEstado === 'inactivo' && !usuario.activo)
+
+    return matchesSearch && matchesRol && matchesEstado
+  })
+
   return (
     <Layout title="Gestión de Usuarios">
       <div className="space-y-6">
@@ -225,6 +293,86 @@ export default function Usuarios() {
           </PermissionGuard>
         </div>
 
+        {/* Barra de búsqueda y filtros */}
+        <div className="bg-white dark:bg-background-dark p-4 rounded-xl shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Buscador */}
+            <div className="md:col-span-2">
+              <label htmlFor="search" className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                Buscar usuario
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <span className="material-symbols-outlined text-gray-400">search</span>
+                </div>
+                <input
+                  id="search"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por nombre o email..."
+                  className="bg-background-light dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5"
+                />
+              </div>
+            </div>
+
+            {/* Filtro por Rol */}
+            <div>
+              <label htmlFor="filtroRol" className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                Filtrar por Rol
+              </label>
+              <select
+                id="filtroRol"
+                value={filtroRol}
+                onChange={(e) => setFiltroRol(e.target.value)}
+                className="bg-background-light dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+              >
+                <option value="">Todos los roles</option>
+                {roles.map(rol => (
+                  <option key={rol.id_rol} value={rol.nombre}>
+                    {rol.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtro por Estado */}
+            <div>
+              <label htmlFor="filtroEstado" className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                Filtrar por Estado
+              </label>
+              <select
+                id="filtroEstado"
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                className="bg-background-light dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+              >
+                <option value="">Todos los estados</option>
+                <option value="activo">Activos</option>
+                <option value="inactivo">Inactivos</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Botón para limpiar filtros */}
+          {(searchTerm || filtroRol || filtroEstado) && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={limpiarFiltros}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                <span className="material-symbols-outlined text-base">filter_alt_off</span>
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+
+          {/* Contador de resultados */}
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            Mostrando {usuariosFiltrados.length} de {usuarios.length} usuarios
+          </div>
+        </div>
+
         {/* Tabla de usuarios */}
         <div className="bg-white dark:bg-background-dark p-6 rounded-xl shadow-sm">
           {loading ? (
@@ -246,8 +394,15 @@ export default function Usuarios() {
                   </tr>
                 </thead>
                 <tbody>
-                  {usuarios.map((usuario) => (
-                    <tr key={usuario.id_usuario} className="bg-white dark:bg-background-dark border-b dark:border-gray-700">
+                  {usuariosFiltrados.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                        No se encontraron usuarios con los criterios de búsqueda
+                      </td>
+                    </tr>
+                  ) : (
+                    usuariosFiltrados.map((usuario) => (
+                      <tr key={usuario.id_usuario} className="bg-white dark:bg-background-dark border-b dark:border-gray-700">
                       <td className="px-6 py-4">{usuario.id_usuario}</td>
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
                         {usuario.nombre} {usuario.apellido_paterno} {usuario.apellido_materno}
@@ -301,7 +456,8 @@ export default function Usuarios() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -413,6 +569,50 @@ export default function Usuarios() {
                           minLength={8}
                           className="bg-background-light dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
                         />
+                        
+                        {/* Indicador de fortaleza de contraseña */}
+                        {formData.contrasenia && (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                Fortaleza de contraseña:
+                              </span>
+                              <span className={`text-xs font-medium ${
+                                passwordStrength.label === 'Débil' ? 'text-red-600 dark:text-red-400' :
+                                passwordStrength.label === 'Media' ? 'text-yellow-600 dark:text-yellow-400' :
+                                'text-green-600 dark:text-green-400'
+                              }`}>
+                                {passwordStrength.label}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                                style={{ width: `${passwordStrength.strength}%` }}
+                              ></div>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                              <p>La contraseña debe contener:</p>
+                              <ul className="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                                <li className={formData.contrasenia.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
+                                  Mínimo 8 caracteres
+                                </li>
+                                <li className={/[A-Z]/.test(formData.contrasenia) ? 'text-green-600 dark:text-green-400' : ''}>
+                                  Al menos una mayúscula
+                                </li>
+                                <li className={/[a-z]/.test(formData.contrasenia) ? 'text-green-600 dark:text-green-400' : ''}>
+                                  Al menos una minúscula
+                                </li>
+                                <li className={/[0-9]/.test(formData.contrasenia) ? 'text-green-600 dark:text-green-400' : ''}>
+                                  Al menos un número
+                                </li>
+                                <li className={/[^a-zA-Z0-9]/.test(formData.contrasenia) ? 'text-green-600 dark:text-green-400' : ''}>
+                                  Caracteres especiales (recomendado)
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

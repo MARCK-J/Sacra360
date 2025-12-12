@@ -11,7 +11,16 @@
 - **ID Usuario:** 5
 
 ---
+### 🔑 1.1. ADMINISTRADOR NUEVO (USAR ESTE)
+- **Email:** `superadmin@sacra360.com`
+- **Contraseña:** `Admin2024!`
+- **Rol:** Administrador (id_rol: 1)
+- **Nombre:** María González López
+- **Permisos:** Control total del sistema
+- **ID Usuario:** (se asignará automáticamente)
+- **NOTA:** ⚠️ Usa este usuario si no recuerdas las otras contraseñas
 
+---
 ### ­ƒæñ 2. REVISOR
 - **Email:** `revisor@sacra360.com`
 - **Contrase├▒a:** `Revisor123!`

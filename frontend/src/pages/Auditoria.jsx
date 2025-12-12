@@ -20,7 +20,9 @@ export default function Auditoria() {
   
   // Paginación
   const [page, setPage] = useState(1)
-  const [limit] = useState(50)
+  const [limit] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
+  const totalPages = Math.ceil(totalCount / limit)
 
   const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8004'
 
@@ -55,7 +57,23 @@ export default function Auditoria() {
         params 
       })
       
-      setLogs(response.data)
+      // Si la respuesta es un array, usarla directamente
+      if (Array.isArray(response.data)) {
+        setLogs(response.data)
+        // Estimar total basado en la cantidad de resultados
+        setTotalCount(response.data.length === limit ? (page * limit) + 1 : (page - 1) * limit + response.data.length)
+      } 
+      // Si la respuesta tiene estructura con total y datos
+      else if (response.data.items || response.data.data) {
+        const items = response.data.items || response.data.data
+        setLogs(items)
+        setTotalCount(response.data.total || response.data.count || items.length)
+      }
+      // Fallback
+      else {
+        setLogs([])
+        setTotalCount(0)
+      }
     } catch (error) {
       console.error('Error cargando logs:', error)
       if (error.response?.status === 403) {
@@ -239,7 +257,7 @@ export default function Auditoria() {
               Logs de Auditoría
             </h2>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Mostrando {logs.length} registros
+              Mostrando {((page - 1) * limit) + 1} - {Math.min(page * limit, totalCount)} de {totalCount} registros
             </span>
           </div>
 
@@ -300,24 +318,77 @@ export default function Auditoria() {
               </div>
 
               {/* Paginación */}
-              <div className="flex justify-between items-center mt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Anterior
+                  ← Anterior
                 </button>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Página {page}
-                </span>
+                
+                <div className="flex items-center gap-2">
+                  {/* Botones de páginas */}
+                  <div className="flex gap-1">
+                    {page > 2 && (
+                      <>
+                        <button
+                          onClick={() => setPage(1)}
+                          className="px-3 py-1 text-sm rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          1
+                        </button>
+                        {page > 3 && <span className="px-2 text-gray-500">...</span>}
+                      </>
+                    )}
+                    
+                    {page > 1 && (
+                      <button
+                        onClick={() => setPage(page - 1)}
+                        className="px-3 py-1 text-sm rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      >
+                        {page - 1}
+                      </button>
+                    )}
+                    
+                    <button
+                      className="px-3 py-1 text-sm rounded bg-primary text-white font-semibold"
+                    >
+                      {page}
+                    </button>
+                    
+                    {logs.length === limit && (
+                      <>
+                        <button
+                          onClick={() => setPage(page + 1)}
+                          className="px-3 py-1 text-sm rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          {page + 1}
+                        </button>
+                        <span className="px-2 text-gray-500">...</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Página {page} {totalPages > 0 ? `de ${totalPages}` : ''}
+                  </span>
+                </div>
+
                 <button
                   onClick={() => setPage(p => p + 1)}
                   disabled={logs.length < limit}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Siguiente
+                  Siguiente →
                 </button>
+              </div>
+              
+              {/* Info adicional de paginación */}
+              <div className="text-center mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Mostrando {logs.length} registros por página
+                </p>
               </div>
             </>
           )}

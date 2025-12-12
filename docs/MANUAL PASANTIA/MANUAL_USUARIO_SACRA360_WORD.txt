@@ -1,0 +1,858 @@
+MANUAL DE USUARIO - SISTEMA SACRA360
+GESTIÓN DE ARCHIVOS SACRAMENTALES
+
+────────────────────────────────────────────────────────────────────
+
+INTRODUCCIÓN
+
+Este manual está dirigido a los cuatro tipos de usuarios que interactúan con el sistema SACRA360:
+
+Usuario ADMINISTRADOR: Usuario con acceso completo al sistema. Tiene permisos CRUD (Crear, Leer, Actualizar, Eliminar) en todos los módulos. Es el único rol autorizado para gestionar usuarios, acceder a auditoría completa y configurar parámetros del sistema. Puede supervisar todas las operaciones y generar reportes detallados.
+
+Usuario DIGITALIZADOR: Usuario especializado en la carga de documentos sacramentales. Puede crear, leer y actualizar documentos en el módulo de Digitalización. Tiene acceso de solo lectura a otros módulos como Registros, Personas, Libros y Certificados. No tiene acceso a gestión de usuarios, auditoría ni reportes.
+
+Usuario VALIDADOR (Revisor): Usuario encargado de validar y corregir documentos procesados con OCR. Tiene permisos CRUD completos en el módulo de Revisión OCR. Puede leer y actualizar información en Registros y Personas. Puede crear y leer Certificados. Tiene acceso de solo lectura a Reportes. No puede gestionar usuarios ni acceder a auditoría.
+
+Usuario CONSULTOR: Usuario con permisos exclusivamente de lectura. Puede visualizar información en todos los módulos operativos (Digitalización, Revisión OCR, Registros, Personas, Libros, Certificados), pero no puede crear, editar ni eliminar ningún contenido. No tiene acceso a gestión de usuarios, auditoría ni reportes.
+
+────────────────────────────────────────────────────────────────────
+
+1. INICIO DE SESIÓN
+
+El sistema SACRA360 cuenta con un formulario de inicio de sesión seguro que permite el acceso a usuarios registrados. Esta pantalla es el punto de entrada al sistema y valida las credenciales mediante autenticación JWT.
+
+Acceso al Sistema
+
+Para acceder al sistema, el usuario debe dirigirse a la URL del sistema SACRA360 donde se mostrará automáticamente la pantalla de inicio de sesión.
+
+(Imagen: Pantalla de login. Se debe ver un formulario centrado con fondo azul, logo de SACRA360 en la parte superior, dos campos de texto (usuario y contraseña), botón de "Iniciar Sesión" azul, y pie de página con versión del sistema)
+
+Proceso de Inicio de Sesión
+
+1. Ingreso de Credenciales:
+   • En el campo "Usuario", ingrese su nombre de usuario asignado por el administrador del sistema.
+   • En el campo "Contraseña", ingrese su contraseña personal.
+   • El campo de contraseña oculta los caracteres por seguridad (aparecen como puntos o asteriscos).
+
+2. Autenticación:
+   • Presione el botón "Iniciar Sesión" para enviar sus credenciales.
+   • El sistema validará su usuario y contraseña contra la base de datos.
+   • Si las credenciales son correctas, el sistema generará un token JWT (JSON Web Token) para mantener su sesión segura.
+
+3. Acceso Exitoso:
+   • Una vez autenticado correctamente, será redirigido automáticamente al Dashboard Principal.
+   • El sistema mostrará un mensaje de bienvenida con su nombre de usuario.
+   • Su token de sesión se almacenará de forma segura para mantener la sesión activa.
+
+(Imagen: Dashboard principal después del login exitoso. Se debe ver la barra de navegación superior con el nombre del usuario, menú lateral izquierdo con opciones según permisos, y tarjetas con estadísticas en el área central)
+
+Mensajes de Error
+
+El sistema puede mostrar los siguientes mensajes de error durante el inicio de sesión:
+
+"Credenciales inválidas":
+• Aparece cuando el usuario o contraseña son incorrectos.
+• Verifique que ha escrito correctamente sus credenciales.
+• Asegúrese de que la tecla Bloq Mayús no esté activada.
+
+"Usuario no encontrado":
+• El nombre de usuario ingresado no existe en el sistema.
+• Contacte al administrador si cree que debería tener acceso.
+
+"Usuario desactivado":
+• Su cuenta de usuario ha sido desactivada temporalmente.
+• Contacte al administrador del sistema para reactivar su cuenta.
+
+"Error de conexión":
+• No se pudo conectar con el servidor.
+• Verifique su conexión a internet.
+• Si el problema persiste, contacte al soporte técnico.
+
+(Imagen: Ejemplo de mensaje de error en la pantalla de login. Se debe ver el formulario con un mensaje de error en rojo debajo de los campos, con un icono de alerta)
+
+Seguridad de la Sesión
+
+• Tiempo de Sesión: Su sesión permanecerá activa durante un período determinado. Después de este tiempo de inactividad, deberá iniciar sesión nuevamente.
+
+• Token Expirado: Si su token de sesión expira, el sistema lo redirigirá automáticamente a la pantalla de inicio de sesión con un mensaje indicando que debe autenticarse nuevamente.
+
+• Cierre de Sesión Automático: Por seguridad, siempre cierre su sesión al terminar de usar el sistema, especialmente si usa una computadora compartida.
+
+Recomendaciones de Seguridad
+
+1. Nunca comparta su contraseña con otras personas, ni siquiera con el personal técnico.
+
+2. Use contraseñas seguras que combinen letras mayúsculas, minúsculas, números y caracteres especiales.
+
+3. Cambie su contraseña periódicamente para mantener la seguridad de su cuenta.
+
+4. No deje su sesión abierta en computadoras públicas o compartidas.
+
+5. Cierre sesión correctamente usando el botón de cerrar sesión en lugar de simplemente cerrar el navegador.
+
+────────────────────────────────────────────────────────────────────
+
+2. LAYOUT Y NAVEGACIÓN DEL SISTEMA
+
+Después de iniciar sesión correctamente, el sistema muestra el Layout principal que es la estructura de navegación presente en todas las pantallas. Esta interfaz proporciona acceso a todos los módulos del sistema y permite navegar entre las diferentes funcionalidades.
+
+(Imagen: Vista general del sistema. Se debe ver barra superior con título de sección, buscador, notificaciones e información del usuario; menú lateral izquierdo con logo, opciones de navegación con iconos y texto, y en la parte inferior información del usuario con botones de perfil y cerrar sesión; área central donde se carga el contenido de cada módulo)
+
+2.1. BARRA DE NAVEGACIÓN SUPERIOR (HEADER)
+
+La barra superior está presente en todas las pantallas del sistema y muestra:
+
+Título de la Sección:
+• Muestra el nombre de la pantalla actual ("Panel de Control", "Gestión de Usuarios", "Auditoría", etc.)
+• Ubicado en el lado izquierdo de la barra
+• Texto grande y en negrita para identificar fácilmente dónde se encuentra
+
+Barra de Búsqueda Global:
+• Campo de búsqueda con ícono de lupa
+• Permite buscar en todo el sistema
+• Ubicada en la parte central-derecha de la barra
+• Estilo redondeado con fondo claro
+
+Notificaciones:
+• Ícono de campana para acceder a las notificaciones del sistema
+• Muestra un indicador visual (punto rojo pulsante) cuando hay nuevas notificaciones
+• Al hacer clic, despliega panel con las alertas más recientes
+
+Información del Usuario:
+• Avatar circular con la foto de perfil del usuario
+• Nombre completo del usuario logueado
+• Rol del usuario mostrado debajo del nombre (ej: "Administrador", "Operador")
+• Ubicado en el extremo derecho de la barra superior
+
+(Imagen: Barra de navegación superior. Debe mostrar título "Panel de Control" en grande a la izquierda, barra de búsqueda redondeada en el centro, ícono de campana con punto rojo pulsante, y avatar circular con nombre "María González" y rol "Administrador" a la derecha)
+
+2.2. MENÚ LATERAL DE NAVEGACIÓN (SIDEBAR)
+
+Panel ubicado permanentemente en el lado izquierdo de la pantalla que contiene todas las opciones de navegación del sistema. Este menú está visible en todas las pantallas y permite acceder a cualquier módulo desde cualquier lugar.
+
+A. Header del Menú
+
+En la parte superior del menú lateral se muestra:
+• Logo del sistema: Cruz de salud en un círculo azul
+• Nombre del sistema: "Sacramentos"
+• Diseño centrado con el logo arriba del nombre
+
+B. Opciones de Navegación
+
+Lista vertical de módulos disponibles en el sistema. Cada opción incluye:
+• Ícono Material Symbols a la izquierda
+• Texto descriptivo del módulo a la derecha
+• La opción activa se resalta con fondo azul claro
+
+Módulos del Sistema (visibilidad según permisos):
+
+1. Dashboard
+   • Ícono: dashboard
+   • Pantalla principal con resumen del sistema
+   • Visible para todos los usuarios
+
+2. Digitalización
+   • Ícono: cloud_upload
+   • Módulo para cargar y digitalizar documentos sacramentales
+   • Requiere permisos específicos
+
+3. Revisión OCR
+   • Ícono: document_scanner
+   • Revisión de documentos procesados con OCR
+   • Requiere permisos específicos
+
+4. Registros
+   • Ícono: menu_book
+   • Gestión de registros sacramentales
+   • Requiere permisos específicos
+
+5. Personas
+   • Ícono: group
+   • Gestión de personas en el sistema
+   • Requiere permisos específicos
+
+6. Libros
+   • Ícono: import_contacts
+   • Administración de libros sacramentales
+   • Requiere permisos específicos
+
+7. Certificados
+   • Ícono: workspace_premium
+   • Generación de certificados sacramentales
+   • Requiere permisos específicos
+
+8. Usuarios
+   • Ícono: manage_accounts
+   • Gestión de usuarios del sistema
+   • Solo visible para Administradores
+
+9. Auditoría
+   • Ícono: history
+   • Registro de acciones y auditoría del sistema
+   • Visible para Administradores y Operadores autorizados
+
+10. Reportes
+    • Ícono: bar_chart
+    • Generación de reportes y estadísticas
+    • Requiere permisos específicos
+
+IMPORTANTE: La visibilidad de cada módulo está determinada por los permisos asignados al rol del usuario. Los usuarios solo verán las opciones a las que tienen acceso autorizado según su perfil.
+
+(Imagen: Menú lateral izquierdo completo. En la parte superior logo con cruz azul y texto "Sacramentos"; en el centro lista vertical de opciones con iconos Material Symbols a la izquierda de cada texto, la opción "Dashboard" resaltada con fondo azul claro; en la parte inferior información del usuario)
+
+C. Footer del Menú (Información del Usuario)
+
+En la parte inferior del menú lateral se muestra:
+
+Perfil del Usuario:
+• Avatar circular con la inicial del nombre del usuario
+• Nombre completo del usuario en negrita
+• Rol del usuario en texto gris (ej: "Administrador", "Operador", "Consulta")
+
+Botones de Acción:
+1. Mi Perfil
+   • Botón con ícono de persona
+   • Color azul claro
+   • Acción: Lleva a la pantalla de perfil del usuario para ver y editar información personal y cambiar contraseña
+
+2. Cerrar Sesión
+   • Botón con ícono de salida (logout)
+   • Color rojo para indicar acción de cierre
+   • Acción: Finaliza la sesión de forma segura y redirige a la pantalla de inicio de sesión
+
+(Imagen: Footer del menú lateral. Debe mostrar avatar circular con inicial "M", nombre "María González López", rol "Administrador" en gris, y debajo dos botones: "Mi Perfil" en azul claro con ícono de persona, y "Cerrar Sesión" en rojo con ícono de salida)
+
+2.3. NAVEGACIÓN EN EL SISTEMA
+
+Métodos para navegar entre los diferentes módulos:
+
+Método 1 - Menú Lateral (Principal):
+1. Localice el módulo deseado en la lista del menú lateral izquierdo
+2. Haga clic sobre el nombre o ícono del módulo
+3. El sistema cargará la pantalla correspondiente en el área central
+4. La opción seleccionada quedará resaltada con fondo azul claro
+5. El título de la barra superior cambiará al nombre del módulo actual
+
+Método 2 - Búsqueda Global:
+1. Haga clic en la barra de búsqueda ubicada en la parte superior
+2. Escriba el término que busca (nombre de registro, documento, función, etc.)
+3. El sistema mostrará sugerencias mientras escribe
+4. Seleccione el resultado deseado de la lista de sugerencias
+
+Método 3 - Accesos Directos:
+• Algunas pantallas pueden incluir botones o enlaces directos a otros módulos relacionados
+• Estos accesos rápidos facilitan la navegación entre funciones relacionadas
+
+Opciones Siempre Disponibles:
+• Mi Perfil: Acceder desde el botón en el footer del menú lateral
+• Cerrar Sesión: Usar el botón rojo en el footer del menú lateral
+• Notificaciones: Hacer clic en el ícono de campana en la barra superior
+
+Recomendaciones de Navegación:
+• El menú lateral permanece visible en todo momento para facilitar el acceso rápido a cualquier módulo
+• Siempre puede identificar en qué pantalla se encuentra viendo el título en la barra superior
+• La opción activa en el menú lateral está resaltada para orientación visual
+• Use la búsqueda global para encontrar rápidamente registros o documentos específicos
+
+Seguridad en la Navegación:
+• Por seguridad, cierre sesión correctamente usando el botón "Cerrar Sesión"
+• No cierre simplemente el navegador sin cerrar sesión, especialmente en computadoras compartidas
+• El sistema cerrará automáticamente la sesión después de un período de inactividad
+
+────────────────────────────────────────────────────────────────────
+
+3. MÓDULO DE GESTIÓN DE USUARIOS
+
+El módulo de Gestión de Usuarios permite a los administradores crear, modificar, desactivar y administrar las cuentas de usuario del sistema. Este módulo es exclusivo para usuarios con rol de Administrador.
+
+3.1. VISUALIZAR LISTA DE USUARIOS
+
+Al acceder al módulo de Usuarios, se muestra una tabla con todos los usuarios registrados en el sistema.
+
+(Imagen: Pantalla completa del módulo de usuarios. Se debe ver título "Gestión de Usuarios" en la parte superior, barra de búsqueda y filtros, botón "+ Nuevo Usuario" en azul a la derecha, y tabla con columnas: ID, Nombre, Email, Usuario, Rol, Estado, Fecha Creación, Acciones)
+
+Componentes de la Vista
+
+A. Barra de Búsqueda y Filtros
+
+Ubicada en la parte superior de la tabla:
+
+• Campo de Búsqueda General: Permite buscar por nombre, email o nombre de usuario
+  - Escribe el texto a buscar
+  - La búsqueda se realiza en tiempo real mientras escribes
+  - Muestra resultados coincidentes inmediatamente
+
+• Filtro por Rol:
+  - Dropdown con opciones: Todos, Administrador, Operador, Consulta
+  - Al seleccionar un rol, la tabla muestra solo usuarios de ese tipo
+
+• Filtro por Estado:
+  - Dropdown con opciones: Todos, Activos, Inactivos
+  - Filtra usuarios según su estado actual
+
+• Botón "Limpiar Filtros":
+  - Restablece todos los filtros aplicados
+  - Vuelve a mostrar la lista completa
+
+(Imagen: Barra de filtros. Se debe ver campo de búsqueda con ícono de lupa, 2 dropdowns de filtros, botón "Limpiar Filtros" en gris, y botón "+ Nuevo Usuario" en azul a la derecha)
+
+B. Tabla de Usuarios
+
+La tabla muestra la siguiente información para cada usuario:
+
+Columnas:
+• ID: Número de identificación único del usuario
+• Nombre: Nombre completo del usuario
+• Email: Correo electrónico
+• Usuario: Nombre de usuario para inicio de sesión
+• Rol: Rol asignado (Administrador, Operador, Consulta)
+• Estado: Badge visual indicando Activo (verde) o Inactivo (rojo)
+• Fecha Creación: Fecha en que se creó la cuenta
+• Acciones: Botones de acción (Ver, Editar, Desactivar/Activar)
+
+(Imagen: Tabla de usuarios con datos de ejemplo. Se debe ver al menos 5 filas de usuarios, columnas alineadas, badges de estado coloreados, y en la columna de Acciones 3 íconos: ojo (ver), lápiz (editar), y toggle switch (activar/desactivar))
+
+C. Paginación
+
+Si hay más de 10 usuarios, la tabla incluye controles de paginación en la parte inferior:
+
+• Botones: Primera página | Anterior | Números de página | Siguiente | Última página
+• Indicador: "Mostrando 1 - 10 de 125 usuarios"
+• La página actual se resalta en azul
+
+(Imagen: Barra de paginación. Se debe ver botones de navegación, números de página (1 2 3 ... 13), página actual (ej: 2) resaltada en azul, contador de registros abajo)
+
+3.2. CREAR NUEVO USUARIO
+
+Para agregar un nuevo usuario al sistema:
+
+Paso 1: Acceder al Formulario
+1. En la pantalla de Usuarios, haga clic en el botón "+ Nuevo Usuario" (esquina superior derecha)
+2. Se abrirá un formulario modal o nueva vista
+
+(Imagen: Modal de "Crear Nuevo Usuario". Se debe ver ventana emergente con título, formulario con 6 campos, y botones "Cancelar" y "Guardar" en la parte inferior)
+
+Paso 2: Completar Información
+
+El formulario contiene los siguientes campos:
+
+Campos Obligatorios (marcados con asterisco rojo):
+
+• Nombre Completo: Nombre y apellidos del usuario
+  - Validación: Mínimo 3 caracteres
+  - Solo letras y espacios
+
+• Email: Correo electrónico
+  - Validación: Formato de email válido
+  - Debe ser único (no puede repetirse)
+
+• Nombre de Usuario: Identificador para inicio de sesión
+  - Validación: Mínimo 4 caracteres
+  - Solo letras, números y guión bajo
+  - Debe ser único
+
+• Contraseña Inicial: Contraseña temporal para el primer acceso
+  - Validación: Mínimo 8 caracteres
+  - Debe incluir mayúsculas, minúsculas y números
+  - Indicador visual de fortaleza (débil/media/fuerte)
+
+• Confirmar Contraseña: Repetir la contraseña
+  - Debe coincidir exactamente con el campo anterior
+
+• Rol: Seleccionar rol del usuario
+  - Dropdown con opciones: Administrador, Operador, Consulta
+  - Define los permisos del usuario en el sistema
+
+Campos Opcionales:
+
+• Teléfono: Número de contacto
+• Departamento: Área o departamento al que pertenece
+
+(Imagen: Formulario completo de crear usuario. Se debe ver todos los campos mencionados, asteriscos rojos en campos obligatorios, indicador de fortaleza de contraseña con barra de colores, y dropdown de roles desplegado mostrando las 3 opciones)
+
+Paso 3: Guardar Usuario
+
+1. Después de completar todos los campos obligatorios, haga clic en "Guardar"
+2. El sistema validará la información:
+   - Si hay errores, se mostrarán mensajes en rojo bajo los campos con problemas
+   - Si todo es correcto, se creará el usuario
+
+3. Mensajes de confirmación:
+   - Éxito: "Usuario creado exitosamente"
+   - El usuario aparecerá en la lista con estado Activo
+   - Se enviará (opcionalmente) un email al usuario con sus credenciales
+
+(Imagen: Mensaje de éxito. Se debe ver notificación toast en la esquina superior derecha con fondo verde, ícono de check, texto "Usuario creado exitosamente", y botón X para cerrar)
+
+Validaciones y Errores Comunes:
+
+• "El email ya está registrado": El correo ya existe en el sistema
+• "El nombre de usuario ya existe": Elija un nombre de usuario diferente
+• "Las contraseñas no coinciden": Los campos de contraseña deben ser idénticos
+• "Contraseña débil": La contraseña no cumple los requisitos mínimos
+
+3.3. EDITAR USUARIO
+
+Para modificar la información de un usuario existente:
+
+Paso 1: Acceder a Edición
+1. En la tabla de usuarios, ubique el usuario a modificar
+2. Haga clic en el ícono de lápiz (Editar) en la columna Acciones
+3. Se abrirá el formulario de edición con los datos actuales
+
+(Imagen: Modal de "Editar Usuario" con datos prellenados. Se debe ver el mismo formulario de creación pero con información existente en los campos, excepto el campo de contraseña que debe estar vacío o no visible)
+
+Paso 2: Modificar Información
+
+Puede editar los siguientes campos:
+• Nombre completo
+• Email (con validación de unicidad)
+• Rol del usuario
+• Teléfono
+• Departamento
+
+Campos NO editables:
+• Nombre de usuario (se mantiene el original)
+• ID del usuario
+• Fecha de creación
+
+Nota: Para cambiar la contraseña, existe una opción separada "Cambiar Contraseña" en las acciones del usuario o el usuario puede hacerlo desde su perfil.
+
+Paso 3: Guardar Cambios
+
+1. Después de realizar las modificaciones necesarias, haga clic en "Actualizar"
+2. El sistema validará los cambios
+3. Si es exitoso, se actualizará la información en la tabla
+
+Mensajes:
+• Éxito: "Usuario actualizado exitosamente"
+• Error: Mensajes específicos según el problema
+
+(Imagen: Usuario actualizado en la tabla. Se debe ver la fila del usuario con los datos modificados resaltada temporalmente con fondo amarillo claro que luego desaparece)
+
+3.4. DESACTIVAR/ELIMINAR USUARIO
+
+El sistema utiliza eliminación lógica, es decir, los usuarios no se borran físicamente sino que se desactivan.
+
+Paso 1: Desactivar Usuario
+1. En la tabla, ubique el usuario a desactivar
+2. Haga clic en el toggle switch o botón de desactivar en la columna Acciones
+3. Aparecerá un diálogo de confirmación
+
+(Imagen: Diálogo de confirmación de desactivación. Se debe ver ventana modal con mensaje "¿Está seguro que desea desactivar al usuario Juan Pérez?", subtexto "El usuario no podrá acceder al sistema", y botones "Cancelar" (gris) y "Desactivar" (rojo))
+
+Paso 2: Confirmar Desactivación
+1. Lea el mensaje de confirmación cuidadosamente
+2. Si está seguro, haga clic en "Desactivar"
+3. El usuario cambiará a estado Inactivo
+
+Efectos de la Desactivación:
+• El usuario no podrá iniciar sesión
+• Su token de sesión actual se invalidará (si está conectado)
+• Aparecerá en la lista con badge rojo "Inactivo"
+• Sus datos se conservan en el sistema
+• Puede ser reactivado posteriormente
+
+(Imagen: Usuario desactivado en la tabla. Se debe ver la fila del usuario con el badge de estado mostrando "Inactivo" en rojo, y el botón de acción cambió a un botón de "Reactivar")
+
+Mensajes:
+• Éxito: "Usuario desactivado exitosamente"
+• Si el usuario intenta iniciar sesión: "Usuario desactivado. Contacte al administrador"
+
+3.5. REACTIVAR USUARIO
+
+Para restaurar el acceso a un usuario previamente desactivado:
+
+Paso 1: Filtrar Usuarios Inactivos
+1. Use el filtro de Estado y seleccione "Inactivos"
+2. Se mostrarán solo los usuarios desactivados
+
+Paso 2: Reactivar
+1. Ubique el usuario a reactivar en la lista
+2. Haga clic en el botón "Reactivar" o toggle switch
+3. Confirme la acción en el diálogo
+
+(Imagen: Diálogo de confirmación de reactivación. Se debe ver mensaje "¿Desea reactivar al usuario María López?", subtexto "El usuario podrá acceder nuevamente al sistema", botones "Cancelar" y "Reactivar" (verde))
+
+4. El usuario vuelve a estado Activo
+5. Puede iniciar sesión inmediatamente
+
+Mensajes:
+• Éxito: "Usuario reactivado exitosamente"
+
+3.6. VER DETALLES DEL USUARIO
+
+Para ver información completa de un usuario:
+
+1. Haga clic en el ícono de ojo (Ver) en la columna Acciones
+2. Se abrirá una vista detallada o modal
+
+(Imagen: Modal de "Detalles del Usuario". Se debe ver información organizada en secciones: 1) Foto de perfil y nombre grande arriba, 2) Información Personal (nombre, email, usuario, teléfono), 3) Información del Sistema (rol, estado, fecha creación, última conexión), 4) Estadísticas de Uso (total accesos, promedio diario), 5) Permisos activos en formato de lista con checks)
+
+Información Mostrada:
+
+Información Personal:
+• Foto de perfil (si está configurada)
+• Nombre completo
+• Email
+• Teléfono
+• Departamento
+
+Información del Sistema:
+• Nombre de usuario
+• Rol asignado
+• Estado actual (Activo/Inactivo)
+• Fecha de creación de cuenta
+• Última conexión (fecha y hora)
+• Última modificación (quién y cuándo)
+
+Estadísticas de Uso:
+• Total de accesos al sistema
+• Promedio de accesos diarios
+• Última dirección IP utilizada
+• Acciones registradas en auditoría
+
+Permisos Activos:
+• Lista de permisos específicos según su rol
+• Módulos a los que tiene acceso
+
+Acciones Disponibles:
+• Botón "Editar": Ir a formulario de edición
+• Botón "Cambiar Contraseña": Restablecer contraseña del usuario
+• Botón "Ver Auditoría": Ver historial de acciones de este usuario
+• Botón "Cerrar": Regresar a la lista
+
+(Imagen: Botones de acción en la parte inferior del modal de detalles. Se debe ver 3 botones: "Editar" (azul), "Ver Auditoría" (índigo), "Cerrar" (gris))
+
+────────────────────────────────────────────────────────────────────
+
+4. MÓDULO DE AUDITORÍA
+
+El módulo de Auditoría registra automáticamente todos los eventos de autenticación del sistema (logins exitosos, fallidos, logouts y tokens expirados), proporcionando trazabilidad completa de los accesos.
+
+4.1. VISUALIZAR REGISTROS DE AUDITORÍA
+
+Al acceder al módulo "Auditoría de Accesos", se muestra:
+
+(Imagen: Pantalla de auditoría con 4 tarjetas de estadísticas en la parte superior, panel de filtros en el centro, y tabla de logs abajo con paginación)
+
+A. Tarjetas de Estadísticas
+
+Cuatro tarjetas muestran métricas clave del sistema:
+
+• Total Eventos: Número total de eventos registrados
+• Logins Exitosos: Cantidad de accesos exitosos (en verde)
+• Logins Fallidos: Cantidad de intentos fallidos (en rojo)
+• Tasa de Éxito: Porcentaje de logins exitosos (en azul)
+
+B. Filtros de Búsqueda
+
+Panel de filtros con las siguientes opciones:
+
+• Acción: Dropdown para filtrar por tipo
+  - Todas
+  - Login
+  - Logout
+  - Crear
+  - Actualizar
+  - Eliminar
+
+• Fecha Inicio: Selector de fecha inicial
+• Fecha Fin: Selector de fecha final
+• Buscar: Campo de texto libre para buscar por email, IP o mensaje
+• Botón "Limpiar Filtros": Restablece todos los filtros
+
+(Imagen: Panel de filtros con 4 campos en fila: dropdown de Acción, dos campos de fecha, campo de búsqueda, y botón gris de "Limpiar Filtros")
+
+C. Tabla de Logs
+
+La tabla muestra 10 registros por página con las siguientes columnas:
+
+• ID: Identificador único del evento
+• Fecha: Fecha y hora completa (formato: dd/mm/aaaa hh:mm:ss)
+• Usuario: Nombre completo y email del usuario
+• Acción: Badge colorizado según el tipo:
+  - LOGIN_EXITOSO (verde)
+  - LOGIN_FALLIDO (rojo)
+  - LOGOUT (gris)
+  - TOKEN_EXPIRADO (amarillo)
+• Registro Afectado: Descripción del registro y su ID
+
+(Imagen: Tabla con 5 columnas mostrando registros de auditoría. Los badges de acción deben verse con colores distintos según el tipo de evento)
+
+4.2. PAGINACIÓN
+
+La tabla incluye controles de paginación en la parte inferior:
+
+• Botón "← Anterior": Va a la página previa (deshabilitado en página 1)
+• Números de página: Muestra páginas cercanas y la actual resaltada en azul
+• Botón "Siguiente →": Va a la siguiente página (deshabilitado si no hay más)
+• Contador: "Mostrando X - Y de Z registros"
+
+Navegación inteligente:
+- Si está en página > 2, muestra "1 ... [páginas cercanas]"
+- Página actual siempre resaltada en azul
+- Muestra "..." cuando hay muchas páginas
+
+(Imagen: Barra de paginación mostrando "← Anterior | 1 ... 3 4 5 ... | Siguiente →" con página 4 resaltada en azul, y texto "Mostrando 31 - 40 de 125 registros")
+
+4.3. USO DE FILTROS
+
+Ejemplos prácticos de filtrado:
+
+Ver solo logins fallidos:
+1. Seleccione "Login" en el dropdown Acción
+2. La tabla se actualiza automáticamente
+3. Las estadísticas reflejan solo los registros filtrados
+
+Buscar por usuario específico:
+1. Escriba el email del usuario en el campo "Buscar"
+2. Los resultados se filtran en tiempo real
+3. Muestra todos los eventos relacionados con ese email
+
+Filtrar por período:
+1. Seleccione fecha inicial en "Fecha Inicio"
+2. Seleccione fecha final en "Fecha Fin"
+3. Se muestran solo eventos dentro del rango
+
+Limpiar filtros:
+1. Click en "Limpiar Filtros"
+2. Todos los campos se resetean
+3. Vuelve a mostrar todos los registros
+
+NOTA: Los filtros se aplican automáticamente al cambiar cualquier valor. No requiere botón "Aplicar".
+
+────────────────────────────────────────────────────────────────────
+
+5. MÓDULO DE REPORTES
+
+El módulo "Reportes y Estadísticas" proporciona visualizaciones y métricas sobre usuarios, accesos y actividad del sistema.
+
+5.1. PANTALLA PRINCIPAL DE REPORTES
+
+Al acceder al módulo, se muestra un dashboard con tarjetas estadísticas y gráficos visuales.
+
+(Imagen: Dashboard de reportes con filtro de período arriba, grid de 7 tarjetas con estadísticas, gráficos de barras y listas de usuarios más activos)
+
+A. Filtro de Período
+
+Selector en la parte superior para ajustar el rango de datos:
+
+• Dropdown con opciones:
+  - Últimos 7 días
+  - Últimos 30 días (por defecto)
+  - Últimos 90 días
+  - Último año (365 días)
+
+• Botón "Actualizar": Recarga manualmente los datos
+
+Al cambiar el período, todas las estadísticas se actualizan automáticamente.
+
+(Imagen: Barra superior con dropdown de período mostrando "Últimos 30 días" seleccionado, y botón azul "Actualizar" con ícono de refresh a la derecha)
+
+B. Tarjetas de Estadísticas
+
+Siete tarjetas muestran métricas clave:
+
+1. Total Usuarios:
+   • Número total de usuarios registrados
+   • Desglose: Activos e Inactivos en verde y rojo
+   • Icono: group
+
+2. Usuarios por Rol:
+   • Lista de roles con cantidad y porcentaje
+   • Barras de progreso visuales
+   • Icono: badge
+
+3. Total Accesos:
+   • Número de logins en el período
+   • Promedio diario
+   • Icono: login
+
+4. Accesos Diarios (gráfico):
+   • Gráfico de barras verticales mostrando últimos 15 días
+   • Altura proporcional al número de accesos
+   • Tooltip al pasar el mouse
+   • Icono: show_chart
+
+5. Horas Pico:
+   • Top 5 horas con más actividad
+   • Barras de progreso horizontales
+   • Formato: "HH:00 hrs" con cantidad
+   • Icono: schedule
+
+6. Usuarios Más Activos:
+   • Top 10 usuarios con mayor actividad
+   • Ranking numerado (#1, #2, etc.)
+   • Muestra nombre, email y total de accesos
+   • Icono: trending_up
+
+7. Estadísticas Generales:
+   • Promedio accesos por usuario
+   • Promedio accesos por día
+   • Total eventos auditados
+   • Icono: analytics
+
+(Imagen: Grid de tarjetas. Card de "Total Usuarios" debe mostrar número grande con desglose activos/inactivos. Card de "Usuarios por Rol" con barras de progreso azules. Card de "Accesos Diarios" con gráfico de barras verticales. Card de "Usuarios Más Activos" con lista numerada)
+
+5.2. INTERPRETACIÓN DE LOS DATOS
+
+Cómo usar la información del dashboard:
+
+• Total Usuarios: Revise el balance entre activos e inactivos. Un alto porcentaje de inactivos puede requerir limpieza de cuentas.
+
+• Usuarios por Rol: Verifique la distribución de roles. Asegúrese de que no haya demasiados administradores.
+
+• Accesos Diarios: Identifique patrones. Caídas abruptas pueden indicar problemas. Picos pueden requerir más recursos.
+
+• Horas Pico: Use esta información para planificar mantenimientos en horarios de baja actividad.
+
+• Usuarios Más Activos: Identifique usuarios clave. Si un usuario poco activo aparece con mucha actividad súbita, puede requerir investigación.
+
+• Estadísticas Generales: Compare promedios diarios y por usuario para detectar anomalías.
+
+5.3. ACTUALIZACIÓN DE DATOS
+
+Los datos se cargan automáticamente al:
+• Acceder al módulo por primera vez
+• Cambiar el período seleccionado
+• Hacer clic en el botón "Actualizar"
+
+Si ocurre un error al cargar:
+1. Se muestra un mensaje de error en rojo
+2. Click en "Reintentar" para volver a cargar
+3. Verifique su conexión si el problema persiste
+
+Tiempo de carga:
+• Períodos cortos (7-30 días): 1-2 segundos
+• Períodos largos (90-365 días): 3-5 segundos
+• Durante la carga se muestra un spinner animado
+
+────────────────────────────────────────────────────────────────────
+
+6. PERFIL DE USUARIO
+
+Cada usuario puede acceder y gestionar su información personal desde su perfil.
+
+6.1. VISUALIZAR PERFIL
+
+Acceda a su perfil desde el menú lateral:
+
+1. En la parte inferior del menú lateral izquierdo, haga clic en el botón "Mi Perfil"
+2. Se abrirá la página de perfil personal
+
+(Imagen: Página de perfil de usuario. Se debe ver un avatar circular grande con la inicial del nombre en la parte superior izquierda, a la derecha una cuadrícula con 4 secciones mostrando: Nombre Completo, Correo Electrónico, Rol (con badge azul), y Estado (con badge verde para Activo). Debajo una sección de Seguridad con botón de "Cambiar Contraseña")
+
+A. Sección de Información Personal
+
+La tarjeta de "Información Personal" muestra:
+
+Avatar:
+• Círculo grande de color azul con la inicial del nombre del usuario
+• Tamaño: 96x96 píxeles
+• Texto blanco en negrita de 3xl
+
+Información Mostrada en Cuadrícula (2 columnas):
+
+1. Nombre Completo:
+   • Etiqueta: "Nombre Completo" en gris
+   • Valor: Nombre, apellido paterno y apellido materno
+   • Formato: Texto en negrita
+
+2. Correo Electrónico:
+   • Etiqueta: "Correo Electrónico" en gris
+   • Valor: Email del usuario
+   • Formato: Texto en negrita
+
+3. Rol:
+   • Etiqueta: "Rol" en gris
+   • Valor: Nombre del rol asignado (Administrador, Digitalizador, Validador, Consultor)
+   • Formato: Badge azul claro con fondo primary/10
+
+4. Estado:
+   • Etiqueta: "Estado" en gris
+   • Valor: "Activo" o "Inactivo"
+   • Formato: Badge verde (activo) o rojo (inactivo)
+
+(Imagen: Detalle de la tarjeta de Información Personal mostrando el avatar circular en la izquierda, y los 4 campos en cuadrícula 2x2 a la derecha. Los badges de Rol y Estado deben verse claramente con sus colores)
+
+B. Sección de Seguridad
+
+La tarjeta de "Seguridad" contiene opciones relacionadas con la contraseña:
+
+• Título: "Seguridad" en negrita
+• Área con fondo gris claro que incluye:
+  - Título: "Contraseña"
+  - Descripción: "Cambia tu contraseña regularmente para mantener tu cuenta segura"
+  - Botón azul: "Cambiar Contraseña" con ícono de candado (lock_reset)
+
+(Imagen: Tarjeta de Seguridad mostrando el área de contraseña con el botón azul "Cambiar Contraseña" a la derecha)
+
+6.2. CAMBIAR CONTRASEÑA
+
+Puede cambiar su contraseña en cualquier momento:
+
+1. En su perfil, haga clic en "Cambiar Contraseña"
+2. Complete el formulario:
+   • Contraseña Actual: Ingrese su contraseña actual
+   • Nueva Contraseña: Ingrese nueva contraseña segura
+   • Confirmar Nueva Contraseña: Repita la nueva contraseña
+3. Haga clic en "Actualizar Contraseña"
+
+(Imagen: Formulario de cambio de contraseña. Se debe ver 3 campos de password, indicadores de fortaleza de contraseña con colores (rojo=débil, amarillo=medio, verde=fuerte), requisitos listados abajo, y botones "Cancelar" y "Actualizar Contraseña")
+
+Requisitos de Contraseña:
+• Mínimo 8 caracteres
+• Al menos una mayúscula
+• Al menos una minúscula
+• Al menos un número
+• Al menos un carácter especial (recomendado)
+
+Mensajes:
+• Éxito: "Contraseña actualizada exitosamente"
+• Error: "La contraseña actual es incorrecta"
+
+6.3. CERRAR SESIÓN
+
+Siempre cierre sesión al finalizar:
+
+1. Haga clic en su nombre (esquina superior derecha)
+2. Seleccione "Cerrar Sesión"
+3. Será redirigido a la pantalla de login
+4. Su sesión se invalida completamente
+
+(Imagen: Dropdown de menú de usuario. Se debe ver opciones: "Mi Perfil", "Configuración", línea separadora, "Cerrar Sesión" en rojo con icono de logout)
+
+────────────────────────────────────────────────────────────────────
+
+7. AYUDA Y SOPORTE
+
+Contacto
+
+Para asistencia técnica o consultas:
+• Email: soporte@sacra360.com
+• Teléfono: [Completar]
+• Horario: Lunes a Viernes, 8:00 - 18:00
+
+Mensajes de Error Comunes
+
+"Sesión expirada":
+• Su sesión ha caducado por inactividad
+• Inicie sesión nuevamente
+
+"Sin permisos":
+• No tiene autorización para esta acción
+• Contacte al administrador si requiere acceso
+
+"Error de conexión":
+• Problemas de red
+• Verifique su conexión a internet
+• Refresque la página (F5)
+
+────────────────────────────────────────────────────────────────────
+
+FIN DEL MANUAL DE USUARIO
+
+Documento actualizado: Diciembre 2024
+Versión del Sistema: SACRA360 v1.0
+Módulos documentados: Autenticación, Usuarios, Auditoría, Reportes

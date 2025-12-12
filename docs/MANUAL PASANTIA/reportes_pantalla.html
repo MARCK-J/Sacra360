@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes y Estadísticas - SACRA360</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout Container */
+        .layout-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 256px;
+            background-color: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .sidebar-logo .material-symbols-outlined {
+            font-size: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #475569;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background-color: #eff6ff;
+        }
+
+        .nav-item.active {
+            background-color: #dbeafe;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .footer-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .footer-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            width: 100%;
+            color: #475569;
+        }
+
+        .footer-btn .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        .footer-btn:hover {
+            background-color: #eff6ff;
+        }
+
+        .footer-btn.logout {
+            color: #dc2626;
+        }
+
+        .footer-btn.logout:hover {
+            background-color: #fee2e2;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            height: 64px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 256px;
+            padding: 8px 16px 8px 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            background-color: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-box .material-symbols-outlined {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 20px;
+        }
+
+        .notification-btn {
+            position: relative;
+            color: #64748b;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 12px;
+            height: 12px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .header-user-info {
+            text-align: left;
+        }
+
+        .header-user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .header-user-role {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 24px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .filter-bar select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-refresh {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-refresh .material-symbols-outlined {
+            font-size: 20px;
+        }
+
+        /* Reports Grid */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .reports-grid-large {
+            grid-column: span 2;
+        }
+
+        /* Report Card */
+        .report-card {
+            background-color: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .card-icon {
+            color: #3b82f6;
+        }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+
+        .card-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: #64748b;
+        }
+
+        .detail-value {
+            font-weight: 600;
+        }
+
+        .detail-value.green {
+            color: #059669;
+        }
+
+        .detail-value.red {
+            color: #dc2626;
+        }
+
+        /* Progress Bars */
+        .progress-item {
+            margin-bottom: 16px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .progress-label {
+            color: #475569;
+        }
+
+        .progress-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .progress-bar {
+            height: 8px;
+            width: 100%;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 192px;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            align-items: end;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .chart-bar {
+            background-color: rgba(59, 130, 246, 0.7);
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .chart-bar:hover {
+            background-color: #3b82f6;
+        }
+
+        .chart-bar::after {
+            content: attr(data-value);
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1e293b;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .chart-bar:hover::after {
+            opacity: 1;
+        }
+
+        /* User List */
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: rgba(59, 130, 246, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .user-rank-number {
+            font-size: 14px;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .user-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-item-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-item-email {
+            font-size: 12px;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-item-stats {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .user-item-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .user-item-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Hours List */
+        .hours-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .hour-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .hour-label {
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .hour-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hour-bar {
+            height: 8px;
+            width: 80px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .hour-bar-fill {
+            height: 100%;
+            background-color: #f59e0b;
+            transition: width 0.3s ease;
+        }
+
+        .hour-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            width: 32px;
+            text-align: right;
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .reports-grid-large {
+                grid-column: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .search-box {
+                display: none;
+            }
+
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <span class="material-symbols-outlined">health_and_safety</span>
+                </div>
+                <h1 class="sidebar-title">Sacramentos</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">cloud_upload</span>
+                    <span>Digitalización</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">document_scanner</span>
+                    <span>Revisión OCR</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">menu_book</span>
+                    <span>Registros</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">group</span>
+                    <span>Personas</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">import_contacts</span>
+                    <span>Libros</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">workspace_premium</span>
+                    <span>Certificados</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">manage_accounts</span>
+                    <span>Usuarios</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">history</span>
+                    <span>Auditoría</span>
+                </a>
+                <a href="#" class="nav-item active">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    <span>Reportes</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">M</div>
+                    <div class="user-details">
+                        <p class="user-name">María González López</p>
+                        <p class="user-role">Administrador</p>
+                    </div>
+                </div>
+                <div class="footer-buttons">
+                    <a href="#" class="footer-btn">
+                        <span class="material-symbols-outlined">person</span>
+                        <span>Mi Perfil</span>
+                    </a>
+                    <button class="footer-btn logout">
+                        <span class="material-symbols-outlined">logout</span>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h2 class="header-title">Reportes y Estadísticas</h2>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Buscar...">
+                    </div>
+                    <button class="notification-btn">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span class="notification-badge"></span>
+                    </button>
+                    <div class="header-user">
+                        <div class="header-user-avatar">M</div>
+                        <div class="header-user-info">
+                            <p class="header-user-name">María González</p>
+                            <p class="header-user-role">Administrador</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <label class="filter-label">Período:</label>
+                    <select>
+                        <option>Últimos 7 días</option>
+                        <option selected>Últimos 30 días</option>
+                        <option>Últimos 90 días</option>
+                        <option>Último año</option>
+                    </select>
+                    <button class="btn-refresh">
+                        <span class="material-symbols-outlined">refresh</span>
+                        Actualizar
+                    </button>
+                </div>
+
+                <!-- Reports Grid -->
+                <div class="reports-grid">
+                    <!-- Total Usuarios -->
+                    <div class="report-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Total Usuarios</h3>
+                            <span class="material-symbols-outlined card-icon">group</span>
+                        </div>
+                        <div class="card-value">158</div>
+                        <div class="card-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Activos</span>
+                                <span class="detail-value green">145</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Inactivos</span>
+                                <span class="detail-value red">13</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Usuarios por Rol -->
+                    <div class="report-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Usuarios por Rol</h3>
+                            <span class="material-symbols-outlined card-icon">badge</span>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">Administrador</span>
+                                    <span class="progress-value">12 (7.6%)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 7.6%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">Operador</span>
+                                    <span class="progress-value">98 (62%)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 62%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">Consulta</span>
+                                    <span class="progress-value">48 (30.4%)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 30.4%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Accesos -->
+                    <div class="report-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Total Accesos</h3>
+                            <span class="material-symbols-outlined card-icon">login</span>
+                        </div>
+                        <div class="card-value">4,562</div>
+                        <div class="card-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Promedio diario</span>
+                                <span class="detail-value">152.1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accesos Diarios - Large Card -->
+                    <div class="report-card reports-grid-large">
+                        <div class="card-header">
+                            <h3 class="card-title">Accesos Diarios</h3>
+                            <span class="material-symbols-outlined card-icon">show_chart</span>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-bar" style="height: 45%;" data-value="01/12: 68"></div>
+                            <div class="chart-bar" style="height: 78%;" data-value="02/12: 118"></div>
+                            <div class="chart-bar" style="height: 92%;" data-value="03/12: 139"></div>
+                            <div class="chart-bar" style="height: 65%;" data-value="04/12: 98"></div>
+                            <div class="chart-bar" style="height: 88%;" data-value="05/12: 133"></div>
+                            <div class="chart-bar" style="height: 100%;" data-value="06/12: 152"></div>
+                            <div class="chart-bar" style="height: 82%;" data-value="07/12: 124"></div>
+                            <div class="chart-bar" style="height: 58%;" data-value="08/12: 88"></div>
+                            <div class="chart-bar" style="height: 95%;" data-value="09/12: 144"></div>
+                            <div class="chart-bar" style="height: 72%;" data-value="10/12: 109"></div>
+                            <div class="chart-bar" style="height: 85%;" data-value="11/12: 129"></div>
+                            <div class="chart-bar" style="height: 68%;" data-value="12/12: 103"></div>
+                            <div class="chart-bar" style="height: 90%;" data-value="13/12: 136"></div>
+                            <div class="chart-bar" style="height: 76%;" data-value="14/12: 115"></div>
+                            <div class="chart-bar" style="height: 55%;" data-value="15/12: 83"></div>
+                        </div>
+                    </div>
+
+                    <!-- Horas Pico -->
+                    <div class="report-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Horas Pico</h3>
+                            <span class="material-symbols-outlined card-icon">schedule</span>
+                        </div>
+                        <div class="hours-list" style="margin-top: 16px;">
+                            <div class="hour-item">
+                                <span class="hour-label">09:00 hrs</span>
+                                <div class="hour-bar-container">
+                                    <div class="hour-bar">
+                                        <div class="hour-bar-fill" style="width: 100%;"></div>
+                                    </div>
+                                    <span class="hour-value">342</span>
+                                </div>
+                            </div>
+                            <div class="hour-item">
+                                <span class="hour-label">10:00 hrs</span>
+                                <div class="hour-bar-container">
+                                    <div class="hour-bar">
+                                        <div class="hour-bar-fill" style="width: 87%;"></div>
+                                    </div>
+                                    <span class="hour-value">298</span>
+                                </div>
+                            </div>
+                            <div class="hour-item">
+                                <span class="hour-label">14:00 hrs</span>
+                                <div class="hour-bar-container">
+                                    <div class="hour-bar">
+                                        <div class="hour-bar-fill" style="width: 82%;"></div>
+                                    </div>
+                                    <span class="hour-value">280</span>
+                                </div>
+                            </div>
+                            <div class="hour-item">
+                                <span class="hour-label">11:00 hrs</span>
+                                <div class="hour-bar-container">
+                                    <div class="hour-bar">
+                                        <div class="hour-bar-fill" style="width: 75%;"></div>
+                                    </div>
+                                    <span class="hour-value">256</span>
+                                </div>
+                            </div>
+                            <div class="hour-item">
+                                <span class="hour-label">15:00 hrs</span>
+                                <div class="hour-bar-container">
+                                    <div class="hour-bar">
+                                        <div class="hour-bar-fill" style="width: 68%;"></div>
+                                    </div>
+                                    <span class="hour-value">232</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Usuarios Más Activos - Large Card -->
+                    <div class="report-card reports-grid-large">
+                        <div class="card-header">
+                            <h3 class="card-title">Usuarios Más Activos</h3>
+                            <span class="material-symbols-outlined card-icon">trending_up</span>
+                        </div>
+                        <div class="user-list" style="margin-top: 16px;">
+                            <div class="user-item">
+                                <div class="user-rank">
+                                    <span class="user-rank-number">#1</span>
+                                </div>
+                                <div class="user-item-info">
+                                    <p class="user-item-name">María González López</p>
+                                    <p class="user-item-email">maria.gonzalez@sacra360.com</p>
+                                </div>
+                                <div class="user-item-stats">
+                                    <p class="user-item-value">487</p>
+                                    <p class="user-item-label">accesos</p>
+                                </div>
+                            </div>
+                            <div class="user-item">
+                                <div class="user-rank">
+                                    <span class="user-rank-number">#2</span>
+                                </div>
+                                <div class="user-item-info">
+                                    <p class="user-item-name">Carlos Méndez Ruiz</p>
+                                    <p class="user-item-email">carlos.mendez@sacra360.com</p>
+                                </div>
+                                <div class="user-item-stats">
+                                    <p class="user-item-value">421</p>
+                                    <p class="user-item-label">accesos</p>
+                                </div>
+                            </div>
+                            <div class="user-item">
+                                <div class="user-rank">
+                                    <span class="user-rank-number">#3</span>
+                                </div>
+                                <div class="user-item-info">
+                                    <p class="user-item-name">Ana Rodríguez Pérez</p>
+                                    <p class="user-item-email">ana.rodriguez@sacra360.com</p>
+                                </div>
+                                <div class="user-item-stats">
+                                    <p class="user-item-value">398</p>
+                                    <p class="user-item-label">accesos</p>
+                                </div>
+                            </div>
+                            <div class="user-item">
+                                <div class="user-rank">
+                                    <span class="user-rank-number">#4</span>
+                                </div>
+                                <div class="user-item-info">
+                                    <p class="user-item-name">Pedro Sánchez Torres</p>
+                                    <p class="user-item-email">pedro.sanchez@sacra360.com</p>
+                                </div>
+                                <div class="user-item-stats">
+                                    <p class="user-item-value">356</p>
+                                    <p class="user-item-label">accesos</p>
+                                </div>
+                            </div>
+                            <div class="user-item">
+                                <div class="user-rank">
+                                    <span class="user-rank-number">#5</span>
+                                </div>
+                                <div class="user-item-info">
+                                    <p class="user-item-name">Laura Martínez Gómez</p>
+                                    <p class="user-item-email">laura.martinez@sacra360.com</p>
+                                </div>
+                                <div class="user-item-stats">
+                                    <p class="user-item-value">324</p>
+                                    <p class="user-item-label">accesos</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas Generales -->
+                    <div class="report-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Estadísticas Generales</h3>
+                            <span class="material-symbols-outlined card-icon">analytics</span>
+                        </div>
+                        <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 16px;">
+                            <div>
+                                <p style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Promedio accesos/usuario</p>
+                                <p style="font-size: 28px; font-weight: bold; color: #1e293b;">28.9</p>
+                            </div>
+                            <div>
+                                <p style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Promedio accesos/día</p>
+                                <p style="font-size: 28px; font-weight: bold; color: #1e293b;">152.1</p>
+                            </div>
+                            <div>
+                                <p style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Total eventos auditados</p>
+                                <p style="font-size: 28px; font-weight: bold; color: #1e293b;">8,947</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+1. Manual de Usuario
+Este manual está dirigido a los tres tipos de usuarios que interactúan con el sistema MIGA:
+Usuario no registrado: Navega libremente por el sistema sin necesidad de autenticarse, accediendo a información pública como documentos y propuestas visibles.
+
+
+Usuario COMUNIDAD: Se registra para acceder a funcionalidades adicionales como marcar favoritos y enviar propuestas normativas relacionadas con la alimentación saludable.
+
+
+Usuario MIGA: Administrador autorizado con acceso completo al sistema. Tiene permisos para registrar documentos, gestionar propuestas, aplicar filtros avanzados y generar reportes en PDF.
+Inicio de Sesión
+
+El sistema MIGA cuenta con un formulario de inicio de sesión accesible desde la opción Login ubicada en la barra de navegación superior. Esta pantalla permite que usuarios registrados (ya sean COMUNIDAD o MIGA) ingresen con su correo electrónico y contraseña de manera segura.
+
+
+
+
+Registro de Usuario COMUNIDAD
+
+En la sección Registrarse, el usuario puede crear su cuenta para acceder a las funcionalidades del sistema destinadas a la comunidad. Para iniciar, debe llenar todos los campos visibles en el formulario que se encuentra al centro de la pantalla. Entre los datos solicitados están: Nombres, Apellido Paterno, Apellido Materno, Carnet de Identidad (CI) y Correo electrónico.
+Además de los datos personales, el sistema solicita información relacionada con la ubicación y participación del usuario en la comunidad. Los campos Macrodistrito, Zona y Ámbito de actividad cuentan con menús desplegables para que el usuario seleccione la opción que mejor describa su entorno y el tipo de actividades que realiza. 
+Una vez completados todos los campos, el usuario debe presionar el botón Registrarse, ubicado al final del formulario. Al dar clic, el sistema validará los datos ingresados y, si todo es correcto, procederá a crear la cuenta de comunidad, además, el sistema muestra un mensaje de confirmación en la parte inferior del formulario. Este mensaje aparece con un ícono de verificación verde y el texto: “Usuario COMUNIDAD creado correctamente. Usuario: nombre.apellido. Su contraseña es su CI.”. 
+Además, el mensaje especifica datos importantes para el primer inicio de sesión: el nombre de usuario se genera combinando el nombre y el apellido paterno ingresados, y la contraseña inicial corresponde al número de Carnet de Identidad proporcionado.

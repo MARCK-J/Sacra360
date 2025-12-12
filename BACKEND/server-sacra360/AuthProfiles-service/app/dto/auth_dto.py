@@ -31,8 +31,14 @@ class Parish(str, Enum):
 class LoginRequest(BaseModel):
     """Solicitud de login"""
     email: EmailStr
-    password: str
+    password: str = None
+    contrasenia: str = None  # Alias temporal para compatibilidad
     remember_me: bool = False
+
+    @property
+    def get_password(self):
+        """Obtener contraseña de cualquier campo"""
+        return self.password or self.contrasenia
 
     class Config:
         json_schema_extra = {

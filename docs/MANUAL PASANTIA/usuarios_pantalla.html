@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - SACRA360</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout Container */
+        .layout-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 256px;
+            background-color: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .sidebar-logo .material-symbols-outlined {
+            font-size: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #475569;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background-color: #eff6ff;
+        }
+
+        .nav-item.active {
+            background-color: #dbeafe;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .footer-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .footer-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            width: 100%;
+            color: #475569;
+        }
+
+        .footer-btn .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        .footer-btn:hover {
+            background-color: #eff6ff;
+        }
+
+        .footer-btn.logout {
+            color: #dc2626;
+        }
+
+        .footer-btn.logout:hover {
+            background-color: #fee2e2;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            height: 64px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 256px;
+            padding: 8px 16px 8px 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            background-color: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-box .material-symbols-outlined {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 20px;
+        }
+
+        .notification-btn {
+            position: relative;
+            color: #64748b;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 12px;
+            height: 12px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .header-user-info {
+            text-align: left;
+        }
+
+        .header-user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .header-user-role {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 24px;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .btn-create {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-create:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-create .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        /* Table Card */
+        .table-card {
+            background-color: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background-color: #f8fafc;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 24px;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        th.text-center {
+            text-align: center;
+        }
+
+        td {
+            padding: 16px 24px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td.text-center {
+            text-align: center;
+        }
+
+        tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-purple {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .badge-blue {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-green {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-gray {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-action {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-action.edit {
+            color: #3b82f6;
+        }
+
+        .btn-action.edit:hover {
+            color: #1e40af;
+        }
+
+        .btn-action.delete {
+            color: #dc2626;
+        }
+
+        .btn-action.delete:hover {
+            color: #991b1b;
+        }
+
+        .btn-action .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 768px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            padding-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .modal-close {
+            color: #64748b;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 0 24px 24px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            grid-column: span 2;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .search-box {
+                display: none;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            td, th {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <span class="material-symbols-outlined">health_and_safety</span>
+                </div>
+                <h1 class="sidebar-title">Sacramentos</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">cloud_upload</span>
+                    <span>Digitalización</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">document_scanner</span>
+                    <span>Revisión OCR</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">menu_book</span>
+                    <span>Registros</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">group</span>
+                    <span>Personas</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">import_contacts</span>
+                    <span>Libros</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">workspace_premium</span>
+                    <span>Certificados</span>
+                </a>
+                <a href="#" class="nav-item active">
+                    <span class="material-symbols-outlined">manage_accounts</span>
+                    <span>Usuarios</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">history</span>
+                    <span>Auditoría</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    <span>Reportes</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">M</div>
+                    <div class="user-details">
+                        <p class="user-name">María González López</p>
+                        <p class="user-role">Administrador</p>
+                    </div>
+                </div>
+                <div class="footer-buttons">
+                    <a href="#" class="footer-btn">
+                        <span class="material-symbols-outlined">person</span>
+                        <span>Mi Perfil</span>
+                    </a>
+                    <button class="footer-btn logout">
+                        <span class="material-symbols-outlined">logout</span>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h2 class="header-title">Gestión de Usuarios</h2>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Buscar...">
+                    </div>
+                    <button class="notification-btn">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span class="notification-badge"></span>
+                    </button>
+                    <div class="header-user">
+                        <div class="header-user-avatar">M</div>
+                        <div class="header-user-info">
+                            <p class="header-user-name">María González</p>
+                            <p class="header-user-role">Administrador</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1 class="page-title">Usuarios del Sistema</h1>
+                    <button class="btn-create" onclick="openModal()">
+                        <span class="material-symbols-outlined">add</span>
+                        Crear Usuario
+                    </button>
+                </div>
+
+                <!-- Tabla de Usuarios -->
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre Completo</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td style="font-weight: 600; white-space: nowrap;">María González López</td>
+                                <td>maria.gonzalez@sacra360.com</td>
+                                <td><span class="badge badge-purple">Administrador</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Carlos Méndez Ruiz</td>
+                                <td>carlos.mendez@sacra360.com</td>
+                                <td><span class="badge badge-blue">Operador</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Ana Rodríguez Pérez</td>
+                                <td>ana.rodriguez@sacra360.com</td>
+                                <td><span class="badge badge-blue">Operador</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Pedro Sánchez Torres</td>
+                                <td>pedro.sanchez@sacra360.com</td>
+                                <td><span class="badge badge-green">Validador</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Laura Martínez Gómez</td>
+                                <td>laura.martinez@sacra360.com</td>
+                                <td><span class="badge badge-gray">Usuario</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Jorge Fernández Castro</td>
+                                <td>jorge.fernandez@sacra360.com</td>
+                                <td><span class="badge badge-blue">Operador</span></td>
+                                <td><span class="badge badge-danger">Inactivo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action" style="color: #059669;" title="Reactivar">
+                                            <span class="material-symbols-outlined">refresh</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>7</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Sofía López Díaz</td>
+                                <td>sofia.lopez@sacra360.com</td>
+                                <td><span class="badge badge-purple">Administrador</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>8</td>
+                                <td style="font-weight: 600; white-space: nowrap;">Miguel Torres Ramírez</td>
+                                <td>miguel.torres@sacra360.com</td>
+                                <td><span class="badge badge-green">Validador</span></td>
+                                <td><span class="badge badge-success">Activo</span></td>
+                                <td class="text-center">
+                                    <div class="action-buttons">
+                                        <button class="btn-action edit" title="Editar">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button class="btn-action delete" title="Desactivar">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Crear/Editar Usuario -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Crear Nuevo Usuario</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Nombre *</label>
+                            <input type="text" placeholder="Ej: Juan" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Apellido Paterno *</label>
+                            <input type="text" placeholder="Ej: Pérez" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Apellido Materno</label>
+                            <input type="text" placeholder="Ej: García">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" placeholder="ejemplo@correo.com" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label>Contraseña * (mínimo 8 caracteres)</label>
+                            <input type="password" placeholder="••••••••" minlength="8" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Rol *</label>
+                            <select required>
+                                <option value="1">Administrador</option>
+                                <option value="2" selected>Operador</option>
+                                <option value="3">Validador</option>
+                                <option value="4">Usuario</option>
+                            </select>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="activo" checked>
+                            <label for="activo">Usuario Activo</label>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            Crear Usuario
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById('userModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').classList.remove('active');
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        document.getElementById('userModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

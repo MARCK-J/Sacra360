@@ -231,18 +231,16 @@ package "Capa de Infraestructura" <<Infrastructure>> #E1BEE7 {
   }
   
   node "sacra360_network" as dockerNet #9C27B0 {
-    collections "Containers" {
-      [sacra360-postgres]
-      [sacra360_redis]
-      [sacra360_minio]
-      [sacra360_authprofiles_service]
-      [sacra360_documents_service]
-      [sacra360_ocr_service]
-      [sacra360_htr_service]
-      [sacra360_ai_service]
-      [sacra360_files_service]
-      [sacra360_reports_service]
-    }
+    component [sacra360-postgres]
+    component [sacra360_redis]
+    component [sacra360_minio]
+    component [sacra360_authprofiles_service]
+    component [sacra360_documents_service]
+    component [sacra360_ocr_service]
+    component [sacra360_htr_service]
+    component [sacra360_ai_service]
+    component [sacra360_files_service]
+    component [sacra360_reports_service]
   }
 }
 

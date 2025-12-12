@@ -15,9 +15,15 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
 
-    if (storedToken && storedUser) {
-      setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+    if (storedToken && storedUser && storedUser !== 'undefined') {
+      try {
+        setToken(storedToken)
+        setUser(JSON.parse(storedUser))
+      } catch (error) {
+        console.error('Error al parsear usuario:', error)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+      }
     }
     setLoading(false)
   }, [])
@@ -29,24 +35,30 @@ export const AuthProvider = ({ children }) => {
         `${import.meta.env.VITE_AUTH_API_URL}/api/v1/auth/login`,
         {
           email,
-          contrasenia: password
+          password: password
         }
       )
 
-      const { access_token, usuario } = response.data
+      const { access_token, user_info, permissions } = response.data
+
+      // Agregar permisos al objeto de usuario
+      const userData = {
+        ...user_info,
+        permissions: permissions
+      }
 
       // Guardar en estado
       setToken(access_token)
-      setUser(usuario)
+      setUser(userData)
 
       // Guardar en localStorage
       localStorage.setItem('token', access_token)
-      localStorage.setItem('user', JSON.stringify(usuario))
+      localStorage.setItem('user', JSON.stringify(userData))
 
       // Configurar axios para usar el token
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
-      return { success: true, user: usuario }
+      return { success: true, user: userData }
     } catch (error) {
       console.error('Error en login:', error)
       return {

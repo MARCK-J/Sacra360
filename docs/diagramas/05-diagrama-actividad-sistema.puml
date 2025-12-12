@@ -4,35 +4,22 @@ skinparam backgroundColor #FEFEFE
 
 title Diagrama de Actividad - Flujo General del Sistema Sacra360
 
-|Usuario|
 start
 :Acceder a Sacra360;
-
-|Sistema|
 :Mostrar pantalla de login;
-
-|Usuario|
 :Ingresar credenciales;
-
-|AuthProfiles Service|
-:Validar credenciales;
+:Validar credenciales (AuthProfiles);
 
 if (Credenciales válidas?) then (sí)
   :Generar JWT token;
   :Registrar login en auditoría;
-  
-  |Frontend|
   :Guardar token en localStorage;
   :Cargar permisos del usuario;
   :Redireccionar a Dashboard;
-  
-  |Usuario|
   :Ver Dashboard con módulos\nsegún permisos;
   
   repeat
     :Seleccionar módulo;
-    
-    |Frontend|
     :Verificar permisos locales;
     
     if (Tiene permisos?) then (sí)
@@ -41,39 +28,30 @@ if (Credenciales válidas?) then (sí)
         
         if (Módulo seleccionado?) then (Digitalización)
           :Subir documento;
-          |File Storage Service|
-          :Guardar en MinIO;
+          :Guardar en MinIO\n(File Storage Service);
           :Registrar en BD;
-          |OCR Service|
-          :Procesar con Tesseract;
+          :Procesar con Tesseract\n(OCR Service);
           :Extraer texto y campos;
-          |Sistema|
           :Mostrar resultados;
           
         elseif (Revisión OCR)
-          |Usuario|
           :Ver documentos pendientes;
           :Corregir campos erróneos;
-          |Documents Service|
-          :Guardar correcciones;
+          :Guardar correcciones\n(Documents Service);
           :Marcar como validado;
           
         elseif (Registros)
-          |Usuario|
           :Buscar/crear sacramento;
           :Completar formulario;
-          |Documents Service|
-          :Validar datos;
+          :Validar datos\n(Documents Service);
           :Crear persona (si es nueva);
           :Crear sacramento y detalles;
           :Vincular con documento;
           
         elseif (Usuarios)
-          |Usuario|
           :Gestionar usuarios del sistema;
-          |AuthProfiles Service|
           if (Acción?) then (Crear)
-            :Validar email único;
+            :Validar email único\n(AuthProfiles Service);
             :Hash contraseña con bcrypt;
             :Insertar en BD;
           elseif (Editar)
@@ -86,53 +64,41 @@ if (Credenciales válidas?) then (sí)
           :Registrar en auditoría;
           
         elseif (Auditoría)
-          |Usuario|
           :Ver logs del sistema;
           :Filtrar por usuario/fecha;
-          |AuthProfiles Service|
-          :Consultar tabla auditoría;
+          :Consultar tabla auditoría\n(AuthProfiles Service);
           :Aplicar filtros;
           :Paginar resultados;
           
         elseif (Reportes)
-          |Usuario|
           :Seleccionar período;
-          |AuthProfiles Service|
-          :Verificar caché Redis;
+          :Verificar caché Redis\n(AuthProfiles Service);
           if (Existe en caché?) then (sí)
             :Devolver desde caché;
           else (no)
-            |PostgreSQL|
-            :Ejecutar queries agregadas;
+            :Ejecutar queries agregadas\n(PostgreSQL);
             :Calcular estadísticas;
-            |Redis|
-            :Guardar en caché (5 min);
+            :Guardar en caché Redis (5 min);
           endif
-          |Frontend|
           :Renderizar gráficos;
           :Mostrar métricas;
           
         elseif (Personas)
-          |Usuario|
           :Buscar persona;
           :Ver sacramentos recibidos;
-          |Documents Service|
-          :Consultar BD;
+          :Consultar BD\n(Documents Service);
           :Listar sacramentos;
           
         elseif (Mi Perfil)
-          |Usuario|
           :Ver información personal;
           :Cambiar contraseña;
-          |AuthProfiles Service|
-          :Validar contraseña actual;
+          :Validar contraseña actual\n(AuthProfiles Service);
           :Hash nueva contraseña;
           :Actualizar en BD;
           
         endif
       }
       
-      |Sistema|
       :Registrar acción en auditoría;
       :Devolver resultado;
       
@@ -142,13 +108,8 @@ if (Credenciales válidas?) then (sí)
     
   repeat while (Continuar usando el sistema?) is (sí)
   
-  |Usuario|
   :Click "Cerrar Sesión";
-  
-  |AuthProfiles Service|
-  :Registrar logout en auditoría;
-  
-  |Frontend|
+  :Registrar logout en auditoría\n(AuthProfiles Service);
   :Limpiar localStorage;
   :Redireccionar a login;
   

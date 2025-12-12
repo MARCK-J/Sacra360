@@ -141,11 +141,7 @@ export default function Login() {
               </div>
             </form>
 
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Credenciales de prueba: admin@sacra360.com
-              </p>
-            </div>
+            
           </div>
         </div>
       </main>

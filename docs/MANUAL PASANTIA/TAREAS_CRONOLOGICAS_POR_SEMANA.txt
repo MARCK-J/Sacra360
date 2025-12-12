@@ -1,0 +1,573 @@
+================================================================================
+           REGISTRO CRONOLÓGICO DE TAREAS - PRÁCTICA PRE PROFESIONAL
+                            SACRA360 - SISTEMA DE GESTIÓN
+================================================================================
+
+RESUMEN EJECUTIVO:
+- Período: Mayo 2024 - Diciembre 2024
+- Total horas: 213.5 horas
+- Total actividades: 6 grandes actividades
+- Total tareas: 200+ tareas específicas
+
+================================================================================
+                              MAYO 2024
+================================================================================
+
+SEMANA 3 - MAYO 2024
+--------------------
+Martes, Semana 3:
+  [1.1.1] Reuniones de coordinación con personal operativo de Archivo (1:00h)
+  [2.2] Revision de infraestructura tecnologica disponible (0:30h)
+
+Miércoles, Semana 3:
+  [1.2.1] Identificacion de informacion en los libros de sacramentos (0:30h)
+
+Horas semana 3: 2:00h
+
+================================================================================
+                              JULIO 2024
+================================================================================
+
+SEMANA 3 - JULIO 2024
+---------------------
+Miércoles, Semana 3:
+  [1.1.2] Reuniones de coordinación internas (1:00h)
+  [1.3.1] Relevamiento de registros de Confirmacion, Bautizo, Matrimonio, Defuncion (1:00h)
+  [1.4.2] Identificacion de formato de indice de libros (0:30h)
+  [1.5.1] Identificacion de parroquias, colegios, instituciones (0:30h)
+
+Horas semana 3: 3:00h
+
+SEMANA 4 - JULIO 2024
+---------------------
+Lunes, Semana 4:
+  [1.5.2] Idenitificacion de actores en celebraciones (celebrantes por parroquia) (0:30h)
+
+Miércoles, Semana 4:
+  [1.3.3] Relevamiento de Indice de Libro de registro (0:30h)
+  [1.6.1] Relevamiento de procedimientos de registro de sacramentos (0:30h)
+  [1.6.2] Relevamiento de flujos de busquedas de sacramentos (0:30h)
+
+Horas semana 4: 2:00h
+
+Horas totales Julio: 5:00h
+
+================================================================================
+                             AGOSTO 2024
+================================================================================
+
+SEMANA 1 - AGOSTO 2024
+----------------------
+Jueves, Semana 1:
+  [1.1.3] Reuniones de coordinación internas (0:30h)
+
+Martes, Semana 1:
+  [1.1.4] Reunion de coordinación con docente responsable del avance (Ing Pacheco) (1:00h)
+
+Horas semana 1: 1:30h
+
+SEMANA 2 - AGOSTO 2024
+----------------------
+Viernes, Semana 2:
+  [1.1.6] Reunion extra con personal operativo de archivos para mayor detalle (1:30h)
+  [1.2.2] Identificacion de flujo de trabajo (para el llenado de registros) (0:30h)
+  [1.3.2] Relevamiento de certificados de Confirmacion, Bautizo, Matrimonio, Defuncion (0:30h)
+  [1.4.1] Identificacion de formato de certificados (0:30h)
+
+Lunes, Semana 2:
+  [1.1.7] Reunion de coordinación interna con Ing Lourdes (1:30h)
+  [2.1.1.1] Identificación de actores y roles del módulo (1:00h)
+  [2.1.1.2] Identificación de entradas y salidas del módulo de usuarios (1:00h)
+  [2.5] Asignacion y division de tareas (0:30h)
+
+Miércoles, Semana 2:
+  [2.1.1.3] Identificación de herramientas, tecnologías y mecanismos de autenticación (0:30h)
+  [2.1.1.4] Definición del flujo de trabajo del módulo de gestión de usuarios (1:30h)
+
+Jueves, Semana 2:
+  [2.1.1.5] Identificación de restricciones, niveles de acceso y validaciones (1:00h)
+  [2.1.1.6] Redaccion de documento de niveles de accesos (1:00h)
+
+Horas semana 2: 11:00h
+
+SEMANA 3 - AGOSTO 2024
+----------------------
+Martes, Semana 3:
+  [1.1.8] Reunion de coordinacion interna (1:00h)
+
+Horas semana 3: 1:00h
+
+SEMANA 4 - AGOSTO 2024
+----------------------
+Jueves, Semana 4:
+  [1.1.9] Reunion de coordinacion interna (1:00h)
+
+Viernes, Semana 4:
+  [1.1.10] Reunion con Ing Pacheco (1:30h)
+  [2.3] Identificacion de servidores a usar (0:30h)
+  [2.4] Identificacion de framework del sistema (0:30h)
+
+Lunes, Semana 4:
+  [1.1.11] Reunion con Ing Pacheco (0:30h)
+
+Horas semana 4: 4:00h
+
+Horas totales Agosto: 17:30h
+
+================================================================================
+                           SEPTIEMBRE 2024
+================================================================================
+
+SEMANA 1 - SEPTIEMBRE 2024
+--------------------------
+Miércoles, Semana 1:
+  [1.1.12] Reunion con Ing Pacheco y Ing Lourdes (1:00h)
+
+Jueves, Semana 1:
+  [1.1.13] Reuniones de coordinación con personal operativo de Archivo (1:30h)
+  [1.1.14] Reunion con Ing Rivera y ayudantes (1:00h)
+  [1.1.15] Reunion con Ing Pacheco (1:00h)
+  [1.4.3] Identificacion de arreglos en el formato de indice de libros (0:30h)
+
+Horas semana 1: 5:00h
+
+SEMANA 4 - SEPTIEMBRE 2024
+--------------------------
+Lunes, Semana 4:
+  [3.1.1] Mockup de inicio de sesión (2:30h)
+  [3.1.2] Desarrollo del dashboard principal con navegación (2:00h)
+
+Martes, Semana 4:
+  [3.1.3] Diseño de módulo de gestión de usuarios y roles (2:00h)
+  [3.1.4] Interfaz de gestión de personas (2:00h)
+
+Miércoles, Semana 4:
+  [1.1.16] Reunion con Ing Pacheco (1:00h)
+  [3.1.5] Diseño de gestión de libros (2:00h)
+  [3.1.6] Interfaz de gestión de registros sacramentales (1:30h)
+
+Jueves, Semana 4:
+  [3.1.7] Módulo de digitalización de documentos (2:30h)
+
+Viernes, Semana 4:
+  [3.1.9] Mockup de reportes generales (2:00h)
+  [3.1.10] Mockup de bitácora de auditoría (1:00h)
+
+Horas semana 4: 18:30h
+
+Horas totales Septiembre: 23:30h
+
+================================================================================
+                            OCTUBRE 2024
+================================================================================
+
+SEMANA 1 - OCTUBRE 2024
+-----------------------
+Miércoles, Semana 1:
+  [1.1.17] Reunion con Ing Pacheco (1:00h)
+
+Lunes, Semana 1:
+  [3.2.1] Definición de tipos de perfiles (Admin, Operador, Consulta) (1:00h)
+  [3.2.2] Diseño de estructura de permisos por pantalla (1:30h)
+
+Martes, Semana 1:
+  [3.2.3] Documentación de flujos de gestión de perfiles (1:00h)
+  [3.3.1] Diseño de flujo de cambio de contraseña (0:30h)
+  [3.3.2] Definición de políticas de contraseñas (0:30h)
+
+Miércoles, Semana 1:
+  [3.3.3] Diseño de proceso de baja lógica de usuarios (0:30h)
+  [3.4.1] Definición de roles del sistema (1:00h)
+
+Jueves, Semana 1:
+  [3.4.2] Matriz de permisos por módulo (0:30h)
+  [3.4.3] Diseño de asignación de roles (0:30h)
+  [3.5.1] Definición de políticas de seguridad del sistema (0:30h)
+
+Viernes, Semana 1:
+  [3.5.2] Diseño de sistema de auditoría conceptual (1:00h)
+  [3.5.3] Definición de logs y monitoreo (0:30h)
+
+Horas semana 1: 9:30h
+
+SEMANA 2 - OCTUBRE 2024
+-----------------------
+Miércoles, Semana 2:
+  [1.1.18] Reunion con Ing Pacheco (1:00h)
+
+Lunes, Semana 2:
+  [4.1.1] Revision de arquitectura y base de datos existente (0:30h)
+  [4.1.2] Definir modelos Pydantic (1:00h)
+  [4.1.3] Validaciones de campos (1:00h)
+  [4.1.4] Pruebas de validacion (0:30h)
+  [6.2.1] Pantalla LogIn (3:00h)
+  [6.2.2] Pantalla Dashboard (3:00h)
+
+Martes, Semana 2:
+  [4.1.5] Manejo de Errores (1:00h)
+  [4.1.6] Documentacion README_SACRA360 (branch Diego) (1:00h)
+  [6.2.3] Pantalla Gestion de usuarios (3:00h)
+  [6.2.12] Modal datos duplicados (2:00h)
+
+Miércoles, Semana 2:
+  [6.2.4] Pantalla Usuarios (2:30h)
+  [6.2.5] Pantalla Roles y permisos (2:30h)
+  [6.2.6] Pantalla Gestion de personas (2:00h)
+  [6.2.7] Pantalla Gestion de libros (3:00h)
+
+Jueves, Semana 2:
+  [6.2.8] Pantalla Registros sacramentales (3:00h)
+  [6.2.9] Pantalla Digitalización de documentos (3:00h)
+
+Viernes, Semana 2:
+  [6.2.10] Pantalla Reportes generales (3:00h)
+  [6.2.11] Pantalla Bitacora auditoría (2:30h)
+  [6.2.13] Layout global (1:30h)
+
+Horas semana 2: 35:30h
+
+SEMANA 3 - OCTUBRE 2024
+-----------------------
+Miércoles, Semana 3:
+  [1.1.19] Reunion con Ing Pacheco (1:00h)
+
+Horas semana 3: 1:00h
+
+SEMANA 4 - OCTUBRE 2024
+-----------------------
+Miércoles, Semana 4:
+  [1.1.20] Reunion con Ing Pacheco (1:00h)
+  [1.1.21] Reunion de coordinación internas (0:30h)
+
+Horas semana 4: 1:30h
+
+Horas totales Octubre: 47:30h
+
+================================================================================
+                           NOVIEMBRE 2024
+================================================================================
+
+SEMANA 1 - NOVIEMBRE 2024
+-------------------------
+Miércoles, Semana 1:
+  [1.1.22] Reunion con personal operativo de archivos (1:00h)
+
+Lunes, Semana 1:
+  [4.1.7] Análisis de enpoints auth existentes (0:30h)
+  [4.1.8] Implementación POST /auth/login (2:00h)
+  [6.1.3] Adaptacion de docker a requerimientos de mi estacion (1:30h)
+  [6.1.4] Configuracion de .env (0:30h)
+
+Martes, Semana 1:
+  [4.1.9] Implementación POST /auth/register (2:00h)
+
+Jueves, Semana 1:
+  [4.1.10] Implementación GET /auth/me (2:00h)
+  [4.1.11] Implementación GET /auth/change-password (2:00h)
+
+Viernes, Semana 1:
+  [4.1.12] Implementación POST/auth/logout (1:30h)
+  [4.1.13] Implementación GET /auth/roles (1:30h)
+  [4.2.1] Configuración de JWT en auth_utils.py (1:30h)
+
+Miércoles, Semana 1:
+  [4.2.2] Implementación create_access_token() (1:30h)
+  [4.2.3] Implementación get_current_user() middleware (2:30h)
+
+Viernes, Semana 1:
+  [4.2.4] Configuración bcrypt para passwords (1:30h)
+  [4.2.5] Pruebas de endpoints con Postman (0:30h)
+
+Horas semana 1: 22:00h
+
+SEMANA 2 - NOVIEMBRE 2024
+-------------------------
+Lunes, Semana 2:
+  [4.2.6] Validación de tokens en endpoints (1:00h)
+  [4.2.7] Manejo de expiración de tokens (1:00h)
+  [4.3.1] Análisis de tabla auditoria en BD (0:30h)
+
+Martes, Semana 2:
+  [4.3.2] Creación de entidad Auditoria en user_entity.py (0:30h)
+  [4.3.3] Implementación función registrar_auditoria() (1:30h)
+
+Miércoles, Semana 2:
+  [4.4.1] Aplicar Depends(get_current_user) en /auth/me (1:00h)
+  [4.4.2] Proteger endpoint /auth/change-password (0:30h)
+  [4.4.3] Proteger endpoint /auth/logout (0:30h)
+  [4.4.4] Proteger endpoint /auth/roles (0:30h)
+
+Jueves, Semana 2:
+  [4.5.1] Análisis de tabla roles en BD (0:30h)
+  [4.5.2] Implementación GET /auth/roles (listar) (1:00h)
+  [4.5.3] Verificación de relación usuario-rol (1:00h)
+
+Viernes, Semana 2:
+  [4.6.1] Configuración CORS en main.py (1:00h)
+  [4.6.2] Validación con Pydantic en DTOs (1:00h)
+  [4.6.3] Implementación bcrypt con salt (1:00h)
+  [4.6.6] Implementación PasswordUtils con validaciones (1:30h)
+  [4.6.7] Configuración OAuth2PasswordBearer (0:30h)
+
+Horas semana 2: 14:00h
+
+SEMANA 3 - NOVIEMBRE 2024
+-------------------------
+Miércoles, Semana 3:
+  [1.1.23] Reunion con Ing Pacheco (1:00h)
+
+Horas semana 3: 1:00h
+
+SEMANA 4 - NOVIEMBRE 2024
+-------------------------
+Lunes, Semana 4:
+  [1.1.24] Reunion de coordinación internas (1:00h)
+  [4.3.4] Integración en endpoint /auth/login (1:00h)
+  [6.2.14] Adaptar diseño interfaz de Login.jsx (0:30h)
+  [6.2.15] Integración con endpoint POST /auth/login (1:00h)
+  [6.2.16] Manejo de respuesta JWT del backend (0:30h)
+
+Miércoles, Semana 4:
+  [1.1.24] Reunion de coordinación Ing Rivera (3:00h)
+  [4.6.4] HTTPException con status codes (1:00h)
+  [4.6.5] Logging de errores con logger (1:00h)
+  [6.1.1] Test de autenticación basicos (1:00h)
+  [6.1.2] Creacion de SCHEMA DE AUTENTICACIÓN Y USUARIOS (1:30h)
+  [6.2.17] Integración Login.jsx funcional con backend (1:30h)
+
+Jueves, Semana 4:
+  [3.1.11] Mockup de registro digital de nuevos sacramentos (1:30h)
+
+Horas semana 4: 13:30h
+
+Horas totales Noviembre: 50:30h
+
+================================================================================
+                           DICIEMBRE 2024
+================================================================================
+
+SEMANA 1 - DICIEMBRE 2024
+-------------------------
+Lunes, Semana 1:
+  [4.1.14] Mejoras en usuarios_router.py (validaciones) (1:30h)
+  [4.1.15] Endpoint POST /usuarios con validaciones (1:30h)
+  [4.2.8] Refactor auth_utils.py con mejores prácticas (1:00h)
+  [4.3.4] Endpoint GET /auditoria con filtros avanzados (1:30h)
+  [4.3.5] Paginación en auditoría (0:30h)
+  [4.3.6] Mejoras en auditoria_router.py (1:00h)
+  [6.2.18] Integración con API de estadísticas (1:00h)
+  [6.2.19] Gráficos y visualización de datos (1:30h)
+  [6.2.20] Implementación página Reportes.jsx completa (1:30h)
+
+Martes, Semana 1:
+  [4.1.16] Endpoint PUT /usuarios/{id} actualización (1:00h)
+  [4.1.17] Endpoint DELETE /usuarios/{id} baja lógica (0:30h)
+  [6.2.21] Integracion de filtros por periodo (7/30/90/365 días) (1:30h)
+  [6.2.22] Integracion API en Auditoría.jsx (2:00h)
+  [6.2.23] Arreglos pantalla Auditoria.jsx (2:00h)
+  [6.2.24] Implementacion pagina Auditoria.jsx completa (1:30h)
+  [6.2.25] Implementacion de filtros de busqueda (1:30h)
+
+Miércoles, Semana 1:
+  [4.6.8] Creación middleware/security.py con headers (1:30h)
+  [4.6.9] Implementación SecurityHeadersMiddleware (1:00h)
+  [4.6.10] Headers: X-Frame-Options, X-Content-Type-Options (0:30h)
+  [4.6.11] Headers: X-XSS-Protection, Strict-Transport-Security (0:30h)
+  [4.6.12] Content-Security-Policy configuration (0:30h)
+
+Jueves, Semana 1:
+  [4.6.13] Creación middleware/permissions.py RBAC (1:30h)
+  [4.6.14] Implementación check_permissions() decorator (1:00h)
+  [4.6.15] Sistema de permisos (permission guard) (1:00h)
+
+Viernes, Semana 1:
+  [4.7.1] Creación routers/reportes_router.py (1:00h)
+  [4.7.2] Endpoint GET /reportes/usuarios/resumen (1:30h)
+  [4.7.3] Endpoint GET /reportes/usuarios/por-rol (1:30h)
+  [4.7.4] Endpoint GET /reportes/usuarios/activos-inactivos (1:00h)
+  [4.7.5] Endpoint GET /reportes/accesos/resumen (1:00h)
+  [4.7.6] Endpoint GET /reportes/accesos/por-usuario (1:00h)
+  [6.2.26] Creación página Perfil.jsx completa (1:00h)
+  [6.2.27] Vista usuario actual en pantalla perfil (0:30h)
+  [6.2.28] Integracion cambio de contraseña personal (1:00h)
+
+Sábado, Semana 1:
+  [4.7.7] Endpoint GET /reportes/accesos/ultimos-accesos (1:00h)
+  [4.7.8] Endpoint GET /reportes/estadisticas/generales (1:30h)
+  [4.7.9] Filtros por periodo (7/30/90/365 días) (1:00h)
+  [4.7.10] Documentación README reportes (0:30h)
+
+Domingo, Semana 1:
+  [5.1.1] Creación diagrama proceso autenticación (LOGIN/JWT) (0:30h)
+  [5.1.2] Creación diagrama proceso gestión usuarios (CRUD) (0:30h)
+  [5.1.3] Creación diagrama proceso digitalización documentos (0:30h)
+  [5.1.4] Creación diagrama proceso generación reportes (0:30h)
+  [5.1.5] Creación diagrama de actividad del sistema completo (1:00h)
+  [5.1.6] Creación diagrama de estados de documento (1:00h)
+  [5.1.7] Documentación README de diagramas UML (1:00h)
+
+Horas semana 1: 46:00h
+
+SEMANA 2 - DICIEMBRE 2024 (hasta Miércoles 10)
+-----------------------------------------------
+Lunes, Semana 2:
+  [5.2.1] Creación diagrama físico completo (1:30h)
+  [5.2.2] Documentación técnica base de datos física (2:00h)
+  [5.2.3] Definición de índices y relaciones (0:30h)
+  [5.2.4] Scripts SQL de ejemplo y consultas útiles (0:30h)
+  [5.3.1] Diagrama arquitectura de microservicios (1:00h)
+
+Martes, Semana 2:
+  [4.1.18] Endpoint PATCH /usuarios/{id}/activar reactivación (0:30h)
+  [5.3.2] Diagrama arquitectura en capas (1:00h)
+  [5.3.3] Diagrama de componentes detallado (1:30h)
+  [5.3.4] Documentación completa arquitectura (2:00h)
+  [5.3.5] Documentación de patrones de diseño aplicados (1:00h)
+  [5.3.6] Documentación de flujos de datos (1:00h)
+  [6.2.29] Arreglos paginación en Auditoría.jsx (0:30h)
+  [6.2.30] Mejoras de UI/UX en paginación (numeros, botones) (0:30h)
+  [6.2.31] Contador de páginas y registros (0:30h)
+
+Horas semana 2: 13:30h
+
+Horas totales Diciembre (hasta miércoles 10): 59:30h
+
+================================================================================
+                         RESUMEN POR ACTIVIDAD
+================================================================================
+
+ACTIVIDAD 1: Relevamiento de información y de procesos
+  Total horas: 33:00h
+  Distribuidas en: Mayo - Noviembre 2024
+  Tareas principales: Reuniones de coordinación (24 reuniones), relevamientos,
+                      identificación de información
+
+ACTIVIDAD 2: Análisis de infraestructura, herramientas y del proceso
+  Total horas: 8:00h
+  Distribuidas en: Mayo - Agosto 2024
+  Tareas principales: Análisis de módulos, infraestructura, tecnologías
+
+ACTIVIDAD 3: Diseño del sistema (módulos)
+  Total horas: 28:00h
+  Distribuidas en: Septiembre - Octubre 2024
+  Tareas principales: Mockups (11), gestión de perfiles, roles, seguridad
+
+ACTIVIDAD 4: Backend Development (Endpoints, JWT, Seguridad, Reportes)
+  Total horas: 69:00h
+  Distribuidas en: Octubre - Diciembre 2024
+  Secciones:
+    4.1 Endpoints de usuarios (18 tareas) - 19:30h
+    4.2 Autenticación JWT (8 tareas) - 11:00h
+    4.3 Endpoints de LOGS (6 tareas) - 6:00h
+    4.4 Proteger endpoints (4 tareas) - 2:30h
+    4.5 Endpoints de roles (3 tareas) - 2:30h
+    4.6 Normas de seguridad (15 tareas) - 14:00h
+    4.7 Reportes de usuarios (10 tareas) - 13:30h
+
+ACTIVIDAD 5: Documentación Técnica (UML, BD, Arquitectura)
+  Total horas: 17:00h
+  Distribuidas en: Diciembre 2024
+  Secciones:
+    5.1 Procesos con UML (7 diagramas) - 5:00h
+    5.2 Diagramas de bases de datos físicas - 4:30h
+    5.3 Esquema de arquitectura - 7:30h
+
+ACTIVIDAD 6: Frontend Development + Backend Testing
+  Total horas: 58:30h
+  Distribuidas en: Octubre - Diciembre 2024
+  Secciones:
+    6.1 Módulo Backend (testing, schemas, docker, env) - 4:30h
+    6.2 Módulo Frontend (31 tareas de UI) - 54:00h
+
+================================================================================
+                         RESUMEN POR MES
+================================================================================
+
+Mayo 2024:      2:00h
+Julio 2024:     5:00h
+Agosto 2024:   17:30h
+Septiembre:    23:30h
+Octubre:       47:30h
+Noviembre:     50:30h
+Diciembre:     59:30h (hasta miércoles 10)
+----------------------------------------
+TOTAL:        213:30h
+
+================================================================================
+                    DISTRIBUCIÓN POR TIPO DE TRABAJO
+================================================================================
+
+COORDINACIÓN Y REUNIONES:
+  - 24 reuniones de coordinación
+  - Total aproximado: 27:00h
+
+ANÁLISIS Y RELEVAMIENTO:
+  - Relevamiento de información y procesos
+  - Análisis de infraestructura y tecnologías
+  - Total aproximado: 14:00h
+
+DISEÑO:
+  - 11 Mockups de interfaces
+  - Diseño de arquitectura y flujos
+  - Total aproximado: 28:00h
+
+DESARROLLO BACKEND:
+  - 18 endpoints de usuarios
+  - 7 endpoints de reportes
+  - Sistema JWT completo
+  - Sistema de auditoría
+  - Middlewares de seguridad (RBAC, headers)
+  - Total aproximado: 69:00h
+
+DOCUMENTACIÓN TÉCNICA:
+  - 7 diagramas UML
+  - Documentación de arquitectura
+  - Documentación de base de datos
+  - Total aproximado: 17:00h
+
+DESARROLLO FRONTEND:
+  - 13 pantallas completas
+  - Integraciones con API
+  - Sistema de permisos frontend
+  - Total aproximado: 54:00h
+
+TESTING Y CONFIGURACIÓN:
+  - Testing de autenticación
+  - Configuración Docker
+  - Configuración de entorno
+  - Total aproximado: 4:30h
+
+================================================================================
+                         HITOS IMPORTANTES
+================================================================================
+
+1. Mayo-Julio 2024: Fase de relevamiento inicial
+   - Coordinación con stakeholders
+   - Identificación de requerimientos
+
+2. Agosto 2024: Análisis profundo
+   - Definición de arquitectura
+   - Análisis de módulos y tecnologías
+
+3. Septiembre 2024: Diseño completo
+   - 11 mockups de interfaces
+   - Definición de perfiles y permisos
+
+4. Octubre 2024: Inicio de desarrollo
+   - Frontend: 13 pantallas
+   - Backend: Arquitectura inicial
+
+5. Noviembre 2024: Backend intensivo
+   - Sistema de autenticación JWT completo
+   - Endpoints de usuarios y auth
+   - Sistema de auditoría
+
+6. Diciembre 2024: Finalización
+   - Middlewares de seguridad
+   - Sistema de reportes (7 endpoints)
+   - Documentación técnica completa
+   - Mejoras de UI/UX
+
+================================================================================
+                              FIN DEL REPORTE
+================================================================================

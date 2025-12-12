@@ -20,9 +20,9 @@ frontend -> frontend: Verificar permisos\ncanAccessModule('reportes')
 frontend -> frontend: Estado inicial:\ndias = 30 (últimos 30 días)
 
 frontend -> auth: GET /api/v1/reportes/usuarios?dias=30\nAuthorization: Bearer {token}
-activate auth &
+activate auth
 frontend -> auth: GET /api/v1/reportes/accesos?dias=30
-activate auth &
+activate auth
 frontend -> auth: GET /api/v1/reportes/estadisticas
 activate auth
 
@@ -153,7 +153,7 @@ frontend -> frontend: setDias(7)
 frontend -> frontend: useEffect detecta cambio
 
 frontend -> auth: GET /api/v1/reportes/usuarios?dias=7
-activate auth &
+activate auth
 frontend -> auth: GET /api/v1/reportes/accesos?dias=7
 activate auth
 

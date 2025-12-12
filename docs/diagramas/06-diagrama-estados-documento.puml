@@ -143,11 +143,11 @@ state Archivado {
 
 Archivado --> [*]
 
-note right of [*]
-  Estados especiales:
+note bottom
+  **Estados especiales:**
   - Error OCR: Reintento automático
-  - Documento corrupto: Manual
-  - Duplicado: Fusionar con existente
+  - Documento corrupto: Requiere revisión manual
+  - Duplicado: Se fusiona con existente
 end note
 
 @enduml

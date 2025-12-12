@@ -46,6 +46,37 @@ WHERE NOT EXISTS (
 );
 
 -- ================================================
+-- 1.1. USUARIO ADMINISTRADOR NUEVO (USAR ESTE)
+-- ================================================
+-- Email: superadmin@sacra360.com
+-- Contraseña: Admin2024!
+-- Rol: Administrador (id_rol: 1)
+-- NOTA: Usar este usuario si no recuerdas las otras contraseñas
+
+INSERT INTO usuarios (
+    rol_id, 
+    nombre, 
+    apellido_paterno, 
+    apellido_materno, 
+    email, 
+    contrasenia, 
+    fecha_creacion, 
+    activo
+)
+SELECT 
+    1,
+    'María',
+    'González',
+    'López',
+    'superadmin@sacra360.com',
+    '$2b$12$WzBHX.1fX.mxWutFaGFgnedLCCddV4mWgGPiRYVHPHbv1mFkjxmgm', -- Admin2024!
+    CURRENT_DATE,
+    TRUE
+WHERE NOT EXISTS (
+    SELECT 1 FROM usuarios WHERE email = 'superadmin@sacra360.com'
+);
+
+-- ================================================
 -- 2. USUARIO REVISOR
 -- ================================================
 -- Email: revisor@sacra360.com

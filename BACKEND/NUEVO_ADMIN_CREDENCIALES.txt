@@ -1,0 +1,47 @@
+╔══════════════════════════════════════════════════════════════╗
+║  ⭐ NUEVO USUARIO ADMINISTRADOR - SACRA360 ⭐                ║
+╚══════════════════════════════════════════════════════════════╝
+
+🔐 CREDENCIALES DE ACCESO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📧 Email:      superadmin@sacra360.com
+🔑 Contraseña: Admin2024!
+
+👤 INFORMACIÓN DEL USUARIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nombre:        María González López
+Rol:           Administrador
+ID Usuario:    12
+Estado:        Activo
+Permisos:      Control total del sistema
+
+🚀 CÓMO USAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Abre el sistema SACRA360 en tu navegador
+2. En la pantalla de login, ingresa:
+   - Email: superadmin@sacra360.com
+   - Contraseña: Admin2024!
+3. Haz clic en "Iniciar Sesión"
+
+⚠️ IMPORTANTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Guarda estas credenciales en un lugar seguro
+✓ Cambia la contraseña después del primer inicio de sesión
+✓ No compartas estas credenciales con nadie
+✓ Este usuario tiene permisos completos de administrador
+
+📝 NOTA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Este usuario fue creado el: 12 de Diciembre de 2025
+Usa este usuario si no recuerdas las contraseñas de los otros
+administradores.
+
+╔══════════════════════════════════════════════════════════════╗
+║  Las credenciales también están documentadas en:             ║
+║  BACKEND/CREDENCIALES_USUARIOS.md                            ║
+╚══════════════════════════════════════════════════════════════╝

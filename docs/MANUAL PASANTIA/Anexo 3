@@ -1,0 +1,45 @@
+DETALLE DE ACTIVIDADES Y TAREAS ASIGNADAS					
+					
+ACTIVIDAD 1:	Relevamiento de información y de procesos				
+Tarea 1:	Reuniones de coordinación con personal operativo de Archivo				
+Tarea 2:	Actividades de identificación de información y documentos				
+Tarea 3:	Relevamiento de tipos de documentos				
+Tarea 4:	Identificar formato de documentos				
+Tarea 5:	Identificar datos de áreas de usuarios: arquidiócesis por departamento y parroquia				
+Tarea 6:	Relevamiento de procedimientos de registro, búsqueda y generación de certificados				
+					
+ACTIVIDAD 2:	Análisis de infraestructura, herramientas y del proceso				
+Tarea 1:	Analisis de los modulos requeridos				
+Tarea 2:	Revision de infraestructura tecnologica disponible				
+Tarea 3:	Identificacion de servidores a usar				
+Tarea 4:	Identificacion de framework del sistema				
+Tarea 5:	Asignacion y division de tareas 				
+					
+ACTIVIDAD 3:	Diseño del sistema (módulos)				
+Tarea 1:	Mockups				
+Tarea 2:	Gestion de los perfiles de usuario				
+Tarea 3:	Cambios de contraseña y bajas logicas de usuarios				
+Tarea 4:	Gestion de roles y accesos				
+Tarea 5:	Gestion de seguridad				
+					
+ACTIVIDAD 4:	Desarrollo de back end y front end				
+Tarea 1:	Elaborar Endpoints de usuarios				
+Tarea 2:	Elaborar Autenticacion y autorizacion de endpoints con JWT				
+Tarea 3:	Elaborar endpoints de LOGS				
+Tarea 4:	Proteger Endpoints con autenticacion				
+Tarea 5:	Elaborar los endpoints de roles y accesos				
+Tarea 6:	Aplicar normas de seguridad para aplicaciones WEB				
+Tarea 7:	Generar reporte de usuarios y accesos				
+					
+ACTIVIDAD 5:	Documentacion tecnica del software				
+Tarea 1:	Diagramas de bases de datos fisicas				
+Tarea 2:	Esquema de arcquitectura				
+Tarea 3:	Esquema de despliegue				
+Tarea 4:	Procesos con UML				
+Tarea 5:	Guia de configuracion				
+Tarea 6:	Primeros pasos de despliegue				
+Tarea 7:	Despliegue del sistema				
+					
+ACTIVIDAD 6:	TAREAS ADICIONALES				
+Tarea 1:	Modulo Backend				
+Tarea 2:	Modulo Frontend				
