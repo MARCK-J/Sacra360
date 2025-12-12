@@ -6,6 +6,7 @@ export default function Certificados() {
   const [loadingList, setLoadingList] = useState(false)
   const [errorList, setErrorList] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     loadSacramentos()
@@ -153,6 +154,13 @@ export default function Certificados() {
     return label && typeof label === 'string' ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : label
   }
 
+  // Client-side filtered list by persona name (simple substring match)
+  const filteredSacramentos = sacramentos.filter((r) => {
+    if (!searchTerm || String(searchTerm).trim() === '') return true
+    const name = (r.persona_nombre || r.person_name || r.persona_id || '')
+    return String(name).toLowerCase().includes(String(searchTerm).toLowerCase())
+  })
+
   return (
     <Layout title="Generación de Certificados">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -161,49 +169,20 @@ export default function Certificados() {
             <h3 className="font-semibold text-lg mb-4">Parámetros</h3>
             <form className="space-y-4">
               <div>
-                <label htmlFor="tipo" className="block text-sm font-medium mb-1">Tipo de Sacramento</label>
-                <select id="tipo" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Bautizo</option>
-                  <option>Confirmación</option>
-                  <option>Matrimonio</option>
-                  <option>Defunción</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="persona" className="block text-sm font-medium mb-1">Persona</label>
-                <input id="persona" type="text" placeholder="Buscar persona..." className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark mt-1">Sugerencia: escribe nombre y apellido</p>
-              </div>
-              <div>
-                <label htmlFor="libro" className="block text-sm font-medium mb-1">Libro / Foja / Número</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <input type="text" placeholder="Libro" className="p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <input type="text" placeholder="Foja" className="p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <input type="text" placeholder="Número" className="p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="plantilla" className="block text-sm font-medium mb-1">Plantilla</label>
-                <select id="plantilla" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Certificado Simple</option>
-                  <option>Certificado con Anotaciones</option>
-                  <option>Certificado Internacional</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="idioma" className="block text-sm font-medium mb-1">Idioma</label>
-                <select id="idioma" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Español</option>
-                  <option>Inglés</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="observaciones" className="block text-sm font-medium mb-1">Observaciones</label>
-                <textarea id="observaciones" rows={3} placeholder="Notas o aclaraciones opcionales" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
+                <label htmlFor="persona" className="block text-sm font-medium mb-1">Buscar Persona</label>
+                <input
+                  id="persona"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Escribe nombre o apellido para filtrar..."
+                  className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark mt-1">Filtra la lista de certificados por nombre de la persona.</p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <button type="button" className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Previsualizar</button>
-                <button type="button" className="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Generar</button>
+                <button type="button" onClick={() => { setSearchTerm(''); loadSacramentos() }} className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Refrescar</button>
+                <div />
               </div>
             </form>
           </div>
@@ -286,7 +265,7 @@ export default function Certificados() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sacramentos.map((r) => (
+                    {filteredSacramentos.map((r) => (
                       <tr key={r.id_sacramento || r.id} className={`bg-white dark:bg-background-dark border-b dark:border-gray-700 ${getRowClass(r)}`}>
                         <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.id_sacramento || r.id}</td>
                         <td className="px-6 py-3">{r.persona_nombre ?? r.persona_id ?? r.person_name}</td>
