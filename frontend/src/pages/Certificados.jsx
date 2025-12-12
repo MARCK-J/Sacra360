@@ -211,10 +211,15 @@ export default function Certificados() {
                     </div>
                     <div className="space-y-3 text-sm">
                       <p><span className="font-semibold">Nombre:</span> {selected.persona_nombre ?? selected.persona_id ?? selected.person_name ?? '-'}</p>
-                      <p><span className="font-semibold">Padres:</span> {selected.padres || (selected.padre ? `${selected.padre} y ${selected.madre}` : (selected.father_name || '') ) || '-'}</p>
+                      <p><span className="font-semibold">Padres:</span> {
+                        selected.padres
+                        || ((selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name) || (selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name))
+                          ? `${selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name} y ${selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name}`
+                          : '-'
+                      }</p>
                       <p><span className="font-semibold">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
-                      <p><span className="font-semibold">Ministro:</span> {selected.ministro || selected.sacrament_minister || '-'}</p>
-                      <p><span className="font-semibold">Libro / Foja / Nº:</span> {selected.libro || selected.book_number || selected.libro_acta || (selected.libro_nro ? `${selected.libro_nro}` : '-')}</p>
+                      <p><span className="font-semibold">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_bautizo || selected.ministro_confirmacion || '-'}</p>
+                      <p><span className="font-semibold">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || '-'} / ${selected.numero_acta || selected.numero || '-'}`}</p>
                     </div>
                     <div className="mt-6 flex items-center justify-between">
                       <div>
