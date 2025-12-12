@@ -269,6 +269,91 @@ export default function Reportes() {
     }
   }
 
+  // Derived statistics helpers
+  function getAggregatedCounts() {
+    const map = new Map()
+    ;(counts || []).forEach((c) => {
+      const label = resolveTipoLabel(c.tipo)
+      const prev = map.get(label) || 0
+      map.set(label, prev + (Number(c.total) || 0))
+    })
+    return Array.from(map.entries()).map(([tipo, total]) => ({ tipo, total }))
+  }
+
+  // Build last N months labels and counts from sacramentos list
+  function getMonthlySeries(months = 6) {
+    const seriesMap = new Map()
+    const now = new Date()
+    // init map for last `months` months
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      seriesMap.set(key, 0)
+    }
+    ;(sacramentos || []).forEach((s) => {
+      const f = s.fecha_sacramento || s.fecha || s.fecha_registro
+      if (!f) return
+      const d = new Date(String(f))
+      if (isNaN(d.getTime())) return
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      if (seriesMap.has(key)) seriesMap.set(key, seriesMap.get(key) + 1)
+    })
+    const labels = Array.from(seriesMap.keys())
+    const values = Array.from(seriesMap.values())
+    return { labels, values }
+  }
+
+  // Simple SVG bar chart for counts by tipo
+  function BarChart({ data, width = 360, height = 160 }) {
+    if (!data || data.length === 0) return <div className="text-sm text-gray-500">No hay datos para el gráfico.</div>
+    const max = Math.max(...data.map((d) => d.total)) || 1
+    const barW = Math.max(24, Math.floor((width - 40) / data.length))
+    return (
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="mx-auto block">
+        <rect x="0" y="0" width={width} height={height} fill="transparent" />
+        {data.map((d, i) => {
+          const x = 20 + i * barW
+          const h = Math.round((d.total / max) * (height - 40))
+          const y = height - 20 - h
+          return (
+            <g key={d.tipo}>
+              <rect x={x} y={y} width={barW - 8} height={h} fill="#0b74ff" rx="4" />
+              <text x={x + (barW - 8) / 2} y={height - 6} fontSize="11" textAnchor="middle" fill="#0f172a">{d.tipo}</text>
+            </g>
+          )
+        })}
+      </svg>
+    )
+  }
+
+  // Simple sparkline (line) for monthly counts
+  function LineSpark({ labels, values, width = 360, height = 80 }) {
+    if (!labels || labels.length === 0) return <div className="text-sm text-gray-500">No hay datos.</div>
+    const max = Math.max(...values, 1)
+    const min = Math.min(...values)
+    const points = values.map((v, i) => {
+      const x = Math.round((i / (values.length - 1)) * (width - 20)) + 10
+      const y = Math.round(((max - v) / (max - min || 1)) * (height - 20)) + 10
+      return `${x},${y}`
+    }).join(' ')
+    return (
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="mx-auto block">
+        <polyline points={points} fill="none" stroke="#0b74ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {values.map((v, i) => {
+          const x = Math.round((i / (values.length - 1)) * (width - 20)) + 10
+          const y = Math.round(((max - v) / (max - min || 1)) * (height - 20)) + 10
+          return <circle key={i} cx={x} cy={y} r={2.5} fill="#0b74ff" />
+        })}
+        <g>
+          {labels.map((lbl, i) => {
+            const x = Math.round((i / (labels.length - 1)) * (width - 20)) + 10
+            return <text key={i} x={x} y={height - 1} fontSize="10" textAnchor="middle" fill="#64748b">{lbl.split('-').slice(1).join('/')}</text>
+          })}
+        </g>
+      </svg>
+    )
+  }
+
   function handleFiltroChange(e) {
     const { name, value } = e.target
     setFiltros((s) => ({ ...s, [name]: value }))
@@ -346,23 +431,23 @@ export default function Reportes() {
             {!loadingCounts && !errorCounts && (
               <div className="mt-4">
                 {counts.length === 0 && <p className="text-sm text-gray-500">No hay datos disponibles.</p>}
-                <ul className="space-y-2">
+                <div className="mb-4">
+                  {/* Bar chart for counts */}
                   {(() => {
-                    // normalize and aggregate counts by canonical label
-                    const map = new Map()
-                    ;(counts || []).forEach((c) => {
-                      const label = resolveTipoLabel(c.tipo)
-                      const prev = map.get(label) || 0
-                      map.set(label, prev + (Number(c.total) || 0))
-                    })
-                    const aggregated = Array.from(map.entries()).map(([tipo, total]) => ({ tipo, total }))
-                    return aggregated.map((c) => (
-                      <li key={c.tipo} className="flex justify-between items-center border-b py-2">
-                        <span className="text-sm text-gray-700 dark:text-gray-200">{c.tipo}</span>
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">{c.total}</span>
-                      </li>
-                    ))
+                    const data = getAggregatedCounts()
+                    return <BarChart data={data} width={340} height={160} />
                   })()}
+                </div>
+                <ul className="space-y-2">
+                  {getAggregatedCounts().map((c) => (
+                    <li key={c.tipo} className="flex justify-between items-center border-b py-2">
+                      <div>
+                        <span className="text-sm text-gray-700 dark:text-gray-200 mr-2">{c.tipo}</span>
+                        <span className="text-xs text-muted-foreground-light text-gray-500">({Math.round((c.total / (getAggregatedCounts().reduce((s, x) => s + x.total, 0) || 1)) * 100)}%)</span>
+                      </div>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">{c.total}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             )}
@@ -374,6 +459,14 @@ export default function Reportes() {
             {errorList && <p className="text-sm text-red-600">Error: {errorList}</p>}
             {!loadingList && !errorList && (
               <div className="mt-4">
+                {/* Monthly sparkline */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Sacramentos últimos meses</h4>
+                  {(() => {
+                    const series = getMonthlySeries(6)
+                    return <LineSpark labels={series.labels} values={series.values} width={520} height={96} />
+                  })()}
+                </div>
                 {sacramentos.length === 0 && <p className="text-sm text-gray-500">No hay registros.</p>}
                 {sacramentos.length > 0 && (
                   <div className="overflow-x-auto">
