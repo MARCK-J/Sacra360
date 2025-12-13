@@ -1,18 +1,27 @@
 import { useState } from 'react'
 import Layout from '../components/Layout'
+import PARROQUIAS from '../data/parroquias'
 
 export default function Sacramento() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const [createdId, setCreatedId] = useState(null)
   const [form, setForm] = useState({
     tipo_sacramento: 1,
     fecha_sacramento: '',
+    fecha_defuncion: '',
     sacrament_location: '',
     sacrament_minister: '',
     person_name: '',
     person_birthdate: '',
     father_name: '',
     mother_name: '',
+    // Campos para Matrimonio (segundo contrayente)
+    spouse_name: '',
+    spouse_birthdate: '',
+    father2_name: '',
+    mother2_name: '',
+    persona2_id: '',
     godparent_1_name: '',
     book_number: '',
     folio_number: '',
@@ -47,8 +56,27 @@ export default function Sacramento() {
         setLoading(false)
         return
       }
+        // Validaciones específicas para Matrimonio
+        if (Number(form.tipo_sacramento) === 3) {
+          const spouseTrim = (form.spouse_name || '').trim()
+          const hasPersona2 = !!form.persona2_id
+          if (!spouseTrim && !hasPersona2) {
+            setMessage({ type: 'error', text: 'Matrimonio requiere indicar el segundo contrayente (nombre) o seleccionar persona existente.' })
+            setLoading(false)
+            return
+          }
+          const father2Trim = (form.father2_name || '').trim()
+          const mother2Trim = (form.mother2_name || '').trim()
+          if (!father2Trim || !mother2Trim) {
+            setMessage({ type: 'error', text: 'Matrimonio requiere nombres de padre y madre del segundo contrayente.' })
+            setLoading(false)
+            return
+          }
+        }
+      const tipoLabels = {1: 'bautizo', 2: 'confirmacion', 3: 'matrimonio', 4: 'defuncion'}
       const payload = {
         tipo_sacramento: Number(form.tipo_sacramento),
+        tipo: tipoLabels[Number(form.tipo_sacramento)] || undefined,
         fecha_sacramento: form.fecha_sacramento,
         institucion: form.sacrament_location,
         ministro: form.sacrament_minister,
@@ -56,10 +84,17 @@ export default function Sacramento() {
         person_birthdate: form.person_birthdate,
         father_name: form.father_name,
         mother_name: form.mother_name,
+          // Enviar campos del segundo contrayente si existen (nombres compatibles con backend)
+        spouse_name: form.spouse_name || undefined,
+        spouse_birthdate: form.spouse_birthdate || undefined,
+        father2_name: form.father2_name || undefined,
+        mother2_name: form.mother2_name || undefined,
+        persona2_id: form.persona2_id || undefined,
         godparent_1_name: form.godparent_1_name,
         libro: form.book_number,
         folio: form.folio_number,
-        numero_acta: form.record_number,
+          numero_acta: form.record_number,
+          ...(Number(form.tipo_sacramento) === 4 ? { fecha_defuncion: form.fecha_defuncion || undefined } : {}),
         observaciones: form.notes
       }
 
@@ -78,10 +113,22 @@ export default function Sacramento() {
         data = null
       }
       if (!res.ok) {
-        const detail = data?.detail || text || res.statusText
-        throw new Error(`${res.status} ${detail}`)
+          // backend can return structured detail (array of field errors)
+          let detail = text || res.statusText
+          if (data?.detail) {
+            if (Array.isArray(data.detail)) {
+              detail = data.detail.map(d => d.message || JSON.stringify(d)).join('; ')
+            } else if (typeof data.detail === 'string') {
+              detail = data.detail
+            } else {
+              detail = JSON.stringify(data.detail)
+            }
+          }
+          throw new Error(`${res.status} ${detail}`)
       }
-      setMessage({ type: 'success', text: 'Sacramento creado (id: ' + (data?.id_sacramento || data?.id || 'ok') + ')' })
+      const created = data?.id_sacramento || data?.id || null
+      setCreatedId(created)
+      setMessage({ type: 'success', text: 'Sacramento creado (id: ' + (created || 'ok') + '). Puedes abrir el certificado desde el botón.' })
       // reset form or keep
     } catch (err) {
       setMessage({ type: 'error', text: String(err) })
@@ -116,18 +163,40 @@ export default function Sacramento() {
           <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl p-8 flex flex-col gap-8">
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Datos del Sacramento</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-date">Fecha del Sacramento</label>
-                  <input name="fecha_sacramento" value={form.fecha_sacramento} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-date" type="date" />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="book-number">Libro N°</label>
+                    <input name="book_number" value={form.book_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="book-number" placeholder="Ej: 10" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="folio-number">Folio N°</label>
+                    <input name="folio_number" value={form.folio_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="folio-number" placeholder="Ej: 45" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="record-number">Partida N°</label>
+                    <input name="record_number" value={form.record_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="record-number" placeholder="Ej: 200" type="text" />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-location">Lugar (Parroquia)</label>
-                  <input name="sacrament_location" value={form.sacrament_location} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-location" placeholder="Ej: Parroquia San Miguel" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-minister">Ministro</label>
-                  <input name="sacrament_minister" value={form.sacrament_minister} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-minister" placeholder="Ej: P. Juan Pérez" type="text" />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-date">Fecha del Sacramento</label>
+                    <input name="fecha_sacramento" value={form.fecha_sacramento} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-date" type="date" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="inst-select">Parroquia/Institución *</label>
+                    <select id="inst-select" name="sacrament_location" value={form.sacrament_location} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                      <option value="">Seleccione una parroquia</option>
+                      {PARROQUIAS.map((name, idx) => (
+                        <option key={idx} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="sacrament-minister">Ministro</label>
+                    <input name="sacrament_minister" value={form.sacrament_minister} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="sacrament-minister" placeholder="Ej: P. Juan Pérez" type="text" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,31 +205,108 @@ export default function Sacramento() {
               <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">
                 {form.tipo_sacramento === 1 ? 'Datos del Bautizado' : form.tipo_sacramento === 2 ? 'Datos del Confirmando' : form.tipo_sacramento === 3 ? 'Datos de los Contrayentes' : 'Datos del Fallecido'}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-name">Nombres y Apellidos</label>
-                  <input name="person_name" value={form.person_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-name" placeholder="Ingrese el nombre completo" type="text" />
+              {form.tipo_sacramento === 3 ? (
+                <div className="flex flex-col gap-4">
+                  {/* Contrayente 1 box (same style as contrayente 2) */}
+                  <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">Datos del Contrayente 1</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-name">Nombres y Apellidos (Contrayente 1)</label>
+                        <input name="person_name" value={form.person_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-name" placeholder="Ingrese el nombre completo" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-birthdate">Fecha de Nacimiento (Contrayente 1)</label>
+                        <input name="person_birthdate" value={form.person_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-birthdate" type="date" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre (Contrayente 1)</label>
+                        <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre (Contrayente 1)</label>
+                        <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contrayente 2 box (existing fields but placed directly below) */}
+                  <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">Datos del Contrayente 2</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="spouse-name">Nombres y Apellidos (Contrayente 2)</label>
+                        <input name="spouse_name" value={form.spouse_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="spouse-name" placeholder="Ingrese el nombre completo" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="spouse-birthdate">Fecha de Nacimiento (Contrayente 2)</label>
+                        <input name="spouse_birthdate" value={form.spouse_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="spouse-birthdate" type="date" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father2-name">Padre (Contrayente 2)</label>
+                        <input name="father2_name" value={form.father2_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father2-name" placeholder="Nombre completo del padre" type="text" />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother2-name">Madre (Contrayente 2)</label>
+                        <input name="mother2_name" value={form.mother2_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother2-name" placeholder="Nombre completo de la madre" type="text" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-birthdate">Fecha de Nacimiento</label>
-                  <input name="person_birthdate" value={form.person_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-birthdate" type="date" />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-name">Nombres y Apellidos</label>
+                      <input name="person_name" value={form.person_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-name" placeholder="Ingrese el nombre completo" type="text" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="person-birthdate">Fecha de Nacimiento</label>
+                      <input name="person_birthdate" value={form.person_birthdate} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="person-birthdate" type="date" />
+                    </div>
+                  </div>
+
+                  {form.tipo_sacramento === 4 && (
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="fecha-defuncion">Fecha de Fallecimiento</label>
+                        <input
+                          name="fecha_defuncion"
+                          value={form.fecha_defuncion}
+                          onChange={handleChange}
+                          className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
+                          id="fecha-defuncion"
+                          type="date"
+                        />
+                      </div>
+                      <div className="hidden md:block" />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Familiares</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre</label>
-                  <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre</label>
-                  <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
+            {form.tipo_sacramento !== 3 && (
+              <div className="flex flex-col gap-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Familiares</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="father-name">Padre</label>
+                    <input name="father_name" value={form.father_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="father-name" placeholder="Nombre completo del padre" type="text" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="mother-name">Madre</label>
+                    <input name="mother_name" value={form.mother_name} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="mother-name" placeholder="Nombre completo de la madre" type="text" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {form.tipo_sacramento === 1 && (
               <div className="flex flex-col gap-4">
@@ -176,26 +322,9 @@ export default function Sacramento() {
               </div>
             )}
 
-            <div className="flex flex-col gap-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-3">Datos del Libro de Registro</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="book-number">Libro N°</label>
-                  <input name="book_number" value={form.book_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="book-number" placeholder="Ej: 12" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="folio-number">Folio N°</label>
-                  <input name="folio_number" value={form.folio_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="folio-number" placeholder="Ej: 45" type="text" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="record-number">Partida N°</label>
-                  <input name="record_number" value={form.record_number} onChange={handleChange} className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="record-number" placeholder="Ej: 89" type="text" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="notes">Notas</label>
-                <textarea name="notes" value={form.notes} onChange={handleChange} className="form-textarea rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="notes" placeholder="Añada cualquier observación o nota marginal." rows="3"></textarea>
-              </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="notes">Notas</label>
+              <textarea name="notes" value={form.notes} onChange={handleChange} className="form-textarea rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50" id="notes" placeholder="Añada cualquier observación o nota marginal." rows="3"></textarea>
             </div>
 
             <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
@@ -208,7 +337,14 @@ export default function Sacramento() {
             </div>
 
             {message && (
-              <div className={`mt-3 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{message.text}</div>
+              <div className={`mt-3 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                <div>{message.text}</div>
+                {message.type === 'success' && createdId && (
+                  <div className="mt-2">
+                    <a href={`/certificados?id=${createdId}`} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 rounded bg-primary text-white text-sm">Ver Certificado</a>
+                  </div>
+                )}
+              </div>
             )}
 
           </form>

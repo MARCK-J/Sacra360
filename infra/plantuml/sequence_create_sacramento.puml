@@ -1,0 +1,22 @@
+@startuml
+title Sequence: Create Sacramento
+actor User
+participant Frontend
+participant API as "Documents Service (API)"
+participant DB as "Postgres"
+participant Minio
+participant OCR
+
+User -> Frontend : fill sacramento form
+Frontend -> API : POST /api/v1/sacramentos/ (payload)
+API -> API : validate DTO (Pydantic non-blocking)
+API -> DB : INSERT INTO sacramentos (...) RETURNING id_sacramento
+DB --> API : id_sacramento
+API -> DB : INSERT INTO detalles_* if detail fields present
+API -> Minio : (optional) upload files
+API -> OCR : (optional) request OCR processing
+OCR -> Minio : store OCR result
+API -> Frontend : 201 Created + sacramento resource
+Frontend -> User : show success / open certificate
+
+@enduml

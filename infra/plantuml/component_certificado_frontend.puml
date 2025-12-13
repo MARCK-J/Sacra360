@@ -1,0 +1,19 @@
+@startuml
+title Frontend - Certificados Component (high level)
+skinparam componentStyle rectangle
+
+component "Certificados.jsx" as Certificados
+component "Registros.jsx" as Registros
+component "Reportes.jsx" as Reportes
+
+Certificados -> Registros : reads sacramento data
+Certificados -> Reportes : (optional) request aggregated stats
+
+note right of Certificados
+  - Renders certificate template
+  - Injects `CERT_CSS` into print/export
+  - Helpers: isMatrimonio(), getSpouseNames()
+  - Export: html2canvas + jspdf
+end note
+
+@enduml

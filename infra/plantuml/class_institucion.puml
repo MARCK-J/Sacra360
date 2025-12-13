@@ -1,0 +1,22 @@
+@startuml
+title Instituciones - Class Diagram
+skinparam classAttributeIconSize 0
+
+class InstitucionesController {
+  +create_institucion(payload)
+  +list_instituciones(skip, limit, nombre)
+  +get_institucion(id)
+  +update_institucion(id, payload)
+  +delete_institucion(id)
+}
+
+class InstitucionModel {
+  +id_institucion
+  +nombre
+}
+
+InstitucionesController --> InstitucionModel : CRUD
+
+note right: Minimal CRUD controller using raw SQL in `instituciones_controller.py`
+
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+title Sacra360 - Component Architecture (excluding Reportes)
+skinparam componentStyle rectangle
+
+package "Edge / User" {
+  [Browser - Frontend] as Frontend
+}
+
+package "Infra" {
+  [Postgres] as Postgres
+  [MinIO] as Minio
+  [Docker Registry] as Registry
+}
+
+package "Services" {
+  component "Documents Service\n(FastAPI)" as Documents
+  component "OCR Service\n(Python)" as OCR
+  component "Auth/Profiles\n(optional)" as Auth
+}
+
+Frontend --> Documents : HTTP /api/v1/*
+Documents --> Postgres : SQL
+Documents --> Minio : Object storage (files, images, OCR outputs)
+Documents --> OCR : HTTP/RPC for OCR processing
+Documents --> Auth : token validation (optional)
+OCR --> Minio : store OCR results
+
+note right of Documents
+  Controllers: sacramento_controller, persona_controller,
+  libro_controller, instituciones_controller
+  DTOs: sacramento_dto, persona_dto, libro_dto
+  Uses: Pydantic, detalles_* tables, upsert logic
+end note
+
+cloud "Dev / CI" {
+  Registry
+}
+
+@enduml

@@ -1,0 +1,75 @@
+@startuml
+title Sacramento - Class Diagram
+skinparam classAttributeIconSize 0
+
+class SacramentoController {
+  +create_sacramento(payload)
+  +list_sacramentos(filters)
+  +get_sacramento(id)
+  +update_sacramento(id, payload)
+}
+
+class SacramentoCreateDTO {
+  +tipo_id
+  +persona_id
+  +fecha_sacramento
+  +libro_id
+  +ministro
+  +padrino
+  +foja
+  +numero_acta
+}
+
+class SacramentoUpdateDTO {
+  +libro_id
+  +fecha_sacramento
+  +ministro
+  +padrinos
+  +observaciones
+}
+
+class SacramentoModel {
+  +id_sacramento
+  +persona_id
+  +tipo_id
+  +fecha_sacramento
+  +libro_id
+  +institucion_id
+}
+
+class DetallesBautizo {
+  +sacramento_id
+  +padrino
+  +ministro
+  +foja
+  +numero
+}
+
+class DetallesConfirmacion {
+  +sacramento_id
+  +padrino
+  +madrina
+  +ministro
+  +foja
+  +numero
+}
+
+class DetallesMatrimonio {
+  +sacramento_id
+  +nombre_esposo
+  +nombre_esposa
+  +ministro
+  +foja
+  +numero
+}
+
+SacramentoController ..> SacramentoCreateDTO : uses
+SacramentoController ..> SacramentoUpdateDTO : uses
+SacramentoController --> SacramentoModel : CRUD
+SacramentoModel "1" o-- "0..1" DetallesBautizo : has
+SacramentoModel "1" o-- "0..1" DetallesConfirmacion : has
+SacramentoModel "1" o-- "0..1" DetallesMatrimonio : has
+
+note left: DTOs use Pydantic (non-blocking validation)
+
+@enduml

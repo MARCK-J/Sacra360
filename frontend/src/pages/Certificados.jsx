@@ -1,6 +1,247 @@
 import Layout from '../components/Layout'
+import { useCallback, useEffect, useState } from 'react'
 
 export default function Certificados() {
+  const [sacramentos, setSacramentos] = useState([])
+  const [loadingList, setLoadingList] = useState(false)
+  const [errorList, setErrorList] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    loadSacramentos()
+    // If URL contains ?id=..., load that sacramento and set as selected (useful after creating)
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const idParam = params.get('id')
+      if (idParam) {
+        ;(async () => {
+          try {
+            const r = await fetch(`/api/v1/sacramentos/${idParam}`)
+            if (r.ok) {
+              const d = await r.json()
+              setSelected(d)
+            }
+          } catch (e) {
+            // ignore
+          }
+        })()
+      }
+    } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function loadSacramentos() {
+    setLoadingList(true)
+    setErrorList(null)
+    try {
+      const res = await fetch('/api/v1/sacramentos/?limit=20')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : (data.sacramentos || data || [])
+      setSacramentos(list)
+      if (list.length > 0 && !selected) setSelected(list[0])
+    } catch (err) {
+      setErrorList(String(err))
+    } finally {
+      setLoadingList(false)
+    }
+  }
+  // Shared CSS for printed/exported certificates (without <style> wrapper)
+  const CERT_CSS = `
+        @page { size: A4; margin: 18mm; }
+        :root{ --paper-bg: #f9fafb; --accent:#0b74ff; --muted:#6b7280; }
+        body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color: #0f172a; background: var(--paper-bg); padding: 12px; }
+        .certificate-wrapper{ max-width: 900px; margin: 0 auto; }
+        .certificate { background: #ffffff; border-radius: 12px; padding: 36px; box-shadow: 0 6px 20px rgba(15,23,42,0.06); border: 1px solid rgba(15,23,42,0.04); }
+        .cert-header { text-align: center; margin-bottom: 18px; }
+        .cert-title { font-weight: 800; font-size: 26px; letter-spacing: -0.02em; }
+        .cert-sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+        .cert-body { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; font-size: 15px; }
+        .field-label{ font-weight:600; display:inline-block; width:120px }
+        .contrayentes { display:flex; gap:18px; align-items:flex-start }
+        .spouse { flex:1; background:#fafafa; padding:10px; border-radius:8px; border:1px solid rgba(15,23,42,0.03) }
+        .footer { display:flex; justify-content:space-between; align-items:center; margin-top:20px }
+        .issuer { color:var(--muted); font-size:12px }
+        .seal { text-align:center }
+        .book-line{ color:var(--muted); font-size:14px }
+        @media print{
+          body { background: white; padding:0 }
+          .certificate { box-shadow: none; border: none; border-radius: 0; padding: 18mm }
+        }
+  `
+  const handlePrint = useCallback((elementId) => {
+    const el = document.getElementById(elementId)
+    if (!el) return alert('Preview no disponible para imprimir')
+    const content = el.innerHTML
+    const win = window.open('', '_blank', 'toolbar=0,location=0,menubar=0')
+    if (!win) return alert('No se pudo abrir la ventana de impresión')
+    const style = `<style>${CERT_CSS}</style>`
+    win.document.open()
+    win.document.write(`<!doctype html><html><head><title>Certificado</title>${style}</head><body><div class="certificate-container">${content}</div></body></html>`)
+    win.document.close()
+    // Wait for images/fonts to load
+    win.focus()
+    setTimeout(() => {
+      try {
+        win.print()
+      } catch (e) {
+        console.error(e)
+        alert('Error al intentar imprimir/exportar. Usa la opción de imprimir del navegador.')
+      }
+    }, 400)
+  }, [])
+
+  const handleExportPDF = useCallback((elementId) => {
+    const generateAndDownload = async () => {
+      let html2canvas = null
+      let jsPDF = null
+      try {
+        const modCanvas = await import('html2canvas')
+        html2canvas = modCanvas.default || modCanvas
+        const modPdf = await import('jspdf')
+        jsPDF = modPdf.jsPDF || modPdf.default || modPdf
+      } catch (err) {
+        // dynamic import failed — fall back to print dialog
+        console.warn('PDF libs not available, falling back to print dialog', err)
+        return handlePrint(elementId)
+      }
+
+      const el = document.getElementById(elementId)
+      if (!el) return alert('Preview no disponible para exportar')
+      const originalBg = el.style.backgroundColor
+      // Ensure certificate CSS is present in the current document so exported PDF matches print template
+      let injectedStyle = null
+      let addedStyle = false
+      try {
+        injectedStyle = document.getElementById('cert-style')
+        if (!injectedStyle) {
+          injectedStyle = document.createElement('style')
+          injectedStyle.id = 'cert-style'
+          injectedStyle.innerHTML = CERT_CSS
+          document.head.appendChild(injectedStyle)
+          addedStyle = true
+        }
+      } catch (e) {
+        // ignore injection errors
+      }
+      el.style.backgroundColor = '#ffffff'
+      try {
+        // ensure web fonts have loaded so canvas text matches on-screen
+        try { if (document.fonts && document.fonts.ready) await document.fonts.ready } catch (e) {}
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = pdf.internal.pageSize.getHeight()
+
+        const canvasWidth = canvas.width
+        const canvasHeight = canvas.height
+        const pageHeightPx = Math.floor(canvasWidth * (pdfHeight / pdfWidth))
+
+        let position = 0
+        while (position < canvasHeight) {
+          const sliceHeight = Math.min(pageHeightPx, canvasHeight - position)
+          const pageCanvas = document.createElement('canvas')
+          pageCanvas.width = canvasWidth
+          pageCanvas.height = sliceHeight
+          const ctx = pageCanvas.getContext('2d')
+          ctx.drawImage(canvas, 0, position, canvasWidth, sliceHeight, 0, 0, canvasWidth, sliceHeight)
+          const pageImgData = pageCanvas.toDataURL('image/png')
+          const pageHeightMm = (sliceHeight * pdfWidth) / canvasWidth
+          pdf.addImage(pageImgData, 'PNG', 0, 0, pdfWidth, pageHeightMm)
+          position += sliceHeight
+          if (position < canvasHeight) pdf.addPage()
+        }
+
+        const filename = `certificado-${Date.now()}.pdf`
+        pdf.save(filename)
+      } catch (err) {
+        console.error('PDF export error', err)
+        alert('Error al generar PDF. Se abrirá el diálogo de impresión como respaldo.')
+        handlePrint(elementId)
+      } finally {
+        el.style.backgroundColor = originalBg
+        // remove injected style if we added it
+        try {
+          if (addedStyle && injectedStyle && injectedStyle.parentNode) injectedStyle.parentNode.removeChild(injectedStyle)
+        } catch (e) {}
+      }
+    }
+    generateAndDownload()
+  }, [handlePrint])
+  function getRowClass(r) {
+    const selId = selected && (selected.id_sacramento || selected.id)
+    const rowId = r && (r.id_sacramento || r.id)
+    return selId && rowId && selId === rowId ? 'bg-primary/5' : ''
+  }
+
+  // Map tipo identifiers (id or numeric string) to human-friendly labels
+  const TIPO_MAP = {
+    1: 'bautizo',
+    2: 'confirmacion',
+    3: 'matrimonio',
+    4: 'defuncion',
+    5: 'primera comunion'
+  }
+
+  function getTipoLabel(item) {
+    if (!item) return '-'
+    const rawTipo = item.tipo_nombre || item.tipo_sacramento || item.tipo || item.tipo_id || item.tipoId
+    if (!rawTipo) return '-'
+    const s = String(rawTipo)
+    // If it's purely numeric (e.g. '4'), prefer mapping via number
+    let label = ''
+    if (/^\d+$/.test(s)) {
+      const n = Number(s)
+      label = TIPO_MAP[n] || `Tipo ${n}`
+    } else {
+      label = s
+    }
+    // Capitalize first letter for display
+    return label && typeof label === 'string' ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : label
+  }
+
+  // Client-side filtered list by persona name (simple substring match)
+  const filteredSacramentos = sacramentos.filter((r) => {
+    if (!searchTerm || String(searchTerm).trim() === '') return true
+    const name = (r.persona_nombre || r.person_name || r.persona_id || '')
+    return String(name).toLowerCase().includes(String(searchTerm).toLowerCase())
+  })
+
+  // Helper to detect whether a sacramento is a matrimonio
+  function isMatrimonio(item) {
+    if (!item) return false
+    const raw = item.tipo_id || item.tipo || item.tipo_nombre || item.tipo_sacramento
+    if (raw == null) return false
+    if (typeof raw === 'number' || /^\d+$/.test(String(raw))) return Number(raw) === 3
+    return String(raw).toLowerCase().includes('matrim')
+  }
+
+  // Try many possible aliases to return the two spouse names for matrimonios
+  function getSpouseNames(item) {
+    if (!item) return ['-','-']
+    // Candidate sources for spouse 1 (esposo)
+    const s1 = item.nombre_esposo || item.esposo || item.spouse_name || item.spouse || item.persona_nombre || item.person_name || item.persona || item.nombre_conyuge || item.contrayente_1 || item.persona1 || null
+    // Candidate sources for spouse 2 (esposa)
+    const s2 = item.nombre_esposa || item.esposa || item.spouse_name_2 || item.spouse2 || item.person2_name || item.contrayente_2 || item.persona2_nombre || item.persona2 || null
+
+    const left = (s1 && String(s1).trim() !== '') ? s1 : null
+    const right = (s2 && String(s2).trim() !== '') ? s2 : null
+
+    // If only one side is present but there are other fields that may contain the second name, try alternate heuristics
+    if (!left && right) {
+      // try to use persona_nombre if present
+      const alt = item.persona_nombre || item.person_name || item.persona
+      return [alt || '-', right || '-']
+    }
+    if (!right && left) {
+      // try to get a second person from common alternate fields
+      const alt2 = item.nombre_conyuge || item.person2_name || item.persona2 || item.esposa || item.spouse2
+      return [left || '-', alt2 || '-']
+    }
+    return [left || '-', right || '-']
+  }
+
   return (
     <Layout title="Generación de Certificados">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -9,49 +250,20 @@ export default function Certificados() {
             <h3 className="font-semibold text-lg mb-4">Parámetros</h3>
             <form className="space-y-4">
               <div>
-                <label htmlFor="tipo" className="block text-sm font-medium mb-1">Tipo de Sacramento</label>
-                <select id="tipo" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Bautizo</option>
-                  <option>Confirmación</option>
-                  <option>Matrimonio</option>
-                  <option>Defunción</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="persona" className="block text-sm font-medium mb-1">Persona</label>
-                <input id="persona" type="text" placeholder="Buscar persona..." className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark mt-1">Sugerencia: escribe nombre y apellido</p>
-              </div>
-              <div>
-                <label htmlFor="libro" className="block text-sm font-medium mb-1">Libro / Foja / Número</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <input type="text" placeholder="Libro" className="p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <input type="text" placeholder="Foja" className="p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <input type="text" placeholder="Número" className="p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="plantilla" className="block text-sm font-medium mb-1">Plantilla</label>
-                <select id="plantilla" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Certificado Simple</option>
-                  <option>Certificado con Anotaciones</option>
-                  <option>Certificado Internacional</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="idioma" className="block text-sm font-medium mb-1">Idioma</label>
-                <select id="idioma" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>Español</option>
-                  <option>Inglés</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="observaciones" className="block text-sm font-medium mb-1">Observaciones</label>
-                <textarea id="observaciones" rows={3} placeholder="Notas o aclaraciones opcionales" className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary" />
+                <label htmlFor="persona" className="block text-sm font-medium mb-1">Buscar Persona</label>
+                <input
+                  id="persona"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Escribe nombre o apellido para filtrar..."
+                  className="w-full p-2 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark mt-1">Filtra la lista de certificados por nombre de la persona.</p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <button type="button" className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Previsualizar</button>
-                <button type="button" className="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Generar</button>
+                <button type="button" onClick={() => { setSearchTerm(''); loadSacramentos() }} className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Refrescar</button>
+                <div />
               </div>
             </form>
           </div>
@@ -71,70 +283,109 @@ export default function Certificados() {
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-xl font-bold">Vista Previa</h3>
               <div className="flex gap-2">
-                <button className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Imprimir</button>
-                <button className="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Exportar PDF</button>
+                <button onClick={() => handlePrint('certificate-preview')} className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">Imprimir</button>
+                <button onClick={() => handleExportPDF('certificate-preview')} className="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Exportar PDF</button>
               </div>
             </div>
             <div className="rounded-lg border border-dashed border-border-light dark:border-border-dark p-6 bg-background-light dark:bg-background-dark">
-              <div className="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow p-8">
-                <div className="text-center mb-6">
-                  <h4 className="text-2xl font-extrabold">Certificado de Bautizo</h4>
-                  <p className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">Parroquia Nuestra Señora de la Paz</p>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <p><span className="font-semibold">Nombre:</span> Sofía Rodríguez</p>
-                  <p><span className="font-semibold">Padres:</span> Manuel Rodríguez y Laura García</p>
-                  <p><span className="font-semibold">Fecha de Bautizo:</span> 2020-03-15</p>
-                  <p><span className="font-semibold">Ministro:</span> Pbro. Juan Pérez</p>
-                  <p><span className="font-semibold">Libro / Foja / Nº:</span> 5 / 12 / 123</p>
-                </div>
-                <div className="mt-6 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Emitido por: Admin</p>
-                    <p className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">Fecha: 2024-03-21</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                      <span className="material-symbols-outlined">workspace_premium</span>
+              <div id="certificate-preview" className="max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow p-8">
+                {selected ? (
+                  <div className="certificate-wrapper">
+                    <div className="certificate">
+                      <div className="cert-header">
+                        <div className="cert-title">Certificado de {getTipoLabel(selected)}</div>
+                        <div className="cert-sub">{selected.institucion_nombre || selected.sacrament_location || selected.institucion || 'Parroquia'}</div>
+                      </div>
+                      <div className="cert-body">
+                        {isMatrimonio(selected) ? (() => {
+                          const [esposoName, esposaName] = getSpouseNames(selected)
+                          return (
+                            <div>
+                              <div className="field-label font-semibold">Contrayentes:</div>
+                              <div className="contrayentes">
+                                <div className="spouse">
+                                  <div className="font-semibold">Esposo</div>
+                                  <div>{esposoName}</div>
+                                </div>
+                                <div className="spouse">
+                                  <div className="font-semibold">Esposa</div>
+                                  <div>{esposaName}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })() : (
+                          <p><span className="field-label">Nombre:</span> {selected.persona_nombre ?? selected.persona_id ?? selected.person_name ?? '-'}</p>
+                        )}
+
+                        <p><span className="field-label">Padres:</span> {
+                          selected.padres
+                          || ((selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name) || (selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name))
+                            ? `${selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name} y ${selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name}`
+                            : '-'
+                        }</p>
+
+                        <p><span className="field-label">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
+                        <p><span className="field-label">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_confirmacion || selected.ministro_bautizo || '-'}</p>
+                        <p className="book-line"><span className="field-label">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || selected.folio_number || '-'} / ${selected.numero_acta || selected.numero || selected.record_number || '-'}`}</p>
+
+                        <div className="footer">
+                          <div className="issuer">
+                            <div>Emitido por: Admin</div>
+                            <div>Fecha: {new Date().toISOString().substring(0,10)}</div>
+                          </div>
+                          <div className="seal">
+                            <div style={{height:56,width:56,borderRadius:28,background:'#eef6ff',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto'}}>
+                              <span className="material-symbols-outlined" style={{color:'#0b74ff'}}>workspace_premium</span>
+                            </div>
+                            <div style={{fontSize:12,marginTop:6,color:'#6b7280'}}>Sello Parroquial</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs mt-1">Sello Parroquial</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center text-sm text-gray-500 py-8">No hay registro seleccionado</div>
+                )}
               </div>
             </div>
           </div>
 
           <div className="bg-white dark:bg-background-dark rounded-lg border border-border-light dark:border-border-dark p-6">
             <h3 className="text-lg font-semibold mb-4">Certificados Recientes</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700/50">
-                  <tr>
-                    <th className="px-6 py-3">Persona</th>
-                    <th className="px-6 py-3">Sacramento</th>
-                    <th className="px-6 py-3">Fecha</th>
-                    <th className="px-6 py-3">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { p: 'Sofía Rodríguez', t: 'Bautizo', f: '2024-03-21' },
-                    { p: 'Carlos López', t: 'Confirmación', f: '2024-03-18' },
-                    { p: 'Ana García', t: 'Matrimonio', f: '2024-03-15' },
-                  ].map((r) => (
-                    <tr key={r.p} className="bg-white dark:bg-background-dark border-b dark:border-gray-700">
-                      <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.p}</td>
-                      <td className="px-6 py-3">{r.t}</td>
-                      <td className="px-6 py-3">{r.f}</td>
-                      <td className="px-6 py-3">
-                        <button className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
-                        <button className="px-3 py-1 rounded bg-primary text-white hover:bg-primary/90">Reimprimir</button>
-                      </td>
+            {loadingList ? (
+              <p className="text-sm text-gray-500">Cargando...</p>
+            ) : errorList ? (
+              <p className="text-sm text-red-600">Error: {errorList}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                  <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                      <th className="px-6 py-3">ID</th>
+                      <th className="px-6 py-3">Persona</th>
+                      <th className="px-6 py-3">Sacramento</th>
+                      <th className="px-6 py-3">Fecha</th>
+                      <th className="px-6 py-3">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredSacramentos.map((r) => (
+                      <tr key={r.id_sacramento || r.id} className={`bg-white dark:bg-background-dark border-b dark:border-gray-700 ${getRowClass(r)}`}>
+                        <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.id_sacramento || r.id}</td>
+                        <td className="px-6 py-3">{r.persona_nombre ?? r.persona_id ?? r.person_name}</td>
+                        <td className="px-6 py-3">{getTipoLabel(r)}</td>
+                        <td className="px-6 py-3">{r.fecha_sacramento?.substring(0,10) || r.fecha}</td>
+                        <td className="px-6 py-3">
+                          <button onClick={() => setSelected(r)} className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
+                          <button onClick={() => { setSelected(r); handlePrint('certificate-preview') }} className="px-3 py-1 rounded bg-primary text-white hover:bg-primary/90">Reimprimir</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
       </div>
