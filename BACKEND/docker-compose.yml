@@ -140,9 +140,6 @@ services:
       context: ./server-sacra360/OCR-service
       dockerfile: Dockerfile
     container_name: sacra360_ocr_service
-    # Para GPU AMD: exponer dispositivos de renderizado y DRI
-    devices:
-      - /dev/dri:/dev/dri  # Direct Rendering Infrastructure para AMD
     environment:
       - DATABASE_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
       - POSTGRES_URL=postgresql://postgres:lolsito101@sacra360-postgres:5432/sacra360
@@ -157,11 +154,15 @@ services:
       - MINIO_SECURE=false
       - USE_GPU=1  # Activar detección de GPU
       - FORCE_CPU=1  # No forzar CPU
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics
     ports:
       - "8003:8003"
     volumes:
       - ./models/tesseract:/app/tesseract_configs
-      - /dev/dri:/dev/dri:rw  # Acceso a GPU AMD
+      - /dev/dri:/dev/dri:rw  # Acceso a GPU AMD (si aplica)
+    # Habilitar acceso a GPUs NVIDIA via NVIDIA Container Toolkit
+    gpus: all
     depends_on:
       - postgres
       - redis
@@ -188,10 +189,14 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:8001
       - FILES_SERVICE_URL=http://files-service:8007
       - MODEL_PATH=/app/models
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics
     ports:
       - "8004:8004"
     volumes:
       - ./models/htr:/app/models
+    # Habilitar acceso a GPUs NVIDIA via NVIDIA Container Toolkit
+    gpus: all
     depends_on:
       - postgres
       - redis

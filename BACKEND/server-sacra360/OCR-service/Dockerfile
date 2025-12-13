@@ -2,7 +2,7 @@
 # Dockerfile para microservicio de OCR con EasyOCR (CPU)
 
 # Usar imagen base de Python
-FROM python:3.11-slim
+FROM pytorch/pytorch:latest
 
 # Establecer variables de entorno
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -36,10 +36,9 @@ WORKDIR /app
 # Copiar archivos de dependencias
 COPY requirements.txt .
 
-# Instalar PyTorch CPU-only (compatible con EasyOCR)
-RUN pip install --no-cache-dir torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
-
-# Instalar dependencias Python restantes
+# Nota: la imagen base ya incluye una instalación de PyTorch con soporte CUDA.
+# No instalar la variante CPU de torch aquí.
+# Instalar dependencias Python restantes (EasyOCR, OpenCV, etc.)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código de la aplicación

@@ -121,7 +121,7 @@ class DatabaseService:
         return False
     
     def guardar_documento_completo(self, archivo_nombre: str, archivo_url: str, 
-                            tuplas: list, total_tuplas: int) -> int:
+                            tuplas: list, total_tuplas: int, libros_id: int = None) -> int:
         """
         Guarda un resultado completo de OCR V2
         
@@ -134,9 +134,20 @@ class DatabaseService:
         Returns:
             ID del documento guardado
         """
+        # Determinar `libros_id` válido: si no se pasa, seleccionar uno existente en la tabla `libros`.
+        from sqlalchemy import text
+        if libros_id is None:
+            try:
+                res = self.db.execute(text("SELECT id_libro FROM libros ORDER BY id_libro LIMIT 1")).fetchone()
+                libros_id_resolved = int(res[0]) if res else -1
+            except Exception:
+                libros_id_resolved = -1
+        else:
+            libros_id_resolved = libros_id
+
         # Primero crear el documento digitalizado
         documento = self.DocumentoDigitalizado(
-            libros_id=-1,  # Valor temporal - se asignará después
+            libros_id=libros_id_resolved,
             tipo_sacramento=1,  # Confirmación por defecto
             imagen_url=archivo_url,
             ocr_texto="",  # No se usa en V2

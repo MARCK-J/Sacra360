@@ -219,7 +219,13 @@ class ManuscriptOCR:
     def __init__(self):
         logger.info("   🔧 Inicializando EasyOCR...")
         # Inicializar solo los idiomas necesarios
-        self.reader = easyocr.Reader(['es'], gpu=False) # GPU False para Docker general, True si tienes soporte CUDA
+        try:
+            import torch
+            gpu_available = torch.cuda.is_available()
+        except Exception:
+            gpu_available = False
+
+        self.reader = easyocr.Reader(['es'], gpu=gpu_available)
         self.corrector = BolivianContext()
         self.scale_factor = 2.5 
 
