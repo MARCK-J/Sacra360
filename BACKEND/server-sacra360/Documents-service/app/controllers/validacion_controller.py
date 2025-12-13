@@ -56,6 +56,20 @@ async def obtener_tuplas_pendientes(
         result = db.execute(query, {"doc_id": documento_id})
         tuplas = []
         
+        # Mapeo de columnas a nombres de campos
+        campo_map = {
+            'col1': 'nombre_confirmado',
+            'col2': 'dia_nacimiento',
+            'col3': 'mes_nacimiento',
+            'col4': 'ano_nacimiento',
+            'col5': 'parroquia',
+            'col6': 'dia_confirmacion',
+            'col7': 'mes_confirmacion',
+            'col8': 'ano_confirmacion',
+            'col9': 'padres',
+            'col10': 'padrinos'
+        }
+        
         for row in result:
             # Parsear el JSON de datos_ocr
             datos_json = row[2] if isinstance(row[2], dict) else json.loads(row[2])
@@ -67,7 +81,7 @@ async def obtener_tuplas_pendientes(
                 "campos_ocr": [
                     {
                         "id_ocr": row[0],
-                        "campo": campo,
+                        "campo": campo_map.get(campo, campo),  # ← Convertir col1-col10 a nombres
                         "valor_extraido": valor,
                         "confianza": float(row[3]),
                         "validado": False
@@ -154,25 +168,54 @@ async def validar_tupla(
         Estado de la validación, IDs creados y siguiente tupla
     """
     try:
-        # Validar que se haya proporcionado la institución
-        if not validacion_data.institucion_id:
-            raise ValueError("Debe seleccionar una institución/parroquia")
+        # Si la acción es rechazar, solo marcar como rechazado y no crear registros
+        if validacion_data.accion == 'rechazar':
+            update_query = text("""
+                UPDATE ocr_resultado
+                SET estado_validacion = 'rechazado',
+                    validado_por = :usuario_id,
+                    fecha_validacion = NOW(),
+                    observaciones = :observaciones
+                WHERE documento_id = :doc_id AND tupla_numero = :tupla_num
+            """)
+            
+            db.execute(update_query, {
+                "doc_id": validacion_data.documento_id,
+                "tupla_num": validacion_data.tupla_numero,
+                "usuario_id": validacion_data.usuario_validador_id,
+                "observaciones": validacion_data.observaciones or "Tupla rechazada por el validador"
+            })
+            db.commit()
+            
+            resultado = {
+                "mensaje": "Tupla rechazada exitosamente",
+                "persona_id": None,
+                "sacramento_id": None,
+                "estado": "rechazado"
+            }
+        else:
+            # Validar que se haya proporcionado la institución para aprobar
+            if not validacion_data.institucion_id:
+                raise ValueError("Debe seleccionar una institución/parroquia")
+            
+            # Llamar al servicio que registra en personas y sacramentos
+            resultado = await validacion_service.validar_tupla_json(
+                documento_id=validacion_data.documento_id,
+                tupla_numero=validacion_data.tupla_numero,
+                campos_corregidos=validacion_data.datos_validados,
+                usuario_id=validacion_data.usuario_validador_id,
+                institucion_id=validacion_data.institucion_id,
+                db=db,
+                persona_id_existente=validacion_data.persona_id_existente
+            )
         
-        # Llamar al servicio que registra en personas y sacramentos
-        resultado = await validacion_service.validar_tupla_json(
-            documento_id=validacion_data.documento_id,
-            tupla_numero=validacion_data.tupla_numero,
-            campos_corregidos=validacion_data.datos_validados,
-            usuario_id=validacion_data.usuario_validador_id,
-            institucion_id=validacion_data.institucion_id,
-            db=db
-        )
-        
-        # Verificar si todas las tuplas están validadas
+        # Verificar si todas las tuplas están procesadas (validadas o rechazadas)
         query_total = text("""
             SELECT 
                 COUNT(*) as total,
-                SUM(CASE WHEN estado_validacion = 'validado' THEN 1 ELSE 0 END) as validadas
+                SUM(CASE WHEN estado_validacion = 'validado' THEN 1 ELSE 0 END) as validadas,
+                SUM(CASE WHEN estado_validacion = 'rechazado' THEN 1 ELSE 0 END) as rechazadas,
+                SUM(CASE WHEN estado_validacion IN ('validado', 'rechazado') THEN 1 ELSE 0 END) as procesadas
             FROM ocr_resultado
             WHERE documento_id = :doc_id
         """)
@@ -180,9 +223,11 @@ async def validar_tupla(
         stats = db.execute(query_total, {"doc_id": validacion_data.documento_id}).fetchone()
         total_tuplas = stats[0]
         tuplas_validadas = stats[1]
+        tuplas_rechazadas = stats[2]
+        tuplas_procesadas = stats[3]
         
-        # Si todas las tuplas están validadas, actualizar estado del documento
-        completado = (total_tuplas == tuplas_validadas)
+        # Si todas las tuplas están procesadas, actualizar estado del documento
+        completado = (total_tuplas == tuplas_procesadas)
         
         if completado:
             update_doc = text("""
@@ -194,16 +239,27 @@ async def validar_tupla(
             db.execute(update_doc, {"doc_id": validacion_data.documento_id})
             db.commit()
         
+        # Buscar siguiente tupla pendiente
+        query_siguiente = text("""
+            SELECT tupla_numero
+            FROM ocr_resultado
+            WHERE documento_id = :doc_id
+            AND estado_validacion = 'pendiente'
+            ORDER BY tupla_numero
+            LIMIT 1
+        """)
+        
+        siguiente = db.execute(query_siguiente, {"doc_id": validacion_data.documento_id}).fetchone()
+        siguiente_tupla = siguiente[0] if siguiente else None
+        
         return {
-            "success": resultado["success"],
-            "mensaje": resultado["message"],
-            "persona_id": resultado["persona_id"],
-            "sacramento_id": resultado["sacramento_id"],
-            "siguiente_tupla": resultado["siguiente_tupla"],
+            **resultado,
+            "siguiente_tupla": siguiente_tupla,
             "completado": completado,
             "total_tuplas": total_tuplas,
             "tuplas_validadas": tuplas_validadas,
-            "tuplas_pendientes": total_tuplas - tuplas_validadas
+            "tuplas_rechazadas": tuplas_rechazadas,
+            "tuplas_pendientes": total_tuplas - tuplas_procesadas
         }
         
     except ValueError as e:
@@ -348,7 +404,8 @@ async def validar_tupla_json(
     documento_id: int,
     tupla_numero: int,
     campos_corregidos: Dict[str, Any],
-    usuario_id: int = 1,
+    institucion_id: int,
+    usuario_id: int = 4,
     db: Session = Depends(get_db)
 ):
     """
@@ -365,17 +422,21 @@ async def validar_tupla_json(
         documento_id: ID del documento
         tupla_numero: Número de la tupla (1-10)
         campos_corregidos: Diccionario con los campos validados/corregidos
-        usuario_id: ID del usuario que valida
+        institucion_id: ID de la institución/parroquia
+        usuario_id: ID del usuario que valida (default 4)
         
     Returns:
         Resultado de la validación con IDs creados
     """
     try:
+        logger.info(f"🔍 RECIBIDO - campos_corregidos keys: {list(campos_corregidos.keys())}")
+        logger.info(f"🔍 RECIBIDO - campos_corregidos completo: {campos_corregidos}")
         resultado = await validacion_service.validar_tupla_json(
             documento_id=documento_id,
             tupla_numero=tupla_numero,
             campos_corregidos=campos_corregidos,
             usuario_id=usuario_id,
+            institucion_id=institucion_id,
             db=db
         )
         return resultado

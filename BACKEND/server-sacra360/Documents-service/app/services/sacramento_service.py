@@ -179,3 +179,54 @@ class SacramentoService:
         """Lista todos los sacramentos con paginación"""
         sacramentos = self.db.query(SacramentoModel).offset(skip).limit(limit).all()
         return [Sacramento.from_orm(s) for s in sacramentos]
+    
+    def list_with_details(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Lista sacramentos con información completa de personas, tipo, institución
+        
+        Returns:
+            Lista de diccionarios con datos completos para visualización
+        """
+        sacramentos = self.db.query(SacramentoModel).offset(skip).limit(limit).all()
+        
+        resultado = []
+        for sacramento in sacramentos:
+            # Obtener persona
+            persona = self.db.query(PersonaModel).filter(
+                PersonaModel.id_persona == sacramento.persona_id
+            ).first()
+            
+            # Obtener tipo de sacramento
+            tipo = self.db.query(TipoSacramentoModel).filter(
+                TipoSacramentoModel.id_tipo == sacramento.tipo_id
+            ).first()
+            
+            # Obtener institución
+            institucion = self.db.query(InstitucionModel).filter(
+                InstitucionModel.id_institucion == sacramento.institucion_id
+            ).first()
+            
+            resultado.append({
+                "id_sacramento": sacramento.id_sacramento,
+                "persona": {
+                    "id_persona": persona.id_persona,
+                    "nombres": persona.nombres,
+                    "apellido_paterno": persona.apellido_paterno,
+                    "apellido_materno": persona.apellido_materno,
+                    "nombre_completo": f"{persona.nombres} {persona.apellido_paterno} {persona.apellido_materno}",
+                    "fecha_nacimiento": persona.fecha_nacimiento.isoformat() if persona.fecha_nacimiento else None
+                } if persona else None,
+                "tipo": {
+                    "id_tipo": tipo.id_tipo,
+                    "nombre": tipo.nombre
+                } if tipo else None,
+                "institucion": {
+                    "id_institucion": institucion.id_institucion,
+                    "nombre": institucion.nombre
+                } if institucion else None,
+                "libro_id": sacramento.libro_id,
+                "fecha_sacramento": sacramento.fecha_sacramento.isoformat() if sacramento.fecha_sacramento else None,
+                "fecha_registro": sacramento.fecha_registro.isoformat() if sacramento.fecha_registro else None
+            })
+        
+        return resultado

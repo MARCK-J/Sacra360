@@ -157,3 +157,22 @@ def list_sacramentos(
     sacramentos = service.list_all(skip=skip, limit=limit)
     
     return [SacramentoResponseDTO.model_validate(s) for s in sacramentos]
+
+
+@router.get("/list/details",
+            response_model=List[dict],
+            summary="Listar sacramentos con detalles",
+            description="Lista sacramentos con información completa de personas, tipo e institución")
+def list_sacramentos_with_details(
+    skip: int = Query(0, ge=0, description="Registros a omitir"),
+    limit: int = Query(100, ge=1, le=500, description="Máximo de registros"),
+    db: Session = Depends(get_db)
+):
+    """
+    Listar sacramentos con datos completos para visualización.
+    Incluye nombres de personas, tipo de sacramento e institución.
+    """
+    service = SacramentoService(db)
+    sacramentos = service.list_with_details(skip=skip, limit=limit)
+    
+    return sacramentos

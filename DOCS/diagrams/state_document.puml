@@ -1,0 +1,23 @@
+@startuml
+title State Machine - Estado de un Documento Digitalizado
+[*] --> pendiente
+pendiente --> procesando : upload + procesar_automaticamente
+procesando --> procesando_ocr : OCR en curso
+procesando --> procesando_htr : HTR en curso
+procesando_ocr --> guardando : OCR completado (>=85%)
+procesando_htr --> guardando : HTR completado
+guardando --> completado : resultados guardados
+guardando --> error : fallo al guardar
+procesando_ocr --> error : error en OCR
+procesando_htr --> error : error en HTR
+completado --> en_validacion : enviar a validación
+en_validacion --> validado : todas las tuplas validadas
+validado --> registrado : sacramento registrado
+error --> pendiente : reintentar/reprocesar
+
+note right of procesando
+  progreso_ocr: 0..100
+  mensaje_progreso: texto
+end note
+
+@enduml

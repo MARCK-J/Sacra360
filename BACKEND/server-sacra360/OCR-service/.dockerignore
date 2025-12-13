@@ -9,6 +9,14 @@ __pycache__/
 *.so
 .pytest_cache/
 
+# Virtual environments (CRITICAL - evita transferir 1GB+)
+venv/
+venv_*/
+.venv/
+env/
+ENV/
+virtualenv/
+
 # Archivos de entorno
 .env
 .env.local
@@ -20,10 +28,23 @@ __pycache__/
 # Archivos temporales
 .tmp/
 temp/
+temp_preprocessed/
+*.tmp
 
 # Documentación de desarrollo
 *.md
 !README.md
+
+# Modelos descargados (EasyOCR los descarga en runtime)
+.EasyOCR/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+reports/
+test_output.csv
+test_gpu_ocr.py
 
 # Archivos git
 .git/
@@ -38,3 +59,8 @@ temp/
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+
+# Archivos de ejemplo
+*.pdf
+*.png
+*.jpg

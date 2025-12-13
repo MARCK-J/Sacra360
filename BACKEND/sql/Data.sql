@@ -135,3 +135,38 @@ INSERT INTO InstitucionesParroquias (nombre) VALUES
 ('SEMINARIO SAN JERONIMO'),
 ('SIN NOMBRE'),
 ('UCB - CAPILLA SAN PABLO');
+
+-- INSERTS adicionales para exportar catálogos y usuarios
+
+-- Roles
+INSERT INTO Roles (id_rol, nombre, descripcion) VALUES
+(1, 'administrador', 'Acceso completo al sistema'),
+(2, 'digitalizador', 'Usuario encargado de digitalización'),
+(3, 'validador', 'Usuario encargado de validación'),
+(4, 'usuario', 'Usuario estándar')
+ON CONFLICT (id_rol) DO NOTHING;
+
+-- Tipos de sacramentos
+INSERT INTO tipos_sacramentos (id_tipo, nombre, descripcion) VALUES
+(1, 'Bautizo', 'Registro de bautismos'),
+(2, 'Confirmación', 'Registro de confirmaciones'),
+(3, 'Matrimonio', 'Registro de matrimonios')
+ON CONFLICT (id_tipo) DO NOTHING;
+
+-- Libros (ejemplos exportados)
+INSERT INTO libros (id_libro, nombre, fecha_inicio, fecha_fin, observaciones) VALUES
+(1, 'Libro de Bautismos 2020-2025', '2020-01-01', '2025-12-31', 'Libro principal para registros de bautismos'),
+(2, 'Libro de Matrimonios 2022-2027', '2022-01-01', '2027-12-31', NULL),
+(3, 'Libro de Bautismos 2015-2019', '2015-01-01', '2019-12-31', NULL),
+(4, 'Libro de Bautismos 2010-2014', '2010-01-01', '2014-12-31', NULL),
+(5, 'Libro de Confirmaciones 2020-2025', '2020-01-01', '2025-12-31', 'Registro de confirmaciones'),
+(6, 'Libro de Confirmaciones 2015-2019', '2015-01-01', '2019-12-31', NULL),
+(7, 'Libro de Matrimonios 2018-2023', '2018-01-01', '2023-12-31', NULL),
+(8, 'Libro de Matrimonios 2010-2017', '2010-01-01', '2017-12-31', NULL)
+ON CONFLICT (id_libro) DO NOTHING;
+
+-- Usuarios (usuario administrador de ejemplo)
+-- La contraseña aquí es un hash bcrypt reutilizado del script de autenticación (admin123)
+INSERT INTO usuarios (id_usuario, rol_id, nombre, apellido_paterno, apellido_materno, email, contrasenia, fecha_creacion, activo) VALUES
+(1, 1, 'Administrador', 'Sistema', 'Admin', 'admin@sacra360.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyJJb3hA7YDe', '2025-09-24', TRUE)
+ON CONFLICT (id_usuario) DO NOTHING;

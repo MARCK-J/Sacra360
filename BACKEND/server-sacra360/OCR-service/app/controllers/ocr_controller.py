@@ -1,379 +1,424 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from typing import Optional
+"""
+OCR Controller - Lógica de negocio para procesamiento OCR
+"""
+
+from fastapi import UploadFile, HTTPException
+from typing import Dict, Any, Optional
 import logging
-import asyncio
 from datetime import datetime
+import io
+import requests
 
-from ..dto.ocr_dto import (
-    OcrProcessRequest, OcrProcessResponse, HealthCheckResponse
-)
-from ..services.ocr_service import OcrService
-from ..services.database_service import DatabaseService, get_database
-from ..services.minio_service import minio_service
+from ..services.ocr_v2_processor import OcrV2Processor
+from ..services.database_service import DatabaseService
+from ..services.minio_service import MinioService
 
-# Configurar logging
 logger = logging.getLogger(__name__)
 
-# Crear router
-router = APIRouter(
-    prefix="/ocr",
-    tags=["OCR"]
-)
+# Diccionario global para tracking de progreso
+progress_tracker = {}
 
-# Instancia global del servicio OCR
-ocr_service = OcrService()
 
-@router.get("/health", response_model=HealthCheckResponse)
-async def health_check():
-    """Health check del servicio OCR"""
-    try:
-        # Verificar dependencias básicas
-        dependencies = {
-            "tesseract": "available",
-            "opencv": "available", 
-            "database": "available",
-            "minio": "available"
-        }
-        
-        return HealthCheckResponse(
-            service="OCR Service - Sacra360",
-            version="1.0.0",
-            status="healthy",
-            timestamp=datetime.utcnow(),
-            dependencies=dependencies
-        )
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Service unhealthy: {str(e)}"
-        )
-
-@router.post("/procesar", response_model=OcrProcessResponse)
-async def procesar_imagen_ocr(
-    archivo: UploadFile = File(..., description="Imagen o PDF a procesar"),
-    libros_id: int = Form(..., description="ID del libro al que pertenece"),
-    tipo_sacramento: int = Form(2, description="Tipo de sacramento (1=bautizo, 2=confirmacion, etc.)"),
-    guardar_en_bd: bool = Form(True, description="Si guardar en base de datos"),
-    db: Session = Depends(get_database)
-):
-    """
-    Procesa una imagen o PDF con OCR para extraer registros de confirmación
+class OcrController:
+    """Controlador para procesamiento de documentos con OCR V2"""
     
-    - **archivo**: Imagen (JPG, PNG) o PDF a procesar
-    - **libros_id**: ID del libro en la base de datos
-    - **tipo_sacramento**: Tipo de sacramento (por defecto confirmación = 2)
-    - **guardar_en_bd**: Si guardar los resultados en base de datos
+    def __init__(self, db):
+        """
+        Inicializa el controlador
+        
+        Args:
+            db: Sesión de base de datos
+        """
+        self.db = db
+        self.db_service = DatabaseService(db)
+        self.minio_service = MinioService()
+        self.ocr_processor = OcrV2Processor()
     
-    Retorna los registros extraídos con información de calidad y métricas.
-    """
-    
-    try:
-        logger.info(f"Iniciando procesamiento OCR para archivo: {archivo.filename}")
+    async def procesar_documento(self, file: UploadFile) -> Dict[str, Any]:
+        """
+        Procesa un documento con OCR V2
         
-        # Validar tipo de archivo
-        if not archivo.content_type or not any([
-            archivo.content_type.startswith('image/'),
-            archivo.content_type == 'application/pdf'
-        ]):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tipo de archivo no soportado. Solo se aceptan imágenes (JPG, PNG) y PDFs."
-            )
-        
-        # Leer contenido del archivo
-        contenido_archivo = await archivo.read()
-        
-        if len(contenido_archivo) == 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El archivo está vacío"
-            )
-        
-        logger.info(f"Archivo leído: {len(contenido_archivo)} bytes")
-        
-        # Subir archivo a Minio
+        Args:
+            file: Archivo subido (PDF o imagen)
+            
+        Returns:
+            Dict con resultado del procesamiento
+        """
         try:
-            minio_result = minio_service.upload_file(
-                file_data=contenido_archivo,
-                file_name=archivo.filename,
-                content_type=archivo.content_type
+            logger.info("=" * 70)
+            logger.info(f"📄 Procesando documento: {file.filename}")
+            logger.info("=" * 70)
+            
+            # 1. Validar tipo de archivo
+            es_pdf = file.filename.lower().endswith('.pdf')
+            if not es_pdf and not any(file.filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png']):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Formato no soportado. Use PDF, JPG o PNG"
+                )
+            
+            # 2. Leer archivo
+            contenido = await file.read()
+            logger.info(f"📦 Archivo leído: {len(contenido)} bytes")
+            
+            # 3. Procesar con OCR V2
+            logger.info("🔍 Iniciando procesamiento OCR V2...")
+            resultado_ocr = self.ocr_processor.procesar_documento_completo(
+                archivo_bytes=contenido,
+                es_pdf=es_pdf
             )
-            logger.info(f"Archivo subido a Minio: {minio_result['object_name']}")
+            
+            if resultado_ocr['estado'] != 'success':
+                logger.error(f"❌ Error en OCR: {resultado_ocr.get('mensaje', 'Error desconocido')}")
+                return {
+                    'estado': 'error',
+                    'mensaje': resultado_ocr.get('mensaje', 'Error en procesamiento OCR'),
+                    'total_tuplas': 0
+                }
+            
+            logger.info(f"✅ OCR completado: {resultado_ocr['total_tuplas']} tuplas extraídas")
+            
+            # 4. Subir archivo a MinIO
+            logger.info("☁️  Subiendo archivo a MinIO...")
+            resultado_minio = self.minio_service.upload_file(
+                file_data=contenido,
+                file_name=file.filename,
+                content_type=file.content_type
+            )
+            archivo_url = resultado_minio.get('object_url') or resultado_minio.get('url')
+            logger.info(f"✅ Archivo subido: {archivo_url}")
+            
+            # 5. Guardar en base de datos
+            logger.info("💾 Guardando resultados en PostgreSQL...")
+            documento_id = self.db_service.guardar_documento_completo(
+                archivo_nombre=file.filename,
+                archivo_url=archivo_url,
+                tuplas=resultado_ocr['tuplas'],
+                total_tuplas=resultado_ocr['total_tuplas']
+            )
+            logger.info(f"✅ Documento guardado con ID: {documento_id}")
+            
+            logger.info("=" * 70)
+            logger.info("✅ PROCESAMIENTO COMPLETADO EXITOSAMENTE")
+            logger.info("=" * 70)
+            
+            return {
+                'documento_id': documento_id,
+                'estado': 'success',
+                'total_tuplas': resultado_ocr['total_tuplas'],
+                'archivo_url': archivo_url,
+                'archivo_nombre': file.filename,
+                'fecha_procesamiento': datetime.now().isoformat()
+            }
+        
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error subiendo archivo a Minio: {str(e)}")
-            # Continuar sin Minio si falla (modo degradado)
-            minio_result = None
-        
-        # Configurar servicio de base de datos
-        db_service = DatabaseService(db) if guardar_en_bd else None
-        
-        # Procesar imagen con OCR
-        resultado = ocr_service.procesar_imagen(
-            imagen_bytes=contenido_archivo,
-            libros_id=libros_id,
-            tipo_sacramento=tipo_sacramento,
-            guardar_en_bd=guardar_en_bd,
-            db_service=db_service,
-            minio_info=minio_result  # Pasar información de Minio
-        )
-        
-        logger.info(f"Procesamiento completado. Tuplas extraídas: {resultado.total_tuplas}")
-        
-        return resultado
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error durante procesamiento OCR: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno durante el procesamiento: {str(e)}"
-        )
-
-@router.post("/procesar-interno", response_model=OcrProcessResponse)
-async def procesar_imagen_ocr_interno(
-    archivo: UploadFile = File(..., description="Imagen o PDF a procesar"),
-    libros_id: int = Form(..., description="ID del libro al que pertenece"),
-    tipo_sacramento: int = Form(2, description="Tipo de sacramento (1=bautizo, 2=confirmacion, etc.)"),
-    documento_id: int = Form(..., description="ID del documento ya creado en BD"),
-    db: Session = Depends(get_database)
-):
-    """
-    Procesa OCR de una imagen sin subir a MinIO (para uso interno desde Documents-service)
-    
-    Este endpoint asume que el archivo ya fue subido a MinIO y registrado en BD.
-    Solo procesa el OCR y actualiza los resultados.
-    
-    - **archivo**: Imagen (JPG, PNG) o PDF a procesar
-    - **libros_id**: ID del libro en la base de datos
-    - **tipo_sacramento**: Tipo de sacramento (por defecto confirmación = 2)
-    - **documento_id**: ID del documento ya existente en documento_digitalizado
-    
-    Retorna los registros extraídos con información de calidad y métricas.
-    """
-    
-    try:
-        logger.info(f"Iniciando procesamiento OCR interno para documento ID: {documento_id}")
-        
-        # Validar tipo de archivo
-        if not archivo.content_type or not any([
-            archivo.content_type.startswith('image/'),
-            archivo.content_type == 'application/pdf'
-        ]):
+            logger.error(f"❌ Error en procesamiento: {e}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tipo de archivo no soportado. Solo se aceptan imágenes (JPG, PNG) y PDFs."
+                status_code=500,
+                detail=f"Error al procesar documento: {str(e)}"
             )
-        
-        # Leer contenido del archivo
-        contenido_archivo = await archivo.read()
-        
-        if len(contenido_archivo) == 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El archivo está vacío"
-            )
-        
-        logger.info(f"Archivo leído para OCR: {len(contenido_archivo)} bytes")
-        
-        # Configurar servicio de base de datos
-        db_service = DatabaseService(db)
-        
-        # Procesar imagen con OCR (sin subir a MinIO)
-        resultado = ocr_service.procesar_imagen_interno(
-            imagen_bytes=contenido_archivo,
-            documento_id=documento_id,
-            libros_id=libros_id,
-            tipo_sacramento=tipo_sacramento,
-            db_service=db_service
-        )
-        
-        logger.info(f"Procesamiento OCR interno completado. Tuplas extraídas: {resultado.total_tuplas}")
-        
-        return resultado
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error durante procesamiento OCR interno: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno durante el procesamiento OCR: {str(e)}"
-        )
-
-@router.get("/documento/{documento_id}", response_model=dict)
-async def obtener_documento_ocr(
-    documento_id: int,
-    db: Session = Depends(get_database)
-):
-    """
-    Obtiene un documento procesado y sus resultados OCR
-    """
-    try:
-        db_service = DatabaseService(db)
-        
-        # Obtener documento
-        documento = db_service.obtener_documento(documento_id)
-        if not documento:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Documento con ID {documento_id} no encontrado"
-            )
-        
-        # Obtener resultados OCR
-        resultados_ocr = db_service.obtener_resultados_ocr(documento_id)
-        
-        return {
-            "documento": {
-                "id_documento": documento.id_documento,
-                "libros_id": documento.libros_id,
-                "tipo_sacramento": documento.tipo_sacramento,
-                "imagen_url": documento.imagen_url,
-                "modelo_fuente": documento.modelo_fuente,
-                "confianza": float(documento.confianza),
-                "fecha_procesamiento": documento.fecha_procesamiento
-            },
-            "resultados_ocr": [
-                {
-                    "id_ocr": resultado.id_ocr,
-                    "campo": resultado.campo,
-                    "valor_extraido": resultado.valor_extraido,
-                    "confianza": float(resultado.confianza),
-                    "fuente_modelo": resultado.fuente_modelo,
-                    "validado": resultado.validado
-                } for resultado in resultados_ocr
-            ],
-            "total_campos": len(resultados_ocr)
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error al obtener documento: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno: {str(e)}"
-        )
-
-@router.patch("/validar-campo/{ocr_id}")
-async def validar_campo_ocr(
-    ocr_id: int,
-    db: Session = Depends(get_database)
-):
-    """
-    Marca un campo OCR como validado
-    """
-    try:
-        db_service = DatabaseService(db)
-        
-        resultado = db_service.validar_campo_ocr(ocr_id)
-        
-        if not resultado:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Campo OCR con ID {ocr_id} no encontrado"
-            )
-        
-        return {
-            "success": True,
-            "message": f"Campo OCR {ocr_id} marcado como validado"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error al validar campo: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno: {str(e)}"
-        )
-
-@router.post("/procesar-desde-bd/{documento_id}", response_model=OcrProcessResponse)
-async def procesar_documento_desde_bd(
-    documento_id: int,
-    db: Session = Depends(get_database)
-):
-    """
-    Procesa OCR de un documento que ya está en la base de datos y MinIO
     
-    - **documento_id**: ID del documento existente en documento_digitalizado
-    
-    Este endpoint:
-    1. Busca el documento en la BD
-    2. Descarga el archivo desde MinIO usando la imagen_url
-    3. Procesa el OCR
-    4. Guarda los resultados en ocr_resultado
-    """
-    
-    try:
-        logger.info(f"Iniciando procesamiento OCR desde BD para documento ID: {documento_id}")
+    async def obtener_resultados(self, documento_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Obtiene los resultados de un documento procesado
         
-        # Obtener documento de la BD
-        db_service = DatabaseService(db)
-        documento = db_service.obtener_documento(documento_id)
-        
-        if not documento:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Documento con ID {documento_id} no encontrado"
-            )
-        
-        # Descargar archivo desde MinIO usando el cliente MinIO
+        Args:
+            documento_id: ID del documento
+            
+        Returns:
+            Dict con resultados o None si no existe
+        """
         try:
-            from ..services.minio_service import minio_service
-            from io import BytesIO
+            logger.info(f"🔍 Buscando resultados de documento ID: {documento_id}")
             
-            # Extraer object_name de la URL: http://minio:9000/bucket/object_path
-            url_parts = documento.imagen_url.split('/')
-            object_name = '/'.join(url_parts[-2:])  # documents/filename.png
+            resultado = self.db_service.obtener_resultado_por_id(documento_id)
             
-            logger.info(f"Descargando archivo desde MinIO - object: {object_name}")
+            if resultado:
+                logger.info(f"✅ Documento encontrado: {resultado.get('archivo_nombre', 'N/A')}")
+            else:
+                logger.warning(f"⚠️  Documento {documento_id} no encontrado")
             
-            # Usar el cliente MinIO para descargar el archivo
-            file_data = minio_service.download_file(object_name)
-            archivo_bytes = file_data
-            archivo_nombre = url_parts[-1]  # filename.png
-            
+            return resultado
+        
         except Exception as e:
-            logger.error(f"Error descargando archivo desde MinIO: {e}")
+            logger.error(f"❌ Error al obtener resultados: {e}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error descargando archivo: {str(e)}"
+                status_code=500,
+                detail=f"Error al obtener resultados: {str(e)}"
             )
+    
+    async def procesar_desde_bd(self, documento_id: int) -> Dict[str, Any]:
+        """
+        Procesa un documento que ya está guardado en BD y MinIO
         
-        # Procesar OCR usando el método correcto para documentos existentes
-        resultado = ocr_service.procesar_imagen_interno(
-            imagen_bytes=archivo_bytes,
-            documento_id=documento_id,
-            libros_id=documento.libros_id,
-            tipo_sacramento=documento.tipo_sacramento,
-            db_service=db_service
-        )
+        Args:
+            documento_id: ID del documento en la tabla documento_digitalizado
+            
+        Returns:
+            Dict con resultado del procesamiento
+        """
+        try:
+            logger.info("=" * 70)
+            logger.info(f"📄 Procesando documento desde BD: ID={documento_id}")
+            logger.info("=" * 70)
+            
+            # Actualizar progreso: iniciando
+            progress_tracker[documento_id] = {
+                'estado': 'iniciando',
+                'progreso': 5,
+                'mensaje': 'Iniciando procesamiento...',
+                'etapa': 'init'
+            }
+            
+            # 1. Obtener documento de BD
+            from sqlalchemy import text
+            query = text("""
+                SELECT id_documento, nombre_archivo, imagen_url, tipo_sacramento
+                FROM documento_digitalizado
+                WHERE id_documento = :doc_id
+            """)
+            result = self.db.execute(query, {"doc_id": documento_id}).fetchone()
+            
+            if not result:
+                raise HTTPException(status_code=404, detail=f"Documento {documento_id} no encontrado en BD")
+            
+            doc_id, nombre_archivo, archivo_url, tipo_sacramento = result
+            logger.info(f"📄 Documento encontrado: {nombre_archivo}")
+            
+            # Actualizar progreso: descargando
+            progress_tracker[documento_id] = {
+                'estado': 'descargando',
+                'progreso': 15,
+                'mensaje': 'Descargando archivo desde MinIO...',
+                'etapa': 'download'
+            }
+            
+            # 2. Descargar archivo de MinIO
+            logger.info(f"☁️  Descargando desde: {archivo_url}")
+            contenido = self.minio_service.download_file_by_url(archivo_url)
+            logger.info(f"✅ Archivo descargado: {len(contenido)} bytes")
+            
+            # Actualizar progreso: procesando OCR
+            progress_tracker[documento_id] = {
+                'estado': 'procesando_ocr',
+                'progreso': 25,
+                'mensaje': 'Extrayendo texto con OCR V2... (esto puede tardar varios minutos)',
+                'etapa': 'ocr'
+            }
+            
+            # 3. Determinar tipo de archivo
+            es_pdf = nombre_archivo.lower().endswith('.pdf')
+            
+            # 4. Procesar con OCR V2 con callback de progreso
+            logger.info("🔍 Iniciando procesamiento OCR V2...")
+            
+            def actualizar_progreso_ocr(celda_actual, total_celdas):
+                """Callback para actualizar progreso durante OCR"""
+                # Progreso entre 25% y 80% basado en celdas procesadas
+                progreso_ocr = 25 + int((celda_actual / total_celdas) * 55)
+                mensaje = f'Procesadas {celda_actual}/{total_celdas} celdas'
+                
+                # Actualizar en memoria
+                progress_tracker[documento_id] = {
+                    'estado': 'procesando_ocr',
+                    'progreso': progreso_ocr,
+                    'mensaje': mensaje,
+                    'etapa': 'ocr'
+                }
+                
+                # Actualizar en BD para persistencia
+                try:
+                    update_query = text("""
+                        UPDATE documento_digitalizado
+                        SET progreso_ocr = :progreso,
+                            mensaje_progreso = :mensaje
+                        WHERE id_documento = :doc_id
+                    """)
+                    self.db.execute(update_query, {
+                        'doc_id': documento_id,
+                        'progreso': progreso_ocr,
+                        'mensaje': mensaje
+                    })
+                    self.db.commit()
+                    logger.info(f"💾 Progreso guardado en BD: {progreso_ocr}% - {mensaje}")
+                except Exception as e:
+                    logger.warning(f"⚠️ No se pudo guardar progreso en BD: {e}")
+            
+            resultado_ocr = self.ocr_processor.procesar_documento_completo(
+                archivo_bytes=contenido,
+                es_pdf=es_pdf,
+                progress_callback=actualizar_progreso_ocr
+            )
+            
+            if resultado_ocr['estado'] != 'success':
+                progress_tracker[documento_id] = {
+                    'estado': 'error',
+                    'progreso': 100,
+                    'mensaje': f"Error en OCR: {resultado_ocr.get('mensaje', 'Error desconocido')}",
+                    'etapa': 'error'
+                }
+                logger.error(f"❌ Error en OCR: {resultado_ocr.get('mensaje')}")
+                return {
+                    'estado': 'error',
+                    'mensaje': resultado_ocr.get('mensaje', 'Error en procesamiento OCR'),
+                    'total_tuplas': 0
+                }
+            
+            logger.info(f"✅ OCR completado: {resultado_ocr['total_tuplas']} tuplas extraídas")
+            
+            # Actualizar progreso: guardando
+            progress_tracker[documento_id] = {
+                'estado': 'guardando',
+                'progreso': 85,
+                'mensaje': f'Guardando {resultado_ocr["total_tuplas"]} tuplas en base de datos...',
+                'etapa': 'save'
+            }
+            
+            # 5. Actualizar BD con resultados OCR
+            logger.info("💾 Guardando resultados en PostgreSQL...")
+            
+            # Guardar tuplas en ocr_resultado
+            import json
+            for idx, tupla in enumerate(resultado_ocr['tuplas'], start=1):
+                # tupla es una lista simple: ['val1', 'val2', 'val3', ...]
+                # Convertir a formato JSONB con nombres de columnas
+                datos_ocr = {
+                    f"col_{i}": valor 
+                    for i, valor in enumerate(tupla)
+                }
+                
+                insert_query = text("""
+                    INSERT INTO ocr_resultado 
+                    (documento_id, tupla_numero, datos_ocr, confianza, fuente_modelo, validado, estado_validacion)
+                    VALUES 
+                    (:doc_id, :tupla_num, CAST(:datos AS jsonb), :confianza, :modelo, false, 'pendiente')
+                """)
+                
+                self.db.execute(insert_query, {
+                    "doc_id": documento_id,
+                    "tupla_num": idx,
+                    "datos": json.dumps(datos_ocr),
+                    "confianza": 0.85,  # Confianza promedio de EasyOCR
+                    "modelo": 'OCR_V2_EasyOCR'
+                })
+            
+            # Actualizar estado del documento
+            update_query = text("""
+                UPDATE documento_digitalizado
+                SET estado_procesamiento = 'ocr_completado',
+                    fecha_procesamiento = NOW()
+                WHERE id_documento = :doc_id
+            """)
+            self.db.execute(update_query, {"doc_id": documento_id})
+            
+            self.db.commit()
+            logger.info(f"✅ Resultados guardados en BD")
+            
+            # Actualizar progreso: completado
+            progress_tracker[documento_id] = {
+                'estado': 'completado',
+                'progreso': 100,
+                'mensaje': f'Procesamiento completado: {resultado_ocr["total_tuplas"]} tuplas extraídas',
+                'etapa': 'completed'
+            }
+            
+            logger.info("=" * 70)
+            logger.info("✅ PROCESAMIENTO COMPLETADO EXITOSAMENTE")
+            logger.info("=" * 70)
+            
+            return {
+                'documento_id': documento_id,
+                'estado': 'success',
+                'total_tuplas': resultado_ocr['total_tuplas'],
+                'archivo_nombre': nombre_archivo,
+                'fecha_procesamiento': datetime.now().isoformat()
+            }
         
-        logger.info(f"Procesamiento OCR completado para documento {documento_id}. Tuplas extraídas: {resultado.total_tuplas}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Error en procesamiento desde BD: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Actualizar progreso: error
+            progress_tracker[documento_id] = {
+                'estado': 'error',
+                'progreso': 100,
+                'mensaje': f'Error: {str(e)}',
+                'etapa': 'error'
+            }
+            
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al procesar documento: {str(e)}"
+            )
+    
+    def obtener_progreso(self, documento_id: int) -> Dict[str, Any]:
+        """
+        Obtiene el progreso actual del procesamiento de un documento.
+        Primero intenta leer de BD (más confiable), luego de memoria.
         
-        return resultado
+        Args:
+            documento_id: ID del documento
+            
+        Returns:
+            Dict con información de progreso
+        """
+        # Primero verificar en BD (fuente de verdad)
+        from sqlalchemy import text
+        query = text("""
+            SELECT estado_procesamiento, progreso_ocr, mensaje_progreso
+            FROM documento_digitalizado
+            WHERE id_documento = :doc_id
+        """)
+        result = self.db.execute(query, {"doc_id": documento_id}).fetchone()
+            
+        if not result:
+            return {
+                'estado': 'no_encontrado',
+                'progreso': 0,
+                'mensaje': 'Documento no encontrado',
+                'etapa': 'none'
+            }
         
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error durante procesamiento OCR desde BD: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno durante el procesamiento OCR: {str(e)}"
-        )
+        estado_bd, progreso_bd, mensaje_bd = result[0], result[1] or 0, result[2] or ''
+        
+        logger.info(f"📊 Consultando progreso doc {documento_id}: estado_bd={estado_bd}, progreso={progreso_bd}, mensaje='{mensaje_bd}'")
+        
+        # Si está en procesamiento y tiene progreso, devolverlo
+        if estado_bd == 'procesando' and progreso_bd > 0:
+            respuesta = {
+                'estado': 'procesando_ocr',
+                'progreso': progreso_bd,
+                'mensaje': mensaje_bd or f'Procesando OCR: {progreso_bd}%',
+                'etapa': 'ocr'
+            }
+            logger.info(f"✅ Devolviendo progreso desde BD: {respuesta}")
+            return respuesta
+        
+        # Si hay info en memoria, usarla
+        if documento_id in progress_tracker:
+            logger.info(f"✅ Devolviendo progreso desde memoria")
+            return progress_tracker[documento_id]
+        
+        # Mapear estado de BD a respuesta
+        if estado_bd == 'ocr_completado':
+            return {
+                'estado': 'completado',
+                'progreso': 100,
+                'mensaje': 'Procesamiento completado',
+                'etapa': 'completed'
+            }
+        else:
+            return {
+                'estado': 'pendiente',
+                'progreso': 0,
+                'mensaje': 'Esperando procesamiento',
+                'etapa': 'pending'
+            }
 
-@router.get("/test")
-async def test_endpoint():
-    """
-    Endpoint de prueba para verificar que el servicio funciona
-    """
-    return {
-        "message": "OCR Service funcionando correctamente",
-        "timestamp": datetime.utcnow(),
-        "service": "OCR-service",
-        "version": "1.0.0"
-    }

@@ -34,6 +34,11 @@ export default function Registros() {
   const [success, setSuccess] = useState(null)
   const [validacionDuplicado, setValidacionDuplicado] = useState(null)
   
+  // Estados de autocompletado
+  const [sugerencias, setSugerencias] = useState([])
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+  const [campoActivo, setCampoActivo] = useState(null)
+  
   // Cargar catálogos al montar el componente
   useEffect(() => {
     cargarCatalogos()
@@ -73,6 +78,56 @@ export default function Registros() {
   const handlePersonaChange = (e) => {
     const { name, value } = e.target
     setPersona(prev => ({ ...prev, [name]: value }))
+    
+    // Activar búsqueda de sugerencias para campos de texto
+    if (['nombres', 'apellido_paterno', 'apellido_materno'].includes(name)) {
+      setCampoActivo(name)
+      if (value.length >= 2) {
+        buscarSugerencias(name, value)
+      } else {
+        setSugerencias([])
+        setMostrarSugerencias(false)
+      }
+    }
+  }
+  
+  const buscarSugerencias = async (campo, valor) => {
+    if (!valor || valor.length < 2) {
+      setSugerencias([])
+      return
+    }
+    
+    try {
+      // Buscar personas que coincidan
+      const res = await fetch(`${API_URL}/personas?${campo}=${encodeURIComponent(valor)}&limit=10`)
+      const personas = await res.json()
+      
+      if (personas && personas.length > 0) {
+        // Extraer valores únicos del campo específico
+        const valoresUnicos = [...new Set(personas.map(p => p[campo]))].filter(v => 
+          v && v.toLowerCase().includes(valor.toLowerCase())
+        )
+        
+        setSugerencias(valoresUnicos.slice(0, 5))
+        setMostrarSugerencias(valoresUnicos.length > 0)
+      } else {
+        setSugerencias([])
+        setMostrarSugerencias(false)
+      }
+    } catch (err) {
+      console.error('Error buscando sugerencias:', err)
+      setSugerencias([])
+      setMostrarSugerencias(false)
+    }
+  }
+  
+  const seleccionarSugerencia = (valor) => {
+    if (campoActivo) {
+      setPersona(prev => ({ ...prev, [campoActivo]: valor }))
+      setSugerencias([])
+      setMostrarSugerencias(false)
+      setCampoActivo(null)
+    }
   }
   
   const validarDuplicado = async () => {
@@ -330,7 +385,7 @@ export default function Registros() {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nombres *
                 </label>
@@ -339,13 +394,29 @@ export default function Registros() {
                   name="nombres"
                   value={persona.nombres}
                   onChange={handlePersonaChange}
+                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                   required
                   disabled={!fechaSacramento}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  placeholder="Ej: Juan Carlos"
+                  autoComplete="off"
                 />
+                {mostrarSugerencias && campoActivo === 'nombres' && sugerencias.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {sugerencias.map((sugerencia, index) => (
+                      <div
+                        key={index}
+                        onClick={() => seleccionarSugerencia(sugerencia)}
+                        className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                      >
+                        {sugerencia}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Apellido Paterno *
                 </label>
@@ -354,13 +425,29 @@ export default function Registros() {
                   name="apellido_paterno"
                   value={persona.apellido_paterno}
                   onChange={handlePersonaChange}
+                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                   required
                   disabled={!fechaSacramento}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  placeholder="Ej: García"
+                  autoComplete="off"
                 />
+                {mostrarSugerencias && campoActivo === 'apellido_paterno' && sugerencias.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {sugerencias.map((sugerencia, index) => (
+                      <div
+                        key={index}
+                        onClick={() => seleccionarSugerencia(sugerencia)}
+                        className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                      >
+                        {sugerencia}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Apellido Materno *
                 </label>
@@ -369,10 +456,26 @@ export default function Registros() {
                   name="apellido_materno"
                   value={persona.apellido_materno}
                   onChange={handlePersonaChange}
+                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                   required
                   disabled={!fechaSacramento}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  placeholder="Ej: Pérez"
+                  autoComplete="off"
                 />
+                {mostrarSugerencias && campoActivo === 'apellido_materno' && sugerencias.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {sugerencias.map((sugerencia, index) => (
+                      <div
+                        key={index}
+                        onClick={() => seleccionarSugerencia(sugerencia)}
+                        className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                      >
+                        {sugerencia}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div>

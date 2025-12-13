@@ -52,7 +52,7 @@ app.add_middleware(
 )
 
 # Incluir routers
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router)
 
 @app.get("/")
 async def root():
@@ -65,13 +65,20 @@ async def root():
         "description": "Microservicio especializado en reconocimiento óptico de caracteres para documentos sacramentales",
         "timestamp": datetime.utcnow(),
         "docs_url": "/docs",
-        "health_check": "/api/v1/health",
+        "health_check": "/health",
         "endpoints": {
-            "procesar_imagen": "/api/v1/ocr/procesar",
-            "obtener_documento": "/api/v1/ocr/documento/{documento_id}",
-            "validar_campo": "/api/v1/ocr/validar-campo/{ocr_id}",
-            "test": "/api/v1/ocr/test"
+            "procesar": "/api/v1/ocr/procesar",
+            "resultados": "/api/v1/ocr/resultados/{documento_id}"
         }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check para Docker"""
+    return {
+        "status": "healthy",
+        "service": settings.service_name,
+        "timestamp": datetime.utcnow()
     }
 
 @app.get("/status")

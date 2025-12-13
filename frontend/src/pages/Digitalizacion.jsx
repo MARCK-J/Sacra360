@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
+import OcrProgressModal from '../components/OcrProgressModal'
+import { useOcrProgress } from '../context/OcrProgressContext'
 
 export default function Digitalizacion() {
   const navigate = useNavigate()
+  const { iniciarSeguimiento } = useOcrProgress()
+  
   // files: array of { file: File, preview: string | null }
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
@@ -11,8 +15,13 @@ export default function Digitalizacion() {
   const [dragActive, setDragActive] = useState(false)
   const [formData, setFormData] = useState({
     sacramento: 0,
-    libro: 0
+    libro: 0,
+    modeloProcesamiento: 'ocr'  // 'ocr' o 'htr'
   })
+  
+  // Estado para el modal de progreso OCR
+  const [processingDocId, setProcessingDocId] = useState(null)
+  const [showProgressModal, setShowProgressModal] = useState(false)
 
   const [libros, setLibros] = useState([])
   const [loadingLibros, setLoadingLibros] = useState(true)
@@ -136,9 +145,12 @@ export default function Digitalizacion() {
         uploadData.append('tipo_sacramento', formData.sacramento)
         uploadData.append('libro_id', formData.libro)
         uploadData.append('institucion_id', '1')
+        uploadData.append('modelo_procesamiento', formData.modeloProcesamiento)
         uploadData.append('procesar_automaticamente', 'true')
 
         try {
+          console.log('📤 Subiendo archivo:', file.name)
+          
           const response = await fetch('http://localhost:8002/api/v1/digitalizacion/upload', {
             method: 'POST',
             body: uploadData
@@ -146,6 +158,8 @@ export default function Digitalizacion() {
 
           if (response.ok) {
             const result = await response.json()
+            console.log('✅ Archivo subido:', result)
+            
             newUploadedFiles.push({
               ...result,
               fileName: file.name,
@@ -153,8 +167,26 @@ export default function Digitalizacion() {
               status: 'uploaded',
               timestamp: new Date().toLocaleString()
             })
+            
+            // Si hay documento_id, iniciar seguimiento con Context
+            if (result.documento_id) {
+              const modeloNombre = formData.modeloProcesamiento === 'htr' ? 'HTR' : 'OCR'
+              const tiempoEstimado = formData.modeloProcesamiento === 'htr' ? '8-10 minutos' : '7 minutos'
+              
+              console.log(`🔍 Iniciando seguimiento ${modeloNombre} para documento:`, result.documento_id)
+              console.log(`⏳ El procesamiento ${modeloNombre} toma aproximadamente ${tiempoEstimado}`)
+              
+              // Iniciar seguimiento global
+              iniciarSeguimiento(result.documento_id)
+              
+              // Mostrar modal de progreso
+              setProcessingDocId(result.documento_id)
+              setShowProgressModal(true)
+            }
           } else {
             const errorText = await response.text()
+            console.error('❌ Error en upload:', response.status, errorText)
+            
             newUploadedFiles.push({
               fileName: file.name,
               status: 'error',
@@ -163,6 +195,8 @@ export default function Digitalizacion() {
             })
           }
         } catch (error) {
+          console.error('❌ Error de red:', error)
+          
           newUploadedFiles.push({
             fileName: file.name,
             status: 'error',
@@ -173,27 +207,42 @@ export default function Digitalizacion() {
       }
 
       setUploadedFiles(prev => [...prev, ...newUploadedFiles])
-      // revoke and clear previews from selected files
+      
+      // Limpiar archivos seleccionados
       setFiles(prev => {
         prev.forEach(p => { if (p.preview) { try { URL.revokeObjectURL(p.preview) } catch(e){} } })
         createdPreviewsRef.current.clear()
         return []
       })
-      setFormData({ sacramento: 0, libro: 0 })
-
-      // Redirección automática si todo fue exitoso
-      if (newUploadedFiles.length > 0 && newUploadedFiles.every(f => f.status === 'uploaded')) {
-        setTimeout(() => {
-          navigate('/revision-ocr')
-        }, 1500)
-      }
+      setFormData({ sacramento: 0, libro: 0, modeloProcesamiento: 'ocr' })
 
     } catch (error) {
+      console.error('❌ Error procesando archivos:', error)
       alert('Error procesando archivos: ' + error.message)
     } finally {
       setUploading(false)
     }
   }
+  
+  // Handler cuando el OCR se completa
+  const handleOcrComplete = useCallback((documentoId) => {
+    console.log('✅ OCR completado para documento:', documentoId)
+    setShowProgressModal(false)
+    setProcessingDocId(null)
+    
+    // Redirigir a la página de revisión OCR después de 1 segundo
+    setTimeout(() => {
+      navigate('/revision-ocr')
+    }, 1000)
+  }, [navigate])
+  
+  // Handler cuando hay error en OCR
+  const handleOcrError = useCallback((error) => {
+    console.error('❌ Error en OCR:', error)
+    setShowProgressModal(false)
+    setProcessingDocId(null)
+    alert(`Error en procesamiento OCR: ${error}`)
+  }, [])
 
   // cleanup previews on unmount
   useEffect(() => {
@@ -211,7 +260,7 @@ export default function Digitalizacion() {
         {/* Formulario de Metadatos */}
         <div className="bg-white dark:bg-background-dark p-6 rounded-lg shadow">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Información del Documento</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Sacramento *
@@ -248,6 +297,20 @@ export default function Digitalizacion() {
                     {libro.nombre}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tipo de Texto *
+              </label>
+              <select
+                name="modeloProcesamiento"
+                value={formData.modeloProcesamiento}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="ocr">📝 OCR - Textos mecanografiados</option>
+                <option value="htr">✍️ HTR - Textos manuscritos</option>
               </select>
             </div>
           </div>
@@ -396,6 +459,16 @@ export default function Digitalizacion() {
           </div>
         )}
       </div>
+      
+      {/* Modal de progreso OCR - Ahora usa Context para evitar polling duplicado */}
+      {showProgressModal && processingDocId && (
+        <OcrProgressModal
+          documentoId={processingDocId}
+          onComplete={handleOcrComplete}
+          onError={handleOcrError}
+        />
+      )}
     </Layout>
   )
 }
+

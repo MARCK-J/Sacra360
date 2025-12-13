@@ -1,0 +1,42 @@
+@startuml
+title Deployment Diagram - Módulo de Digitalización
+
+node "User (Browser)" as Browser
+node "Load Balancer / Ingress" as LB
+
+node "Kubernetes Cluster / Docker Host" as Cluster {
+  folder "Frontend Pods" {
+    [frontend-pod]
+  }
+  folder "API Pods" {
+    [documents-service-pod]
+    [ocr-service-pod]
+    [htr-service-pod]
+  }
+  folder "Stateful" {
+    [postgres-pvc]
+    [minio-pvc]
+  }
+}
+
+Browser -> LB : HTTPS
+LB -> frontend-pod : HTTP
+frontend-pod -> documents-service-pod : REST
+documents-service-pod -> postgres-pvc : TCP:5432
+documents-service-pod -> minio-pvc : S3 API (9000)
+ocr-service-pod -> minio-pvc : S3 API (9000)
+htr-service-pod -> minio-pvc : S3 API (9000)
+ocr-service-pod -> postgres-pvc : TCP:5432
+
+cloud "External Storage / Backup" as Back
+postgres-pvc --> Back : backups
+minio-pvc --> Back : snapshots
+
+node "Monitoring" as MON {
+  [prometheus]
+  [grafana]
+}
+documents-service-pod -> prometheus : /metrics
+ocr-service-pod -> prometheus : /metrics
+
+@enduml

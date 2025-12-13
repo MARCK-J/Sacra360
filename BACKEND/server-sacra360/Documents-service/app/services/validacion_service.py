@@ -5,6 +5,7 @@ Maneja la lógica de negocio para el proceso de validación tupla por tupla
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, desc, text
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import logging
 
@@ -79,26 +80,56 @@ class ValidacionService:
                 tupla_numero = tupla_row[0]
                 
                 # Obtener campos OCR para esta tupla usando query directa
+                # Soporta tanto el formato antiguo (campo, valor_extraido) como el nuevo (datos_ocr JSONB)
                 campos_ocr_raw = db.execute(
                     text("""
-                        SELECT id_ocr, campo, valor_extraido, confianza, validado, sacramento_id
+                        SELECT id_ocr, datos_ocr, confianza, validado, sacramento_id
                         FROM ocr_resultado 
                         WHERE documento_id = :doc_id AND tupla_numero = :tupla_num
-                        ORDER BY campo
+                        LIMIT 1
                     """),
                     {"doc_id": documento_id, "tupla_num": tupla_numero}
-                ).fetchall()
+                ).fetchone()
                 
                 if campos_ocr_raw:
                     campos_response = []
-                    for campo_row in campos_ocr_raw:
+                    id_ocr = campos_ocr_raw[0]
+                    datos_ocr = campos_ocr_raw[1]  # JSONB data
+                    confianza = float(campos_ocr_raw[2])
+                    validado = campos_ocr_raw[3]
+                    sacramento_id = campos_ocr_raw[4]
+                    
+                    # Convertir JSON de col_0-col_9 a campos individuales
+                    # Mapeo de columnas a nombres de campos (índices 0-9)
+                    campo_nombres = [
+                        'nombre_confirmando',  # col_0
+                        'dia_nacimiento',      # col_1
+                        'mes_nacimiento',      # col_2
+                        'ano_nacimiento',      # col_3
+                        None,                  # col_4 - parroquia/institución (NO se muestra en validación)
+                        'dia_bautismo',        # col_5
+                        'mes_bautismo',        # col_6
+                        'ano_bautismo',        # col_7
+                        'padres',              # col_8
+                        'padrinos'             # col_9
+                    ]
+                    
+                    # Crear un CampoOCRResponse por cada columna (excepto col_4)
+                    for i, campo_nombre in enumerate(campo_nombres):
+                        # Saltar col_4 (parroquia) - no se valida, solo se guarda en datos_ocr
+                        if campo_nombre is None:
+                            continue
+                            
+                        col_key = f'col_{i}'
+                        valor = datos_ocr.get(col_key, '') if datos_ocr else ''
+                        
                         campos_response.append(CampoOCRResponse(
-                            id_ocr=campo_row[0],
-                            campo=campo_row[1],
-                            valor_extraido=campo_row[2],
-                            confianza=float(campo_row[3]),
-                            validado=campo_row[4],
-                            sacramento_id=campo_row[5]
+                            id_ocr=id_ocr,
+                            campo=campo_nombre,
+                            valor_extraido=valor,
+                            confianza=confianza,
+                            validado=validado,
+                            sacramento_id=sacramento_id
                         ))
                     
                     tuplas_response.append(
@@ -147,15 +178,15 @@ class ValidacionService:
             if not validacion:
                 raise ValueError(f"Tupla {tupla_numero} del documento {documento_id} no encontrada")
             
-            # Obtener campos OCR para esta tupla
-            campos_ocr = db.query(OCRResultado).filter(
+            # Obtener campos OCR para esta tupla (formato OCR V2 con datos_ocr JSONB)
+            campo_ocr = db.query(OCRResultado).filter(
                 and_(
                     OCRResultado.documento_id == documento_id,
                     OCRResultado.tupla_numero == tupla_numero
                 )
-            ).order_by(OCRResultado.campo).all()
+            ).first()
             
-            if not campos_ocr:
+            if not campo_ocr:
                 raise ValueError(f"No se encontraron datos OCR para la tupla {tupla_numero}")
             
             # Obtener total de tuplas
@@ -163,23 +194,33 @@ class ValidacionService:
                 OCRResultado.documento_id == documento_id
             ).scalar() or 0
             
-            campos_response = [
-                CampoOCRResponse(
-                    id_ocr=campo.id_ocr,
-                    campo=campo.campo,
-                    valor_extraido=campo.valor_extraido,
-                    confianza=float(campo.confianza),
-                    validado=campo.validado,
-                    sacramento_id=campo.sacramento_id
-                ) for campo in campos_ocr
+            # Convertir formato JSONB a campos individuales
+            campo_nombres = [
+                'nombre_confirmado', 'dia_nacimiento', 'mes_nacimiento', 'ano_nacimiento',
+                'parroquia', 'dia_confirmacion', 'mes_confirmacion', 'ano_confirmacion',
+                'padres', 'padrinos'
             ]
+            
+            campos_response = []
+            for i, campo_nombre in enumerate(campo_nombres, 1):
+                col_key = f'col{i}'
+                valor = campo_ocr.datos_ocr.get(col_key, '') if campo_ocr.datos_ocr else ''
+                
+                campos_response.append(CampoOCRResponse(
+                    id_ocr=campo_ocr.id_ocr,
+                    campo=campo_nombre,
+                    valor_extraido=valor,
+                    confianza=float(campo_ocr.confianza),
+                    validado=campo_ocr.validado,
+                    sacramento_id=campo_ocr.sacramento_id
+                ))
             
             return TuplaValidacionResponse(
                 documento_id=documento_id,
                 tupla_numero=tupla_numero,
                 campos_ocr=campos_response,
                 estado_validacion=validacion.estado,
-                fecha_extraccion=campos_ocr[0].created_at if hasattr(campos_ocr[0], 'created_at') else None,
+                fecha_extraccion=None,  # No disponible en el nuevo formato
                 total_tuplas_documento=total_tuplas
             )
             
@@ -210,31 +251,60 @@ class ValidacionService:
             if not validacion:
                 raise ValueError("Tupla de validación no encontrada")
             
-            # Aplicar correcciones si las hay
-            if validacion_data.correcciones:
-                for correccion in validacion_data.correcciones:
-                    # Obtener el resultado OCR
-                    ocr_resultado = db.query(OCRResultado).filter(
-                        OCRResultado.id_ocr == correccion.id_ocr
-                    ).first()
-                    
-                    if ocr_resultado:
-                        # Crear registro de corrección
-                        nueva_correccion = CorreccionDocumento(
-                            ocr_resultado_id=correccion.id_ocr,
-                            valor_original=correccion.valor_original,
-                            valor_corregido=correccion.valor_corregido,
-                            razon_correccion=correccion.comentario or "Corrección manual",
-                            usuario_corrector_id=validacion_data.usuario_validador_id,
-                            fecha_correccion=datetime.utcnow()
-                        )
-                        db.add(nueva_correccion)
+            # Obtener el resultado OCR de esta tupla
+            ocr_resultado = db.query(OCRResultado).filter(
+                and_(
+                    OCRResultado.documento_id == validacion_data.documento_id,
+                    OCRResultado.tupla_numero == validacion_data.tupla_numero
+                )
+            ).first()
+            
+            if not ocr_resultado:
+                raise ValueError("Resultado OCR no encontrado para esta tupla")
+            
+            # Aplicar correcciones desde datos_validados (contiene valores finales)
+            if validacion_data.datos_validados:
+                # Mapeo de nombres de campos a columnas JSONB
+                campo_map = {
+                    'nombre_confirmado': 'col1',
+                    'dia_nacimiento': 'col2',
+                    'mes_nacimiento': 'col3',
+                    'ano_nacimiento': 'col4',
+                    'parroquia': 'col5',
+                    'dia_confirmacion': 'col6',
+                    'mes_confirmacion': 'col7',
+                    'ano_confirmacion': 'col8',
+                    'padres': 'col9',
+                    'padrinos': 'col10'
+                }
+                
+                # Actualizar datos_ocr JSONB con valores validados
+                datos_actualizados = dict(ocr_resultado.datos_ocr or {})
+                
+                for campo_nombre, valor_nuevo in validacion_data.datos_validados.items():
+                    col_key = campo_map.get(campo_nombre)
+                    if col_key:
+                        valor_original = datos_actualizados.get(col_key, '')
                         
-                        # Actualizar el valor en OCR resultado
-                        ocr_resultado.valor_extraido = correccion.valor_corregido
-                        ocr_resultado.validado = True
+                        # Si el valor cambió, registrar corrección
+                        if valor_original != valor_nuevo:
+                            nueva_correccion = CorreccionDocumento(
+                                ocr_resultado_id=ocr_resultado.id_ocr,
+                                valor_original=f"{campo_nombre}: {valor_original}",
+                                valor_corregido=f"{campo_nombre}: {valor_nuevo}",
+                                razon_correccion="Corrección manual durante validación",
+                                usuario_corrector_id=validacion_data.usuario_validador_id,
+                                fecha_correccion=datetime.utcnow()
+                            )
+                            db.add(nueva_correccion)
+                            logger.info(f"Corrección aplicada: {campo_nombre} = {valor_nuevo}")
                         
-                        logger.info(f"Aplicada corrección a OCR ID {correccion.id_ocr}")
+                        # Actualizar el valor en el JSONB
+                        datos_actualizados[col_key] = valor_nuevo
+                
+                # Guardar datos actualizados
+                ocr_resultado.datos_ocr = datos_actualizados
+                ocr_resultado.validado = True
             
             # Actualizar estado de validación según la acción
             if validacion_data.accion == "aprobar":
@@ -579,7 +649,8 @@ class ValidacionService:
         campos_corregidos: Dict[str, Any],
         usuario_id: int,
         institucion_id: int,
-        db: Session
+        db: Session,
+        persona_id_existente: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Valida una tupla con estructura JSON y registra en personas y sacramentos
@@ -587,7 +658,7 @@ class ValidacionService:
         Args:
             documento_id: ID del documento
             tupla_numero: Número de tupla
-            campos_corregidos: Diccionario con campos validados/corregidos
+            campos_corregidos: Diccionario con campos validados/corregidos (puede tener col_X o nombres de campo)
             usuario_id: ID del usuario que valida
             institucion_id: ID de la institución/parroquia seleccionada
             db: Sesión de base de datos
@@ -596,6 +667,29 @@ class ValidacionService:
             Diccionario con IDs creados y estado
         """
         try:
+            # 0. Mapear col_X a nombres de campos si es necesario
+            COL_TO_FIELD_MAP = {
+                'col_0': 'nombre_confirmando',
+                'col_1': 'dia_nacimiento',
+                'col_2': 'mes_nacimiento',
+                'col_3': 'ano_nacimiento',
+                # col_4 no se mapea (parroquia - no se usa)
+                'col_5': 'dia_bautismo',
+                'col_6': 'mes_bautismo',
+                'col_7': 'ano_bautismo',
+                'col_8': 'padres',
+                'col_9': 'padrinos'
+            }
+            
+            # Convertir col_X a nombres de campos si es necesario
+            campos_normalizados = {}
+            for key, value in campos_corregidos.items():
+                # Si la key es col_X, mapear al nombre del campo
+                campo_normalizado = COL_TO_FIELD_MAP.get(key, key)
+                campos_normalizados[campo_normalizado] = value
+            
+            logger.info(f"Campos normalizados: {campos_normalizados}")
+            
             # 1. Obtener tupla y datos del documento
             tupla_query = text("""
                 SELECT o.id_ocr, o.datos_ocr, d.libros_id, d.tipo_sacramento
@@ -616,8 +710,8 @@ class ValidacionService:
             
             id_ocr, datos_ocr, libro_id, tipo_sacramento = tupla
             
-            # 2. Parsear nombre completo
-            nombre_completo = campos_corregidos.get("nombre_confirmando", "").strip()
+            # 2. Parsear nombre completo desde campos normalizados
+            nombre_completo = campos_normalizados.get("nombre_confirmando", "").strip()
             partes = nombre_completo.split()
             
             if len(partes) >= 3:
@@ -635,53 +729,113 @@ class ValidacionService:
             
             # 3. Construir fecha de nacimiento
             try:
-                dia_nac = int(campos_corregidos.get("dia_nacimiento", 1))
-                mes_nac = int(campos_corregidos.get("mes_nacimiento", 1))
-                ano_nac = int(campos_corregidos.get("ano_nacimiento", 2000))
+                dia_nac = int(campos_normalizados.get("dia_nacimiento", 1))
+                mes_nac = int(campos_normalizados.get("mes_nacimiento", 1))
+                ano_nac = int(campos_normalizados.get("ano_nacimiento", 2000))
                 fecha_nacimiento = f"{ano_nac:04d}-{mes_nac:02d}-{dia_nac:02d}"
             except:
                 fecha_nacimiento = "2000-01-01"
             
             # 4. Construir fecha del sacramento
             try:
-                dia_baut = int(campos_corregidos.get("dia_bautismo", 1))
-                mes_baut = int(campos_corregidos.get("mes_bautismo", 1))
-                ano_baut = int(campos_corregidos.get("ano_bautismo", 2000))
+                dia_baut = int(campos_normalizados.get("dia_bautismo", 1))
+                mes_baut = int(campos_normalizados.get("mes_bautismo", 1))
+                ano_baut = int(campos_normalizados.get("ano_bautismo", 2000))
                 fecha_sacramento = f"{ano_baut:04d}-{mes_baut:02d}-{dia_baut:02d}"
             except:
                 fecha_sacramento = "2000-01-01"
             
-            # 5. Procesar nombres de padres
-            padres_texto = campos_corregidos.get("padres", "No especificado")
-            nombre_padre = padres_texto[:100] if padres_texto else "No especificado"
-            nombre_madre = padres_texto[100:200] if len(padres_texto) > 100 else "No especificado"
+            # 5. Procesar nombres de padres y padrinos
+            padres_texto = campos_normalizados.get("padres", "No especificado")
+            padrinos_texto = campos_normalizados.get("padrinos", "No especificado")
             
-            # 6. Insertar en tabla personas
-            insert_persona = text("""
-                INSERT INTO personas (
-                    nombres, apellido_paterno, apellido_materno,
-                    fecha_nacimiento, lugar_nacimiento,
-                    nombre_padre, nombre_madre
-                ) VALUES (
-                    :nombres, :ap_paterno, :ap_materno,
-                    :fecha_nac, :lugar_nac,
-                    :padre, :madre
-                )
-                RETURNING id_persona
-            """)
+            # Combinar padre y madre en un solo campo
+            nombre_padre_nombre_madre = padres_texto[:200] if padres_texto else "No especificado"
             
-            result_persona = db.execute(insert_persona, {
-                "nombres": nombres,
-                "ap_paterno": apellido_paterno,
-                "ap_materno": apellido_materno,
-                "fecha_nac": fecha_nacimiento,
-                "lugar_nac": campos_corregidos.get("parroquia_bautismo", "No especificado")[:100],
-                "padre": nombre_padre,
-                "madre": nombre_madre
-            })
+            # Combinar padrino y madrina en un solo campo
+            nombre_padrino_nombre_madrina = padrinos_texto[:200] if padrinos_texto else "No especificado"
             
-            persona_id = result_persona.fetchone()[0]
-            logger.info(f"Persona creada con ID: {persona_id}")
+            # Usar fecha del sacramento como fecha_bautismo estimada
+            fecha_bautismo = fecha_sacramento
+            
+            # 6. Insertar o usar persona existente
+            if persona_id_existente:
+                # Persona ya existe, usar el ID proporcionado
+                persona_id = persona_id_existente
+                logger.info(f"Usando persona existente con ID: {persona_id}")
+            else:
+                # VALIDACIÓN: Verificar si ya existe una persona con estos datos
+                # Criterio: nombres + apellidos + fecha_nacimiento + fecha_bautismo
+                check_duplicado = text("""
+                    SELECT id_persona 
+                    FROM personas 
+                    WHERE nombres = :nombres 
+                    AND apellido_paterno = :ap_paterno 
+                    AND apellido_materno = :ap_materno 
+                    AND fecha_nacimiento = :fecha_nac
+                    AND fecha_bautismo = :fecha_bautismo
+                    LIMIT 1
+                """)
+                
+                persona_existente = db.execute(check_duplicado, {
+                    "nombres": nombres,
+                    "ap_paterno": apellido_paterno,
+                    "ap_materno": apellido_materno,
+                    "fecha_nac": fecha_nacimiento,
+                    "fecha_bautismo": fecha_bautismo
+                }).fetchone()
+                
+                if persona_existente:
+                    # Ya existe una persona con los mismos datos
+                    persona_id = persona_existente[0]
+                    logger.warning(f"Persona duplicada encontrada. Usando ID existente: {persona_id}")
+                    raise ValueError(
+                        f"Ya existe una persona registrada con el mismo nombre ({nombre_completo}), "
+                        f"fecha de nacimiento ({fecha_nacimiento}) y fecha de bautizo ({fecha_bautismo}). "
+                        f"Persona ID: {persona_id}"
+                    )
+                else:
+                    # Crear nueva persona
+                    try:
+                        insert_persona = text("""
+                            INSERT INTO personas (
+                                nombres, apellido_paterno, apellido_materno,
+                                fecha_nacimiento, fecha_bautismo,
+                                nombre_padre_nombre_madre, nombre_padrino_nombre_madrina
+                            ) VALUES (
+                                :nombres, :ap_paterno, :ap_materno,
+                                :fecha_nac, :fecha_bautismo,
+                                :padre_madre, :padrino_madrina
+                            )
+                            RETURNING id_persona
+                        """)
+                        
+                        result_persona = db.execute(insert_persona, {
+                            "nombres": nombres,
+                            "ap_paterno": apellido_paterno,
+                            "ap_materno": apellido_materno,
+                            "fecha_nac": fecha_nacimiento,
+                            "fecha_bautismo": fecha_bautismo,
+                            "padre_madre": nombre_padre_nombre_madre,
+                            "padrino_madrina": nombre_padrino_nombre_madrina
+                        })
+                        
+                        persona_id = result_persona.fetchone()[0]
+                        logger.info(f"Persona creada con ID: {persona_id}")
+                    except IntegrityError as e:
+                        # Capturar violación de constraint único de PostgreSQL
+                        if 'personas_datos_basicos_unique' in str(e):
+                            logger.warning(f"Intento de insertar persona duplicada: {nombre_completo}")
+                            raise ValueError(
+                                f"Esta persona ya está registrada en el sistema. "
+                                f"Nombre: {nombre_completo}, "
+                                f"Fecha de nacimiento: {fecha_nacimiento}, "
+                                f"Fecha de bautizo: {fecha_bautismo}. "
+                                f"Por favor, verifique los datos o use el registro existente."
+                            )
+                        else:
+                            # Otro tipo de error de integridad
+                            raise
             
             # 7. Insertar en tabla sacramentos
             insert_sacramento = text("""

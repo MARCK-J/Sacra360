@@ -70,9 +70,9 @@ export default function RevisionOCR() {
     cerrarModal()
     // Actualizar lista de documentos
     setDocumentos(prev => prev.filter(doc => doc.id !== documentoId))
-    // Redirigir a registros
+    // Redirigir a registro de sacramento
     setTimeout(() => {
-      navigate('/registros')
+      navigate('/sacramento')
     }, 500)
   }
 
@@ -109,10 +109,11 @@ export default function RevisionOCR() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
                   <tr>
                     <th scope="col" className="px-6 py-3">ID</th>
                     <th scope="col" className="px-6 py-3">Nombre Archivo</th>
+                    <th scope="col" className="px-6 py-3">Modelo</th>
                     <th scope="col" className="px-6 py-3">Sacramento</th>
                     <th scope="col" className="px-6 py-3">Fecha</th>
                     <th scope="col" className="px-6 py-3">Tuplas</th>
@@ -128,6 +129,16 @@ export default function RevisionOCR() {
                       </td>
                       <td className="px-6 py-4">{doc.nombre_archivo}</td>
                       <td className="px-6 py-4">
+                        {/* Badge diferenciado para OCR vs HTR */}
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          doc.modelo_procesamiento === 'htr' 
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' 
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                        }`}>
+                          {doc.modelo_procesamiento === 'htr' ? '✍️ HTR' : '📝 OCR'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
                         <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
                           {doc.tipo_sacramento === 1 && 'Bautismo'}
                           {doc.tipo_sacramento === 2 && 'Confirmación'}
@@ -135,7 +146,7 @@ export default function RevisionOCR() {
                           {doc.tipo_sacramento === 5 && 'Defunción'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{new Date(doc.fecha_subida).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">{doc.fecha_subida ? new Date(doc.fecha_subida).toLocaleDateString() : 'N/A'}</td>
                       <td className="px-6 py-4">{doc.total_tuplas}</td>
                       <td className="px-6 py-4">
                         <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">

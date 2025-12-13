@@ -76,11 +76,13 @@ CREATE TABLE detalles_matrimonio (
     apellido_materno_esposo varchar(50)  NOT NULL,
     apellido_peterno_esposa varchar(50)  NOT NULL,
     apellido_materno_esposa varchar(50)  NOT NULL,
+    fecha_nacimiento_esposo date  NOT NULL,
+    fecha_nacimiento_esposa date  NOT NULL,
     nombre_padre_esposo varchar(100)  NOT NULL,
     nombre_madre_esposo varchar(100)  NOT NULL,
     nombre_padre_esposa varchar(100)  NOT NULL,
     nombre_madre_esposa varchar(100)  NOT NULL,
-    padrino varchar(100)  NOT NULL,
+    testigos varchar(200)  NOT NULL,
     ministro varchar(100)  NOT NULL,
     foja varchar(10)  NOT NULL,
     numero varchar(10)  NOT NULL,
@@ -103,9 +105,18 @@ CREATE TABLE documento_digitalizado (
     nombre_archivo varchar(255)  NULL,
     fecha_subida timestamp  NULL DEFAULT NOW(),
     estado_procesamiento varchar(50)  NOT NULL DEFAULT 'pendiente',
+    -- Columnas añadidas por migraciones (HTR/Progreso)
+    modelo_procesamiento varchar(20) NOT NULL DEFAULT 'ocr' CHECK (modelo_procesamiento IN ('ocr','htr')),
+    progreso_ocr int DEFAULT 0,
+    mensaje_progreso text DEFAULT '',
     fecha_validacion timestamp  NULL,
     CONSTRAINT documento_digitalizado_pk PRIMARY KEY (id_documento)
 );
+
+-- Comentarios sobre columnas añadidas
+COMMENT ON COLUMN documento_digitalizado.modelo_procesamiento IS 'Indica qué modelo se usó para procesar el documento: ocr (EasyOCR) o htr (HTR_Sacra360)';
+COMMENT ON COLUMN documento_digitalizado.progreso_ocr IS 'Progreso del procesamiento (0-100%). Aplica tanto para OCR como HTR';
+COMMENT ON COLUMN documento_digitalizado.mensaje_progreso IS 'Mensaje descriptivo del progreso actual. Ejemplo: "Procesadas 20/139 celdas"';
 
 -- Table: libros
 CREATE TABLE libros (
@@ -145,6 +156,15 @@ CREATE TABLE personas (
     CONSTRAINT personas_pk PRIMARY KEY (id_persona)
 );
 
+-- Constraint único para evitar duplicados en personas (actualizado 2025-12-12)
+ALTER TABLE personas
+ADD CONSTRAINT personas_datos_basicos_unique
+UNIQUE (nombres, apellido_paterno, apellido_materno, fecha_nacimiento, fecha_bautismo);
+
+-- Índice para búsquedas rápidas de duplicados
+CREATE INDEX idx_personas_busqueda_duplicados 
+ON personas (apellido_paterno, apellido_materno, nombres, fecha_nacimiento, fecha_bautismo);
+
 -- Table: sacramentos
 CREATE TABLE sacramentos (
     id_sacramento serial  NOT NULL,
@@ -159,6 +179,25 @@ CREATE TABLE sacramentos (
     CONSTRAINT sacramentos_pk PRIMARY KEY (id_sacramento),
     CONSTRAINT sacramentos_unico_por_registro UNIQUE (persona_id, tipo_id, fecha_sacramento, libro_id)
 );
+
+-- Table: matrimonios
+CREATE TABLE matrimonios (
+    id_matrimonio serial  NOT NULL,
+    sacramento_id int  NOT NULL,
+    esposo_id int  NOT NULL,
+    esposa_id int  NOT NULL,
+    nombre_padre_esposo varchar(100)  NOT NULL,
+    nombre_madre_esposo varchar(100)  NOT NULL,
+    nombre_padre_esposa varchar(100)  NOT NULL,
+    nombre_madre_esposa varchar(100)  NOT NULL,
+    testigos varchar(200)  NOT NULL,
+    CONSTRAINT matrimonios_pk PRIMARY KEY (id_matrimonio),
+    CONSTRAINT matrimonios_sacramento_unico UNIQUE (sacramento_id)
+);
+
+-- Índice para búsquedas de sacramentos duplicados (si no existe)
+CREATE INDEX idx_sacramentos_busqueda_duplicados 
+ON sacramentos (persona_id, tipo_id, fecha_sacramento);
 
 -- Table: tipos_sacramentos
 CREATE TABLE tipos_sacramentos (
@@ -194,6 +233,28 @@ CREATE TABLE validacion_tuplas (
     observaciones text  NULL,
     CONSTRAINT validacion_tuplas_pk PRIMARY KEY (id_validacion)
 );
+
+-- Índices y mejoras añadidas por migraciones
+CREATE INDEX idx_documento_modelo_procesamiento 
+ON documento_digitalizado(modelo_procesamiento);
+
+CREATE INDEX idx_ocr_resultado_fuente_modelo 
+ON ocr_resultado(fuente_modelo);
+
+CREATE INDEX idx_documento_estado_procesamiento 
+ON documento_digitalizado (estado_procesamiento);
+
+CREATE INDEX idx_ocr_resultado_tupla ON ocr_resultado(documento_id, tupla_numero);
+CREATE INDEX idx_ocr_resultado_estado ON ocr_resultado(estado_validacion);
+CREATE INDEX idx_validacion_tuplas_documento ON validacion_tuplas(documento_id);
+CREATE INDEX idx_validacion_tuplas_estado ON validacion_tuplas(estado);
+
+-- Comentarios adicionales
+COMMENT ON TABLE ocr_resultado IS 'Almacena resultados de procesamiento de documentos (OCR o HTR). El campo fuente_modelo distingue qué motor generó los datos.';
+COMMENT ON COLUMN ocr_resultado.fuente_modelo IS 'Identificador del modelo que generó los datos: "OCRv2_EasyOCR" o "HTR_Sacra360"';
+
+COMMENT ON CONSTRAINT personas_datos_basicos_unique ON personas IS 'Evita registrar la misma persona con los mismos datos básicos (nombres, apellidos, fecha nacimiento y fecha bautismo)';
+COMMENT ON CONSTRAINT sacramentos_unico_por_registro ON sacramentos IS 'Evita registrar el mismo sacramento dos veces para la misma persona';
 
 -- foreign keys
 -- Reference: Auditoria_Usuarios (table: Auditoria)
@@ -296,6 +357,30 @@ ALTER TABLE sacramentos ADD CONSTRAINT sacramentos_tipos_sacramentos
 ALTER TABLE sacramentos ADD CONSTRAINT sacramentos_usuarios
     FOREIGN KEY (usuario_id)
     REFERENCES usuarios (id_usuario)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: matrimonios_sacramentos (table: matrimonios)
+ALTER TABLE matrimonios ADD CONSTRAINT matrimonios_sacramentos
+    FOREIGN KEY (sacramento_id)
+    REFERENCES sacramentos (id_sacramento)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: matrimonios_esposo (table: matrimonios)
+ALTER TABLE matrimonios ADD CONSTRAINT matrimonios_esposo
+    FOREIGN KEY (esposo_id)
+    REFERENCES personas (id_persona)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: matrimonios_esposa (table: matrimonios)
+ALTER TABLE matrimonios ADD CONSTRAINT matrimonios_esposa
+    FOREIGN KEY (esposa_id)
+    REFERENCES personas (id_persona)  
     NOT DEFERRABLE 
     INITIALLY IMMEDIATE
 ;

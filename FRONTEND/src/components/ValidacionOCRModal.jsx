@@ -29,6 +29,11 @@ const ValidacionOCRModal = ({
   const [notificacion, setNotificacion] = useState(null);
   const [instituciones, setInstituciones] = useState([]);
   const [institucionSeleccionada, setInstitucionSeleccionada] = useState(null);
+  
+  // Estados para validación de persona existente
+  const [personaExistente, setPersonaExistente] = useState(null);
+  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
+  const [datosParaRegistrar, setDatosParaRegistrar] = useState(null);
 
   // Efecto para cargar tuplas cuando se abre el modal
   useEffect(() => {
@@ -123,8 +128,12 @@ const ValidacionOCRModal = ({
 
   /**
    * Valida el tipo de dato según el campo
+   * Acepta tanto col_X como nombres de campo
    */
   const validarTipoDato = (nombreCampo, valor) => {
+    // Mapear col_X a nombre de campo si es necesario
+    const nombreCampoReal = COL_TO_FIELD_MAP[nombreCampo] || nombreCampo;
+    
     // Campos numéricos (fechas)
     const camposNumericos = ['dia_nacimiento', 'mes_nacimiento', 'ano_nacimiento', 
                              'dia_bautismo', 'mes_bautismo', 'ano_bautismo'];
@@ -132,12 +141,12 @@ const ValidacionOCRModal = ({
     // Campos alfabéticos (nombres)
     const camposAlfabeticos = ['nombre_confirmando', 'padres', 'padrinos'];
 
-    if (camposNumericos.includes(nombreCampo)) {
+    if (camposNumericos.includes(nombreCampoReal)) {
       // Solo permitir números
       return valor.replace(/[^0-9]/g, '');
     }
     
-    if (camposAlfabeticos.includes(nombreCampo)) {
+    if (camposAlfabeticos.includes(nombreCampoReal)) {
       // Solo permitir letras, espacios, acentos y caracteres especiales de nombres
       return valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.]/g, '');
     }
@@ -182,15 +191,31 @@ const ValidacionOCRModal = ({
   const validarTupla = async (accion) => {
     if (!tuplas[tuplaActual]) return;
 
-    // Validar que se haya seleccionado una institución
-    if (!institucionSeleccionada) {
-      setError('Debe seleccionar una Institución/Parroquia antes de validar');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     const tupla = tuplas[tuplaActual];
+
+    // Si la acción es rechazar, no necesitamos validar institución ni datos
+    if (accion === 'rechazar') {
+      await registrarTupla({
+        documento_id: documentoId,
+        tupla_numero: tupla.tupla_numero,
+        tupla_id_ocr: tupla.id_ocr,
+        usuario_validador_id: 4,
+        institucion_id: null,
+        datos_validados: {},
+        observaciones: observaciones || 'Tupla rechazada',
+        accion: 'rechazar'
+      });
+      return;
+    }
+
+    // Para aprobar o corregir, validar que se haya seleccionado una institución
+    if (!institucionSeleccionada) {
+      setError('Debe seleccionar una Institución/Parroquia antes de validar');
+      setLoading(false);
+      return;
+    }
 
     // Construir datos_validados con valores corregidos o originales
     const datosValidados = {};
@@ -200,16 +225,74 @@ const ValidacionOCRModal = ({
       datosValidados[campo.campo] = valorFinal;
     });
 
-    const datosValidacion = {
+    // Construir fechas completas desde día/mes/año
+    const fechaNacimiento = `${datosValidados.ano_nacimiento}-${String(datosValidados.mes_nacimiento).padStart(2, '0')}-${String(datosValidados.dia_nacimiento).padStart(2, '0')}`;
+    const fechaBautismo = `${datosValidados.ano_bautismo}-${String(datosValidados.mes_bautismo).padStart(2, '0')}-${String(datosValidados.dia_bautismo).padStart(2, '0')}`;
+
+    // Parsear nombre_confirmando (formato: "Nombres - Apellido Paterno - Apellido Materno")
+    const nombrePartes = datosValidados.nombre_confirmando?.split('-').map(p => p.trim()) || [];
+    const nombres = nombrePartes[0] || '';
+    const apellidoPaterno = nombrePartes[1] || '';
+    const apellidoMaterno = nombrePartes[2] || '';
+
+    // Buscar si ya existe persona con mismo nombre, fecha_nacimiento y fecha_bautismo
+    try {
+      const searchRes = await fetch(
+        `http://localhost:8002/api/v1/personas/search?nombres=${encodeURIComponent(nombres)}&apellido_paterno=${encodeURIComponent(apellidoPaterno)}&apellido_materno=${encodeURIComponent(apellidoMaterno)}`
+      );
+      
+      if (searchRes.ok) {
+        const personasEncontradas = await searchRes.json();
+        
+        // Filtrar por fecha_nacimiento y fecha_bautismo exactas
+        const personaCoincidente = personasEncontradas.find(p => 
+          p.fecha_nacimiento === fechaNacimiento && 
+          p.fecha_bautismo === fechaBautismo
+        );
+        
+        if (personaCoincidente) {
+          // Persona existente encontrada - mostrar modal de confirmación
+          setPersonaExistente(personaCoincidente);
+          setDatosParaRegistrar({
+            documento_id: documentoId,
+            tupla_numero: tupla.tupla_numero,
+            tupla_id_ocr: tupla.id_ocr,
+            usuario_validador_id: 4,
+            institucion_id: institucionSeleccionada,
+            datos_validados: datosValidados,
+            observaciones,
+            accion,
+            persona_id_existente: personaCoincidente.id_persona
+          });
+          setMostrarModalConfirmacion(true);
+          setLoading(false);
+          return; // Esperar confirmación del usuario
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Error al buscar persona existente:', err);
+      // Continuar con registro normal si falla búsqueda
+    }
+
+    // No se encontró persona existente, proceder con registro normal
+    await registrarTupla({
       documento_id: documentoId,
       tupla_numero: tupla.tupla_numero,
       tupla_id_ocr: tupla.id_ocr,
-      usuario_validador_id: 1, // TODO: Obtener del contexto de usuario
+      usuario_validador_id: 4,
       institucion_id: institucionSeleccionada,
       datos_validados: datosValidados,
       observaciones,
-      accion // 'aprobar', 'corregir', 'rechazar'
-    };
+      accion
+    });
+  };
+
+  /**
+   * Registra la tupla en el backend
+   */
+  const registrarTupla = async (datosValidacion) => {
+    setLoading(true);
+    const tupla = tuplas[tuplaActual];
 
     console.log('📤 Enviando validación:', datosValidacion);
 
@@ -228,12 +311,16 @@ const ValidacionOCRModal = ({
       }
 
       const resultado = await response.json();
-      console.log('✅ Tupla validada:', resultado);
+      console.log('✅ Tupla procesada:', resultado);
 
-      // Mostrar notificación de éxito
+      // Mostrar notificación de éxito según el tipo de acción
+      const mensaje = resultado.estado === 'rechazado'
+        ? `⏭️ Tupla ${tupla.tupla_numero} rechazada`
+        : `✅ Tupla ${tupla.tupla_numero} registrada - Persona: ${resultado.persona_id}, Sacramento: ${resultado.sacramento_id}`;
+      
       setNotificacion({
         tipo: 'success',
-        mensaje: `✅ Tupla ${tupla.tupla_numero} registrada - Persona: ${resultado.persona_id}, Sacramento: ${resultado.sacramento_id}`
+        mensaje
       });
 
       // Ocultar notificación después de 3 segundos
@@ -276,6 +363,27 @@ const ValidacionOCRModal = ({
   };
 
   /**
+   * Confirma el registro con persona existente
+   */
+  const confirmarRegistroConPersonaExistente = async () => {
+    setMostrarModalConfirmacion(false);
+    await registrarTupla(datosParaRegistrar);
+    setPersonaExistente(null);
+    setDatosParaRegistrar(null);
+  };
+
+  /**
+   * Cancela el registro y vuelve a editar
+   */
+  const cancelarRegistroPersonaExistente = () => {
+    setMostrarModalConfirmacion(false);
+    setPersonaExistente(null);
+    setDatosParaRegistrar(null);
+    setLoading(false);
+    setModoEdicion(true); // Permitir editar datos
+  };
+
+  /**
    * Navega entre tuplas
    */
   const navegarTupla = (direccion) => {
@@ -289,25 +397,46 @@ const ValidacionOCRModal = ({
   };
 
   /**
-   * Orden de campos según la tabla de las hojas
+   * Mapeo de col_X a nombres de campos
+   * col_4 NO se incluye (parroquia/institución - no se valida)
+   */
+  const COL_TO_FIELD_MAP = {
+    'col_0': 'nombre_confirmando',
+    'col_1': 'dia_nacimiento',
+    'col_2': 'mes_nacimiento',
+    'col_3': 'ano_nacimiento',
+    // col_4 NO se mapea (parroquia - no se valida)
+    'col_5': 'dia_bautismo',
+    'col_6': 'mes_bautismo',
+    'col_7': 'ano_bautismo',
+    'col_8': 'padres',
+    'col_9': 'padrinos'
+  };
+
+  /**
+   * Orden de campos según la tabla de las hojas (sin col_4)
    */
   const ORDEN_CAMPOS = [
-    'nombre_confirmando',
-    'dia_nacimiento',
-    'mes_nacimiento',
-    'ano_nacimiento',
-    'dia_bautismo',
-    'mes_bautismo',
-    'ano_bautismo',
-    'padres',
-    'padrinos'
+    'col_0',  // nombre_confirmando
+    'col_1',  // dia_nacimiento
+    'col_2',  // mes_nacimiento
+    'col_3',  // ano_nacimiento',
+    // col_4 omitido (parroquia)
+    'col_5',  // dia_bautismo
+    'col_6',  // mes_bautismo
+    'col_7',  // ano_bautismo
+    'col_8',  // padres
+    'col_9'   // padrinos
   ];
 
   /**
-   * Ordena los campos según el orden definido
+   * Ordena los campos según el orden definido y FILTRA col_4
    */
   const ordenarCampos = (campos) => {
-    return [...campos].sort((a, b) => {
+    // FILTRAR col_4 (parroquia) antes de ordenar
+    const camposFiltrados = campos.filter(campo => campo.campo !== 'col_4');
+    
+    return [...camposFiltrados].sort((a, b) => {
       const indexA = ORDEN_CAMPOS.indexOf(a.campo);
       const indexB = ORDEN_CAMPOS.indexOf(b.campo);
       return indexA - indexB;
@@ -316,26 +445,34 @@ const ValidacionOCRModal = ({
 
   /**
    * Obtiene la etiqueta amigable del campo
+   * Acepta tanto col_X como nombres de campo
    */
   const obtenerEtiquetaCampo = (nombreCampo) => {
+    // Mapear col_X a nombre de campo si es necesario
+    const nombreCampoReal = COL_TO_FIELD_MAP[nombreCampo] || nombreCampo;
+    
     const etiquetas = {
-      'nombre_confirmando': 'CONFIRMANDO (Nombre - Ap. Paterno - Ap. Materno)',
+      'nombre_confirmando': 'Nombre del Confirmado',
       'dia_nacimiento': 'Día de Nacimiento',
       'mes_nacimiento': 'Mes de Nacimiento',
       'ano_nacimiento': 'Año de Nacimiento',
       'dia_bautismo': 'Día de Bautismo',
       'mes_bautismo': 'Mes de Bautismo',
       'ano_bautismo': 'Año de Bautismo',
-      'padres': 'PADRES (Nombres - Ap. Paterno - Ap. Materno)',
-      'padrinos': 'PADRINOS (Nombres - Ap. Paterno - Ap. Materno)'
+      'padres': 'Padres (Nombres - Ap. Paterno - Ap. Materno)',
+      'padrinos': 'Padrinos (Nombres - Ap. Paterno - Ap. Materno)'
     };
-    return etiquetas[nombreCampo] || nombreCampo.replace(/_/g, ' ');
+    return etiquetas[nombreCampoReal] || nombreCampoReal.replace(/_/g, ' ');
   };
 
   /**
    * Obtiene el placeholder según el tipo de campo
+   * Acepta tanto col_X como nombres de campo
    */
   const obtenerPlaceholder = (nombreCampo) => {
+    // Mapear col_X a nombre de campo si es necesario
+    const nombreCampoReal = COL_TO_FIELD_MAP[nombreCampo] || nombreCampo;
+    
     const placeholders = {
       'nombre_confirmando': 'Ej: Juan - Pérez - García',
       'dia_nacimiento': 'Día (1-31)',
@@ -347,7 +484,7 @@ const ValidacionOCRModal = ({
       'padres': 'Nombres - Ap. Paterno - Ap. Materno',
       'padrinos': 'Nombres - Ap. Paterno - Ap. Materno'
     };
-    return placeholders[nombreCampo] || 'Ingrese el valor';
+    return placeholders[nombreCampoReal] || 'Ingrese el valor';
   };
 
   /**
@@ -478,30 +615,6 @@ const ValidacionOCRModal = ({
             </div>
           </div>
 
-          {/* Selector de Institución/Parroquia */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-blue-100 mb-2">
-              🏛️ Institución/Parroquia *
-            </label>
-            <select
-              value={institucionSeleccionada || ''}
-              onChange={(e) => setInstitucionSeleccionada(parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={loading || instituciones.length === 0}
-            >
-              <option value="">Seleccione una institución...</option>
-              {instituciones.map((inst) => (
-                <option key={inst.id_institucion} value={inst.id_institucion}>
-                  {inst.nombre} {inst.direccion ? `- ${inst.direccion}` : ''}
-                </option>
-              ))}
-            </select>
-            {!institucionSeleccionada && (
-              <p className="text-xs text-yellow-200 mt-1">
-                ⚠️ Debe seleccionar una institución para poder validar
-              </p>
-            )}
-          </div>
         </div>
 
         {/* Content */}
@@ -560,6 +673,31 @@ const ValidacionOCRModal = ({
                 >
                   {modoEdicion ? 'Ver Modo' : 'Editar'}
                 </button>
+              </div>
+
+              {/* Selector de Institución/Parroquia */}
+              <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300 p-4 rounded-lg">
+                <label className="block text-sm font-medium text-green-800 mb-2">
+                  ✅ Seleccione la Institución/Parroquia correcta *
+                </label>
+                <select
+                  value={institucionSeleccionada || ''}
+                  onChange={(e) => setInstitucionSeleccionada(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border-2 border-green-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  disabled={loading || instituciones.length === 0}
+                >
+                  <option value="">Seleccione una institución...</option>
+                  {instituciones.map((inst) => (
+                    <option key={inst.id_institucion} value={inst.id_institucion}>
+                      {inst.nombre} {inst.direccion ? `- ${inst.direccion}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {!institucionSeleccionada && (
+                  <p className="text-xs text-red-600 mt-2 font-medium">
+                    ⚠️ Debe seleccionar una institución para poder validar
+                  </p>
+                )}
               </div>
 
               {/* Campos OCR */}
@@ -632,6 +770,69 @@ const ValidacionOCRModal = ({
           </div>
         )}
       </div>
+
+      {/* Modal de confirmación de persona existente */}
+      {mostrarModalConfirmacion && personaExistente && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-start mb-4">
+              <AlertTriangle className="w-6 h-6 text-yellow-500 mr-3 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  ⚠️ Persona Encontrada con Bautizo Registrado
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Se encontró una persona con el mismo nombre, fecha de nacimiento y fecha de bautismo:
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Nombre:</span>
+                  <span className="ml-2 text-gray-900">
+                    {personaExistente.nombres} {personaExistente.apellido_paterno} {personaExistente.apellido_materno}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Fecha de Nacimiento:</span>
+                  <span className="ml-2 text-gray-900">{personaExistente.fecha_nacimiento}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Fecha de Bautismo:</span>
+                  <span className="ml-2 text-gray-900">{personaExistente.fecha_bautismo}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">ID Persona:</span>
+                  <span className="ml-2 text-gray-900">{personaExistente.id_persona}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-700 mb-6">
+              ¿Desea registrar la <span className="font-bold">Confirmación</span> para esta persona existente? 
+              No se creará una nueva persona, solo se agregará el sacramento de confirmación.
+            </p>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelarRegistroPersonaExistente}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded transition-colors"
+              >
+                Cancelar y Editar
+              </button>
+              <button
+                onClick={confirmarRegistroConPersonaExistente}
+                className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded transition-colors flex items-center justify-center"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Confirmar y Registrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

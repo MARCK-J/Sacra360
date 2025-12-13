@@ -138,6 +138,31 @@ class MinioService:
             logger.error(f"Error descargando archivo {object_name}: {e}")
             return None
     
+    def download_file_by_url(self, file_url: str) -> bytes:
+        """
+        Descargar archivo desde MinIO usando URL completa
+        
+        Args:
+            file_url: URL completa del archivo (ej: http://minio:9000/bucket/path/file.pdf)
+            
+        Returns:
+            Contenido del archivo en bytes
+        """
+        # Extraer object_name de la URL
+        # Formato esperado: http://minio:9000/sacra360-documents/path/to/file.pdf
+        parts = file_url.split(f'/{self.bucket_name}/')
+        if len(parts) < 2:
+            raise Exception(f"URL inválida: {file_url}")
+        
+        object_name = parts[1]
+        logger.info(f"Descargando objeto: {object_name}")
+        
+        data = self.download_file(object_name)
+        if data is None:
+            raise Exception(f"No se pudo descargar el archivo: {object_name}")
+        
+        return data
+    
     def delete_file(self, object_name: str) -> bool:
         """
         Eliminar archivo de MinIO

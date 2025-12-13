@@ -1,0 +1,22 @@
+### OCR Service V2 - Test con Tabla1.pdf
+
+### Procesar documento con OCR V2
+POST http://localhost:8003/api/v1/ocr/procesar
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="Tabla1.pdf"
+Content-Type: application/pdf
+
+< ../Images/Tabla1.pdf
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Obtener resultados de un documento
+GET http://localhost:8003/api/v1/ocr/resultados/1
+
+### Health check
+GET http://localhost:8003/status
+
+### Docs
+GET http://localhost:8003/docs
