@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 import logging
 
-# Importar DTOs nuevos
-from app.dto.auth_dto_new import (
+# Importar DTOs
+from app.dto.auth_dto import (
     LoginRequest, LoginResponse,
     RegisterRequest, RegisterResponse,
     ChangePasswordRequest,
@@ -53,11 +53,13 @@ def registrar_auditoria(
 ):
     """Registrar evento en la tabla auditoria"""
     try:
+        from datetime import datetime
         auditoria = Auditoria(
             usuario_id=usuario_id,
             accion=accion,
-            fecha=date.today(),
-            detalles=detalles
+            registro_afectado="AUTH",
+            id_registro=usuario_id if usuario_id else 0,
+            fecha=datetime.now()
         )
         db.add(auditoria)
         db.commit()
@@ -80,11 +82,21 @@ async def login(
         Token de acceso y datos del usuario
     """
     try:
+        logger.info(f"Intento de login para email: {data.email}")
+        
+        # Obtener contraseña (compatible con ambos formatos)
+        password_input = data.password or data.contrasenia
+        if not password_input:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Se requiere el campo 'password'"
+            )
+        
         # Buscar usuario por email
         usuario = db.query(Usuario).filter(Usuario.email == data.email.lower()).first()
         
         # Verificar que el usuario existe y la contraseña es correcta
-        if not usuario or not verify_password(data.contrasenia, usuario.contrasenia):
+        if not usuario or not verify_password(password_input, usuario.contrasenia):
             # Registrar intento fallido
             if usuario:
                 try:
@@ -132,23 +144,33 @@ async def login(
         )
         
         # Preparar response del usuario
-        usuario_response = UsuarioResponse(
-            id_usuario=usuario.id_usuario,
-            nombre=usuario.nombre,
-            apellido_paterno=usuario.apellido_paterno,
-            apellido_materno=usuario.apellido_materno,
-            email=usuario.email,
-            rol_id=usuario.rol_id,
-            nombre_rol=nombre_rol,
-            activo=usuario.activo,
-            fecha_creacion=usuario.fecha_creacion
-        )
+        user_info = {
+            "id_usuario": usuario.id_usuario,
+            "nombre": usuario.nombre,
+            "apellido_paterno": usuario.apellido_paterno,
+            "apellido_materno": usuario.apellido_materno,
+            "email": usuario.email,
+            "rol_id": usuario.rol_id,
+            "nombre_rol": nombre_rol,
+            "activo": usuario.activo,
+            "fecha_creacion": usuario.fecha_creacion.isoformat() if usuario.fecha_creacion else None
+        }
+        
+        # Obtener permisos del rol (por ahora básico, puedes expandir)
+        permissions = []
+        if nombre_rol == "Administrador":
+            permissions = ["read", "write", "delete", "admin"]
+        elif nombre_rol == "Operador":
+            permissions = ["read", "write"]
+        else:
+            permissions = ["read"]
         
         return LoginResponse(
             access_token=access_token,
             token_type="bearer",
             expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            usuario=usuario_response
+            user_info=user_info,
+            permissions=permissions
         )
         
     except HTTPException:

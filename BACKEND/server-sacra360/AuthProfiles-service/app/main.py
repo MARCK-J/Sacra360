@@ -2,71 +2,34 @@
 AuthProfiles Service - Microservicio de Autenticación y Perfiles
 Sistema Sacra360 - Gestión de Archivos Sacramentales
 
-Puerto: 8004
+Puerto: 8001
 Responsabilidades:
-- Autenticación de usuarios (JWT)
+- Autenticación de usuarios (sacerdotes, administrativos)
 - Gestión de perfiles de usuario
-- Control de roles y permisos
+- Control de roles y permisos eclesiásticos
 - Sesiones y tokens JWT
-- Auditoría de accesos
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
-import logging
 
 from app.routers.auth_router_adapted import router as auth_router
-from app.routers.profiles_router import router as profiles_router
-from app.database import init_db
-
-# Función para verificar conexión DB
-def check_db_connection():
-    """Verificar conexión a la base de datos"""
-    try:
-        from app.database import SessionLocal
-        from sqlalchemy import text
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        return True
-    except Exception as e:
-        logger.error(f"Error conectando a BD: {e}")
-        return False
-
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from app.routers.usuarios_router import router as usuarios_router
+from app.routers.auditoria_router import router as auditoria_router
+from app.routers.reportes_router import router as reportes_router
+from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestión del ciclo de vida del servicio"""
     # Startup
-    logger.info("🔐 AuthProfiles Service iniciando...")
-    
-    # Verificar conexión a la base de datos
-    if check_db_connection():
-        logger.info("✅ Conexión a BD exitosa")
-        # Inicializar tablas si no existen
-        try:
-            init_db()
-            logger.info("✅ Tablas de BD inicializadas")
-        except Exception as e:
-            logger.error(f"❌ Error al inicializar tablas: {e}")
-    else:
-        logger.error("❌ No se pudo conectar a la base de datos")
-    
-    logger.info("🚀 AuthProfiles Service iniciado correctamente")
-    
+    print("🔐 AuthProfiles Service iniciado")
     yield
-    
     # Shutdown
-    logger.info("👋 AuthProfiles Service detenido")
+    print("👋 AuthProfiles Service detenido")
 
 
 app = FastAPI(
@@ -81,22 +44,21 @@ app = FastAPI(
 # Configuración CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:8002",
-        "http://localhost:8001"
-    ],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Middlewares de seguridad
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
+
 # Incluir routers
 app.include_router(auth_router, tags=["Autenticación"])
-app.include_router(profiles_router, prefix="/api/v1/profiles", tags=["Perfiles"])
+app.include_router(usuarios_router, tags=["Gestión de Usuarios"])
+app.include_router(auditoria_router, tags=["Auditoría de Accesos"])
+app.include_router(reportes_router, tags=["Reportes y Estadísticas"])
 
 
 @app.get("/")
@@ -117,7 +79,7 @@ async def health_check():
     return {
         "service": "AuthProfiles",
         "status": "healthy",
-        "port": 8001,
+        "port": 8004,
         "database": "connected"
     }
 
@@ -126,6 +88,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8004,
         reload=True
     )
