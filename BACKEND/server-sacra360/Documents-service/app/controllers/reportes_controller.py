@@ -81,7 +81,7 @@ def sacramentos_for_reportes(
             "p.id_persona, p.nombres, p.apellido_paterno, p.apellido_materno, "
             "ts.id_tipo, ts.nombre as tipo_nombre, i.id_institucion, i.nombre as institucion_nombre "
             "FROM sacramentos s "
-            "JOIN personas p ON p.id_persona = s.persona_id "
+            "LEFT JOIN personas p ON p.id_persona = s.persona_id "
             "JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
             "LEFT JOIN institucionesparroquias i ON i.id_institucion = s.institucion_id "
         )
@@ -89,10 +89,43 @@ def sacramentos_for_reportes(
         where_clauses = []
         params = {}
 
-        if tipo_sacramento:
-            # allow matching by name (case-insensitive)
-            where_clauses.append("ts.nombre ILIKE :tipo")
-            params["tipo"] = f"%{tipo_sacramento}%"
+        if tipo_sacramento is not None:
+            raw = str(tipo_sacramento).strip()
+            try:
+                tipo_int = int(raw)
+            except Exception:
+                tipo_int = None
+
+            # If numeric, match s.tipo_id directly
+            if tipo_int is not None:
+                params['tipo_id'] = tipo_int
+                where_clauses.append("s.tipo_id = :tipo_id")
+            else:
+                # For textual tipo names, try to find catalog ids that match either by name
+                # or by canonical numeric code stored in the nombre column (e.g. nombre='2').
+                raw_lower = raw.lower()
+                canonical_codes = { 'bautizo': '1', 'confirmacion': '2', 'matrimonio': '3', 'defuncion': '4' }
+                code = canonical_codes.get(raw_lower)
+                # Query tipos_sacramentos for matching id_tipo values
+                try:
+                    q = "SELECT id_tipo FROM tipos_sacramentos WHERE nombre ILIKE :tipo"
+                    q_params = { 'tipo': f"%{raw}%" }
+                    if code:
+                        q += " OR nombre = :code"
+                        q_params['code'] = code
+                    found = db.execute(text(q), q_params).fetchall()
+                    ids = [r[0] for r in found]
+                except Exception:
+                    ids = []
+
+                if ids:
+                    # safe to inline integers returned from DB
+                    ids_list = ",".join(str(int(i)) for i in ids)
+                    where_clauses.append(f"s.tipo_id IN ({ids_list})")
+                else:
+                    # fallback to name match on tipos.nombre
+                    params['tipo_like'] = f"%{raw}%"
+                    where_clauses.append("ts.nombre ILIKE :tipo_like")
 
         if fecha_inicio:
             where_clauses.append("s.fecha_sacramento >= :fi")

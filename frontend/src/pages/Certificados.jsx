@@ -35,7 +35,8 @@ export default function Certificados() {
     setLoadingList(true)
     setErrorList(null)
     try {
-      const res = await fetch('/api/v1/sacramentos/?limit=20')
+      // Use reportes endpoint which returns persona/tipo/institucion details
+      const res = await fetch('/api/v1/reportes/sacramentos?page=1&limit=20')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const list = Array.isArray(data) ? data : (data.sacramentos || data || [])
@@ -186,25 +187,76 @@ export default function Certificados() {
 
   function getTipoLabel(item) {
     if (!item) return '-'
-    const rawTipo = item.tipo_nombre || item.tipo_sacramento || item.tipo || item.tipo_id || item.tipoId
-    if (!rawTipo) return '-'
-    const s = String(rawTipo)
-    // If it's purely numeric (e.g. '4'), prefer mapping via number
-    let label = ''
+    // rawTipo may be a primitive (id or name) or an object { id_tipo, nombre }
+    let rawTipo = item.tipo || item.tipo_nombre || item.tipo_sacramento || item.tipo_id || item.tipoId
+    if (rawTipo && typeof rawTipo === 'object') {
+      const name = rawTipo.nombre || rawTipo.name || rawTipo.tipo || rawTipo.nombre_tipo
+      if (name != null && String(name).trim() !== '') {
+        const sName = String(name).trim()
+        // If the backend stored a numeric value in the nombre field, map it to a label
+        if (/^\d+$/.test(sName)) {
+          const n = Number(sName)
+          const mapped = TIPO_MAP[n] || `Tipo ${n}`
+          return `${mapped.charAt(0).toUpperCase()}${mapped.slice(1)}`
+        }
+        return `${sName.charAt(0).toUpperCase()}${sName.slice(1)}`
+      }
+      const id = rawTipo.id_tipo || rawTipo.id || rawTipo.tipo_id
+      if (id != null) {
+        const n = Number(id)
+        const m = TIPO_MAP[n]
+        const label = m || `Tipo ${n}`
+        return `${label.charAt(0).toUpperCase()}${label.slice(1)}`
+      }
+      return '-'
+    }
+    if (rawTipo == null) return '-'
+    const s = String(rawTipo).trim()
+    if (s === '') return '-'
     if (/^\d+$/.test(s)) {
       const n = Number(s)
-      label = TIPO_MAP[n] || `Tipo ${n}`
-    } else {
-      label = s
+      const label = TIPO_MAP[n] || `Tipo ${n}`
+      return `${label.charAt(0).toUpperCase()}${label.slice(1)}`
     }
-    // Capitalize first letter for display
-    return label && typeof label === 'string' ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : label
+    return `${s.charAt(0).toUpperCase()}${s.slice(1)}`
+  }
+
+  function getPersonName(item) {
+    if (!item) return '-'
+    const p = item.persona || item.persona_obj || item.person
+    if (p && typeof p === 'object') {
+      const parts = [p.nombres || p.nombre || p.first_name, p.apellido_paterno, p.apellido_materno].filter(Boolean)
+      if (parts.length) return parts.join(' ').trim()
+    }
+    const flat = item.persona_nombre || item.person_name || item.nombre || item.name
+    if (flat && String(flat).trim() !== '') return String(flat).trim()
+    const id = item.persona_id || item.person_id || item.person || item.id_persona
+    if (id) return String(id)
+    return '-'
+  }
+
+  function getInstitutionName(item) {
+    if (!item) return '-'
+    // prefer resolved name fields
+    const direct = item.institucion_nombre || item.institucion_name || item.sacrament_location || item.institucion || item.institucion_nombre
+    // if direct is an object, try to extract .nombre
+    if (direct && typeof direct === 'object') {
+      const name = direct.nombre || direct.name || direct.institucion_nombre
+      if (name && String(name).trim() !== '') return String(name).trim()
+      // try id fallback
+      const id = direct.id_institucion || direct.id
+      return id != null ? String(id) : '-'
+    }
+    if (direct && String(direct).trim() !== '') return String(direct).trim()
+    // last resort: fields on root
+    if (item.nombre_institucion || item.name_institucion) return String(item.nombre_institucion || item.name_institucion)
+    return '-'
   }
 
   // Client-side filtered list by persona name (simple substring match)
   const filteredSacramentos = sacramentos.filter((r) => {
     if (!searchTerm || String(searchTerm).trim() === '') return true
-    const name = (r.persona_nombre || r.person_name || r.persona_id || '')
+    const name = getPersonName(r)
     return String(name).toLowerCase().includes(String(searchTerm).toLowerCase())
   })
 
@@ -220,22 +272,17 @@ export default function Certificados() {
   // Try many possible aliases to return the two spouse names for matrimonios
   function getSpouseNames(item) {
     if (!item) return ['-','-']
-    // Candidate sources for spouse 1 (esposo)
-    const s1 = item.nombre_esposo || item.esposo || item.spouse_name || item.spouse || item.persona_nombre || item.person_name || item.persona || item.nombre_conyuge || item.contrayente_1 || item.persona1 || null
-    // Candidate sources for spouse 2 (esposa)
+    const s1 = item.nombre_esposo || item.esposo || item.spouse_name || item.spouse || item.persona_nombre || item.person_name || (item.persona && typeof item.persona === 'string' ? item.persona : null) || item.nombre_conyuge || item.contrayente_1 || item.persona1 || null
     const s2 = item.nombre_esposa || item.esposa || item.spouse_name_2 || item.spouse2 || item.person2_name || item.contrayente_2 || item.persona2_nombre || item.persona2 || null
 
     const left = (s1 && String(s1).trim() !== '') ? s1 : null
     const right = (s2 && String(s2).trim() !== '') ? s2 : null
 
-    // If only one side is present but there are other fields that may contain the second name, try alternate heuristics
     if (!left && right) {
-      // try to use persona_nombre if present
-      const alt = item.persona_nombre || item.person_name || item.persona
+      const alt = item.persona_nombre || item.person_name || (item.persona && typeof item.persona === 'string' ? item.persona : null)
       return [alt || '-', right || '-']
     }
     if (!right && left) {
-      // try to get a second person from common alternate fields
       const alt2 = item.nombre_conyuge || item.person2_name || item.persona2 || item.esposa || item.spouse2
       return [left || '-', alt2 || '-']
     }
@@ -294,7 +341,7 @@ export default function Certificados() {
                     <div className="certificate">
                       <div className="cert-header">
                         <div className="cert-title">Certificado de {getTipoLabel(selected)}</div>
-                        <div className="cert-sub">{selected.institucion_nombre || selected.sacrament_location || selected.institucion || 'Parroquia'}</div>
+                        <div className="cert-sub">{getInstitutionName(selected) || 'Parroquia'}</div>
                       </div>
                       <div className="cert-body">
                         {isMatrimonio(selected) ? (() => {
@@ -315,7 +362,7 @@ export default function Certificados() {
                             </div>
                           )
                         })() : (
-                          <p><span className="field-label">Nombre:</span> {selected.persona_nombre ?? selected.persona_id ?? selected.person_name ?? '-'}</p>
+                          <p><span className="field-label">Nombre:</span> {getPersonName(selected)}</p>
                         )}
 
                         <p><span className="field-label">Padres:</span> {
@@ -373,7 +420,7 @@ export default function Certificados() {
                     {filteredSacramentos.map((r) => (
                       <tr key={r.id_sacramento || r.id} className={`bg-white dark:bg-background-dark border-b dark:border-gray-700 ${getRowClass(r)}`}>
                         <td className="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{r.id_sacramento || r.id}</td>
-                        <td className="px-6 py-3">{r.persona_nombre ?? r.persona_id ?? r.person_name}</td>
+                        <td className="px-6 py-3">{getPersonName(r)}</td>
                         <td className="px-6 py-3">{getTipoLabel(r)}</td>
                         <td className="px-6 py-3">{r.fecha_sacramento?.substring(0,10) || r.fecha}</td>
                         <td className="px-6 py-3">

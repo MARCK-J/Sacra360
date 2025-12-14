@@ -9,6 +9,8 @@ export default function Reportes() {
   const [tipos, setTipos] = useState([])
   // preserve original catalog id->name mapping (some entries use ids that contain numeric codes)
   const tipoIdToNameRef = useRef(new Map())
+  // preserve raw name returned by backend for each tipo id (may be numeric like '2')
+  const tipoIdRawRef = useRef(new Map())
 
   // Map numeric sacrament codes to canonical names when the catalog uses numbers
   const SACRAMENTO_NAME_BY_CODE = {
@@ -93,18 +95,25 @@ export default function Reportes() {
       const raw = data.tipos_sacramentos || []
       const normalized = raw.map((t) => {
         const idVal = Number(t.id_tipo ?? t.id ?? t.id_tipo_sacramento ?? t.id_institucion ?? t.id) || t.id || t.id_tipo || 0
-        let nombreVal = t.nombre || t.nombre_tipo || t.tipo || String(t.nombre || '')
+        // capture original/raw name from backend before normalization
+        const rawName = String(t.nombre ?? t.nombre_tipo ?? t.tipo ?? '').trim()
+        let nombreVal = rawName
         nombreVal = String(nombreVal || '').trim()
         // If the catalog stores numeric codes as names (e.g. "2"), map to canonical name
         if (/^\d+$/.test(nombreVal) && SACRAMENTO_NAME_BY_CODE[nombreVal]) {
           nombreVal = SACRAMENTO_NAME_BY_CODE[nombreVal]
         }
-        return { id: idVal, nombre: nombreVal }
+        return { id: idVal, nombre: nombreVal, rawName }
       })
       // store original id->name mapping for lookups (preserve entries like id:9 -> nombre:'confirmacion')
       tipoIdToNameRef.current.clear()
+      tipoIdRawRef.current.clear()
       normalized.forEach((t) => {
-        if (t && t.id) tipoIdToNameRef.current.set(Number(t.id), t.nombre)
+        if (t && t.id) {
+          tipoIdToNameRef.current.set(Number(t.id), t.nombre)
+          // rawName may be numeric or textual as returned by backend
+          tipoIdRawRef.current.set(Number(t.id), t.rawName || '')
+        }
       })
 
       // Reduce/normalize catalog to the 4 canonical sacrament types.
@@ -144,39 +153,41 @@ export default function Reportes() {
     const params = new URLSearchParams()
     if (filtros.tipo) {
       // The backend expects a tipo_sacramento name (e.g. 'bautizo').
-      // The select may provide an id (numeric) or a name. Try multiple resolutions to match DB values.
+      // The select provides either an id (numeric) or a name. Prefer using the canonical `tipos` array to resolve ids.
       let tipoVal = filtros.tipo
-      const tryResolveById = (tid) => {
-        // 1) try tipoIdToNameRef (preserves catalog labels)
-        try {
-          const mapped = tipoIdToNameRef.current.get(Number(tid))
-          if (mapped) return mapped
-        } catch (e) {}
-        // 2) try tipos array
-        try {
-          const found = tipos && tipos.find((t) => Number(t.id) === Number(tid))
-          if (found && found.nombre) return found.nombre
-        } catch (e) {}
-        // 3) fallback to canonical map
-        if (SACRAMENTO_NAME_BY_CODE[String(tid)]) return SACRAMENTO_NAME_BY_CODE[String(tid)]
-        return String(tid)
-      }
-
-      if (/^\d+$/.test(String(tipoVal))) {
-        tipoVal = tryResolveById(tipoVal)
-      } else {
-        // if tipoVal is a string name, try to find the exact catalog label to guarantee match
-        const key = String(tipoVal).trim()
-        const byName = tipos && tipos.find((t) => String(t.nombre).toLowerCase() === String(key).toLowerCase())
-        if (byName && byName.nombre) tipoVal = byName.nombre
-      }
-
-      // final guard: ensure it's a trimmed string
+      try {
+        if (/^\d+$/.test(String(tipoVal))) {
+          const tid = Number(tipoVal)
+          const found = tipos && tipos.find((t) => Number(t.id) === tid)
+          if (found && found.nombre) {
+            // prefer sending the raw backend name if it exists (db may store numeric codes like '2')
+            const rawName = tipoIdRawRef.current.get(tid)
+            if (rawName && String(rawName).trim() !== '') {
+              tipoVal = rawName
+            } else {
+              tipoVal = found.nombre
+            }
+          } else if (SACRAMENTO_NAME_BY_CODE[String(tid)]) tipoVal = SACRAMENTO_NAME_BY_CODE[String(tid)]
+        } else if (typeof tipoVal === 'string') {
+          // normalize to catalog label if possible
+          const key = String(tipoVal).trim()
+          const byName = tipos && tipos.find((t) => String(t.nombre).toLowerCase() === String(key).toLowerCase())
+          if (byName && byName.nombre) tipoVal = byName.nombre
+        }
+      } catch (e) {}
       params.append('tipo_sacramento', String(tipoVal).trim())
     }
     if (filtros.fecha_inicio) params.append('fecha_inicio', filtros.fecha_inicio)
     if (filtros.fecha_fin) params.append('fecha_fin', filtros.fecha_fin)
-    if (filtros.q) params.append('sacerdote', filtros.q)
+    // filtros.q should search only by persona (not sacerdote).
+    // If numeric -> treat as persona id and send as id_persona; otherwise we'll filter client-side by persona name.
+    if (filtros.q) {
+      const q = String(filtros.q).trim()
+      if (/^\d+$/.test(q)) {
+        params.append('id_persona', q)
+      }
+      // else: do not send 'sacerdote' param; client-side filtering will handle text search by persona name
+    }
     params.append('page', String(page))
     params.append('limit', String(limit))
     return params.toString()
@@ -214,6 +225,20 @@ export default function Reportes() {
             // ignore individual lookup errors
           }
         }))
+      }
+
+      // If filtros.q is present as text (non-numeric), filter client-side by persona name
+      if (filtros.q && !/^\d+$/.test(String(filtros.q).trim())) {
+        const qLower = String(filtros.q).toLowerCase().trim()
+        const nameOf = (r) => {
+          if (r.persona_nombre) return String(r.persona_nombre)
+          if (r.persona && typeof r.persona === 'object') return [r.persona.nombres, r.persona.apellido_paterno, r.persona.apellido_materno].filter(Boolean).join(' ')
+          return r.persona_id ? String(r.persona_id) : ''
+        }
+        data = data.filter((r) => {
+          const name = String(nameOf(r) || '').toLowerCase()
+          return name.includes(qLower)
+        })
       }
 
       // Rellenar nombres de institución si el backend no los incluyó
@@ -447,8 +472,8 @@ export default function Reportes() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Buscar (ministro/persona)</label>
-              <input name="q" value={filtros.q} onChange={handleFiltroChange} placeholder="Nombre o ministro" className="form-input w-full" />
+              <label className="block text-sm text-gray-600 mb-1">Buscar (persona)</label>
+              <input name="q" value={filtros.q} onChange={handleFiltroChange} placeholder="ID o nombre de la persona" className="form-input w-full" />
             </div>
           </div>
           <div className="flex gap-3 justify-end mt-4">
@@ -520,7 +545,7 @@ export default function Reportes() {
                             <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">{s.id_sacramento}</td>
                             <td className="px-4 py-2">{s.fecha_sacramento?.substring(0,10) || s.fecha_sacramento}</td>
                               <td className="px-4 py-2">
-                                {s.tipo_nombre || (s.tipo && typeof s.tipo === 'object' ? (s.tipo.nombre || s.tipo.id_tipo) : (s.tipo_sacramento || s.tipo))}
+                                {resolveTipoLabel(s.tipo_nombre ?? (s.tipo && typeof s.tipo === 'object' ? (s.tipo.nombre ?? s.tipo.id_tipo) : (s.tipo_sacramento ?? s.tipo)))}
                               </td>
                               <td className="px-4 py-2">
                                 {s.persona_nombre ?? (s.persona && typeof s.persona === 'object' ? [s.persona.nombres, s.persona.apellido_paterno, s.persona.apellido_materno].filter(Boolean).join(' ') : s.persona_id)}
