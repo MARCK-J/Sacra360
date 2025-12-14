@@ -123,7 +123,7 @@ export function OcrProgressProvider({ children }) {
       consultarProgresos()
       
       // Luego cada 15 segundos para capturar cambios
-      intervalRef.current = setInterval(consultarProgresos, 15000)
+      intervalRef.current = setInterval(consultarProgresos, 1000)
     }
     // NO hacer cleanup aquí - solo detener cuando documentosIds.length === 0
   }, [documentosEnProceso, consultarProgresos])

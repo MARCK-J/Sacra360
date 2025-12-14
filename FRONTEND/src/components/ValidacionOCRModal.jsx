@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, AlertTriangle, RotateCcw, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Modal de Validación de OCR
@@ -29,6 +30,9 @@ const ValidacionOCRModal = ({
   const [notificacion, setNotificacion] = useState(null);
   const [instituciones, setInstituciones] = useState([]);
   const [institucionSeleccionada, setInstitucionSeleccionada] = useState(null);
+  
+  // Obtener usuario autenticado desde el contexto
+  const { user } = useAuth();
   
   // Estados para validación de persona existente
   const [personaExistente, setPersonaExistente] = useState(null);
@@ -201,7 +205,7 @@ const ValidacionOCRModal = ({
         documento_id: documentoId,
         tupla_numero: tupla.tupla_numero,
         tupla_id_ocr: tupla.id_ocr,
-        usuario_validador_id: 4,
+        usuario_validador_id: user?.id_usuario || 1,
         institucion_id: null,
         datos_validados: {},
         observaciones: observaciones || 'Tupla rechazada',
@@ -312,7 +316,7 @@ const ValidacionOCRModal = ({
       documento_id: documentoId,
       tupla_numero: tupla.tupla_numero,
       tupla_id_ocr: tupla.id_ocr,
-      usuario_validador_id: 4,
+      usuario_validador_id: user?.id_usuario || 1,
       institucion_id: institucionSeleccionada,
       datos_validados: datosValidados,
       observaciones,
