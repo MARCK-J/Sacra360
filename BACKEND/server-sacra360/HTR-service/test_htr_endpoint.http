@@ -1,0 +1,42 @@
+###
+# Test del endpoint de HTR Service
+# Usar con la extensión REST Client de VS Code
+###
+
+@baseUrl = http://localhost:8004
+@token = Bearer your-token-here
+
+### Health Check
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### Service Status
+GET {{baseUrl}}/status
+Content-Type: application/json
+
+### Root Endpoint
+GET {{baseUrl}}/
+Content-Type: application/json
+
+### Procesar imagen HTR (ejemplo básico)
+POST {{baseUrl}}/api/v1/htr/procesar
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="documento.jpg"
+Content-Type: image/jpeg
+
+< ./test_image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="documento_id"
+
+123
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="tipo_sacramento"
+
+bautizo
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Obtener resultados de HTR
+GET {{baseUrl}}/api/v1/htr/resultados/123
+Content-Type: application/json

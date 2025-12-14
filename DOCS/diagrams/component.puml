@@ -1,0 +1,39 @@
+@startuml
+title Component Diagram - Módulo de Digitalización
+
+package "Frontend" {
+  [Browser] as Browser
+  component "Frontend (React)" as FE
+}
+
+package "Backend Services" {
+  component "Documents-service (FastAPI)" as DS
+  component "OCR-service (FastAPI)" as OCR
+  component "HTR-service (FastAPI)" as HTR
+}
+
+database "PostgreSQL" as PG
+artifact "MinIO (S3)" as MINIO
+component "Message Broker (opt)" as MQ
+component "Monitoring / Logging" as MON
+
+Browser --> FE : HTTP(S) (UI)
+FE --> DS : REST / FormData (upload, list, progress)
+DS --> MINIO : PUT/GET (S3 API)
+DS --> PG : SQL (metadata)
+DS -> OCR : HTTP POST /api/v1/ocr/procesar-desde-bd/{id}
+DS -> HTR : HTTP POST /api/v1/htr/procesar-desde-bd/{id}
+OCR --> PG : INSERT ocr_resultado / UPDATE progreso
+HTR --> PG : INSERT ocr_resultado / UPDATE progreso
+OCR --> MINIO : GET object
+HTR --> MINIO : GET object
+DS ..> MQ : (opt) push job
+MQ ..> OCR : (opt) job delivery
+DS --> MON : metrics/logs
+OCR --> MON : metrics/logs
+HTR --> MON : metrics/logs
+
+note "Roles: digitalizador, validador, admin" as N1
+DS .. N1
+
+@enduml

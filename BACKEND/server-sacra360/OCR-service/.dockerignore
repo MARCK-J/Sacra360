@@ -1,0 +1,66 @@
+# Archivos y directorios a ignorar por Docker
+
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+
+# Virtual environments (CRITICAL - evita transferir 1GB+)
+venv/
+venv_*/
+.venv/
+env/
+ENV/
+virtualenv/
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Archivos de logs
+*.log
+
+# Archivos temporales
+.tmp/
+temp/
+temp_preprocessed/
+*.tmp
+
+# Documentación de desarrollo
+*.md
+!README.md
+
+# Modelos descargados (EasyOCR los descarga en runtime)
+.EasyOCR/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+reports/
+test_output.csv
+test_gpu_ocr.py
+
+# Archivos git
+.git/
+.gitignore
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de ejemplo
+*.pdf
+*.png
+*.jpg

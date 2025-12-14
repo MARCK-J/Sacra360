@@ -1,0 +1,58 @@
+### Test de Endpoints de Bautizo y Matrimonio
+### Sacra360 - Documents Service
+
+###
+### 1. Test POST Bautizo
+POST http://localhost:8002/api/v1/bautizos/
+Content-Type: application/json
+
+{
+  "libro_id": 1,
+  "institucion_id": 1,
+  "fecha_sacramento": "2024-06-15",
+  "nombres": "María Elena",
+  "apellido_paterno": "Rodríguez",
+  "apellido_materno": "Pérez",
+  "fecha_nacimiento": "2024-05-20",
+  "fecha_bautismo": "2024-06-15",
+  "nombre_padre_nombre_madre": "Juan Rodríguez López - Carmen Pérez García",
+  "nombre_padrino_nombre_madrina": "Miguel Torres Ruiz - Ana Sánchez Díaz",
+  "usuario_id": 4
+}
+
+###
+### 2. Test POST Matrimonio
+POST http://localhost:8002/api/v1/matrimonios/
+Content-Type: application/json
+
+{
+  "libro_id": 1,
+  "institucion_id": 1,
+  "fecha_sacramento": "2024-08-25",
+  "nombres_esposo": "Carlos Alberto",
+  "apellido_paterno_esposo": "Mamani",
+  "apellido_materno_esposo": "Rodriguez",
+  "fecha_nacimiento_esposo": "1992-03-15",
+  "fecha_bautismo_esposo": "1992-04-20",
+  "nombre_padrino_nombre_madrina_esposo": "Juan Pérez - María López",
+  "nombres_esposa": "Ana María",
+  "apellido_paterno_esposa": "Flores",
+  "apellido_materno_esposa": "Quispe",
+  "fecha_nacimiento_esposa": "1994-07-10",
+  "fecha_bautismo_esposa": "1994-08-15",
+  "nombre_padrino_nombre_madrina_esposa": "Pedro García - Rosa Fernández",
+  "nombre_padre_esposo": "Roberto Mamani Pérez",
+  "nombre_madre_esposo": "Carmen Rodriguez de Mamani",
+  "nombre_padre_esposa": "José Flores Torres",
+  "nombre_madre_esposa": "Luisa Quispe de Flores",
+  "testigos": "Miguel Sánchez Torres - Laura Gutiérrez Vargas",
+  "usuario_id": 4
+}
+
+###
+### 3. Verificar Docs de API
+GET http://localhost:8002/docs
+
+###
+### 4. Health Check
+GET http://localhost:8002/health

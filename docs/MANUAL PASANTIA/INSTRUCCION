@@ -1,53 +1,1736 @@
-MANUAL DE PASANTÍA
-Carrera de Ingeniería de Sistemas
-Proyecto: Digitalización y Organización de Actas Sacramentales (Caso: Confirmaciones Arquidiócesis de La Paz)
-1. Introducción
-Este manual describe las actividades, responsabilidades, procedimientos y resultados de la pasantía realizada en el Arzobispado de La Paz.
-2. Objetivos de la Pasantía
-2.1 Objetivo General
-Desarrollar actividades de análisis de información, diseño de datos y apoyo técnico en el proceso de digitalización.
-2.2 Objetivos Específicos
-- Levantar y analizar registros históricos.
-- Diseñar estructura de datos.
-- Apoyar flujos de digitalización.
-- Identificar requerimientos técnicos.
-- Elaborar documentación técnica.
-3. Contexto Institucional
-Descripción del Arzobispado de La Paz y su Archivo Histórico.
-4. Descripción de Funciones y Tareas del Pasante
-4.1 Funciones Generales
-- Apoyo en digitalización.
-- Diseño de datos.
-- Colaboración en clasificación documental.
-4.2 Tareas Específicas
-- Levantamiento de información.
-- Clasificación de actas.
-- Diseño conceptual.
-- Modelado lógico.
-- Diccionario de datos.
-- Diseño de búsquedas.
-- Documentación técnica.
-- Evaluación ISO 25002.
-5. Procedimientos del Trabajo Realizado
-5.1 Proceso de Digitalización
-- Preparación.
-- Escaneo.
-- Clasificación.
-- Almacenamiento.
-5.2 Proceso de Análisis de Información
-- Revisión.
-- Extracción.
-- Validación.
-5.3 Diseño de Datos
-- Identificación de entidades.
-- Relaciones.
-- Normalización.
-- Diagramas ER.
-6. Resultados Obtenidos
-Base de datos estructurada, documentación generada, digitalización avanzada.
-7. Autoevaluación del Desempeño
-Incluye competencias técnicas y personales.
-8. Conclusiones
-Síntesis de aportes y aprendizajes.
-9. Recomendaciones
-Propuestas para mejorar procesos.
+INTRODUCCIÓN
+
+Esta sección está dirigida al equipo de desarrollo o personal técnico encargado de la instalación, configuración y mantenimiento del sistema Sacra360. Aquí se describen las tecnologías empleadas, la arquitectura del proyecto, pasos de instalación y despliegue, además de herramientas para pruebas, monitoreo y generación de documentación técnica.
+
+Dentro de esta guía se describen las tecnologías empleadas en el desarrollo del sistema, incluyendo lenguajes de programación como Python para el backend y JavaScript para el frontend, frameworks como FastAPI para APIs RESTful y React con Vite para la interfaz de usuario, motores de bases de datos como PostgreSQL para persistencia relacional y Redis para caché de alto rendimiento, sistemas de almacenamiento de objetos como MinIO compatible con S3, y herramientas de documentación como Swagger/OpenAPI para la descripción y prueba interactiva de endpoints. También se detalla la arquitectura de microservicios implementada, la estructura modular de cada servicio (routers, middlewares, entities, DTOs), las convenciones de código utilizadas siguiendo estándares PEP 8 para Python y ESLint para JavaScript, así como los patrones de diseño aplicados (RBAC para control de acceso, JWT stateless para autenticación, Repository pattern para acceso a datos) para mantener la calidad, escalabilidad y coherencia del software.
+
+Se incluyen instrucciones claras para la instalación del entorno de desarrollo, tanto local con Docker Compose como en producción con Kubernetes, configuración de variables de entorno críticas para seguridad (JWT_SECRET_KEY, credenciales de base de datos), gestión de dependencias con pip para Python y npm para Node.js, inicialización de la base de datos mediante scripts SQL automatizados, y ejecución del sistema completo con múltiples servicios containerizados comunicándose en una red privada Docker.
+
+Finalmente, se explican los procedimientos de despliegue del sistema en distintos entornos (desarrollo local, staging, producción), incluyendo la containerización con Docker, orquestación con Kubernetes para alta disponibilidad, automatización de CI/CD con GitHub Actions, estrategias de escalado horizontal mediante HorizontalPodAutoscaler, gestión de secretos con Kubernetes Secrets, y configuración de ingress controllers con nginx para exposición HTTPS con certificados SSL de Let's Encrypt. Se abordan también las herramientas de prueba implementadas, tanto para pruebas unitarias con pytest, pruebas de integración con bases de datos de prueba, como para pruebas end-to-end automatizadas, con ejemplos de comandos de ejecución y análisis de cobertura. Además, se proporciona una sección dedicada a la generación de reportes técnicos como logs centralizados, métricas de rendimiento en Prometheus + Grafana, tracking de errores en Sentry, documentación automática de APIs con Swagger UI, y auditoría de seguridad con herramientas como Trivy para escaneo de vulnerabilidades en imágenes Docker, todo orientado a mantener la trazabilidad, estabilidad, seguridad y calidad del sistema a lo largo del tiempo.
+
+El presente documento se enfoca específicamente en el Módulo de Gestión de Usuarios (AuthProfiles Service), que constituye el núcleo de seguridad del sistema Sacra360. Este módulo implementa toda la funcionalidad de autenticación, autorización mediante control de acceso basado en roles (RBAC), auditoría exhaustiva de acciones de usuarios y reportes analíticos, sirviendo como capa de seguridad transversal para el resto de componentes del sistema y garantizando que cada operación crítica esté protegida, trazada y auditada de forma automática.
+
+
+
+ARQUITECTURA DEL MÓDULO DE GESTIÓN DE USUARIOS (AUTHPROFILES SERVICE)
+
+El módulo AuthProfiles constituye el núcleo de seguridad del sistema Sacra360, encargado de la autenticación, autorización, auditoría y generación de reportes analíticos. Implementa un patrón de microservicio independiente que se comunica mediante API REST protegida con tokens JWT.
+
+
+Resumen de Arquitectura
+
+El módulo AuthProfiles implementa un patrón de autenticación stateless con JWT y control de acceso basado en roles (RBAC).
+
+Patrón: Microservicio de seguridad centralizado con autenticación stateless JWT.
+Comunicación: HTTP REST con tokens JWT en headers (Authorization: Bearer).
+Almacenamiento: PostgreSQL para datos relacionales (usuarios, roles, auditoría) y Redis para caché de reportes.
+Seguridad: Bcrypt para hashing de contraseñas, rate limiting (100 req/min), security headers (CSP, HSTS).
+
+
+Componentes Principales
+
+Frontend (React + Vite)
+Interfaz desarrollada con React 19 y Tailwind CSS. Pantallas implementadas:
+- Login.jsx: Autenticación de usuarios
+- Dashboard.jsx: Panel con estadísticas del sistema
+- Usuarios.jsx: CRUD de usuarios con paginación y filtros
+- Auditoria.jsx: Logs de acciones con filtros avanzados
+- Reportes.jsx: Reportes analíticos con gráficos
+- Perfil.jsx: Gestión de perfil y cambio de contraseña
+
+Backend (FastAPI + Python)
+Microservicio en puerto 8001 con FastAPI.
+
+Stack Tecnológico:
+- Python 3.11+, FastAPI, SQLAlchemy 2.0, PostgreSQL 15, Redis 7
+- python-jose (JWT), passlib + bcrypt (hashing)
+
+Estructura del Proyecto:
+```
+AuthProfiles-service/
+├── app/
+│   ├── main.py                  # Aplicación FastAPI
+│   ├── database.py              # Configuración BD
+│   ├── dto/auth_dto.py         # Modelos Pydantic
+│   ├── entities/user_entity.py # Modelos SQLAlchemy
+│   ├── middleware/             # RBAC y seguridad
+│   ├── routers/                # Endpoints API
+│   └── utils/auth_utils.py     # JWT, bcrypt
+```
+
+Middlewares de Seguridad:
+1. Security Headers: X-Frame-Options, Content-Security-Policy, HSTS
+2. Rate Limiting: 100 requests/minuto por IP
+3. RBAC Permission Guard: 144 permisos (4 roles × 9 módulos × 4 acciones)
+
+
+Modelo de Datos
+
+1. Tabla Roles
+   - Roles predefinidos: Administrador, Digitalizador, Validador, Consultor
+
+2. Tabla usuarios
+   - Campos: id_usuario, rol_id, nombre, apellidos, email, contrasenia (hash bcrypt), activo
+   - email único, usado como username en login
+
+3. Tabla Auditoria
+   - Registra todas las acciones: LOGIN, LOGOUT, CREAR_USUARIO, ACTUALIZAR_USUARIO, ELIMINAR_USUARIO, CAMBIAR_CONTRASENA
+   - Campos: id_auditoria, usuario_id, accion, registro_afectado, Id_registro, fecha
+
+
+Flujos Principales
+
+Flujo de Autenticación JWT:
+1. Usuario ingresa credenciales en frontend
+2. POST /api/v1/auth/login valida con bcrypt
+3. Backend genera JWT (exp: 30min) y registra en auditoría
+4. Frontend almacena token en localStorage
+5. Requests subsecuentes incluyen header: Authorization: Bearer {token}
+
+Sistema RBAC:
+1. Cada request extrae y verifica token JWT
+2. Obtiene rol del usuario desde BD
+3. Valida permiso para módulo y acción
+4. Ejecuta endpoint o retorna 403 Forbidden
+
+Generación de Reportes con Caché Redis:
+1. Frontend solicita reporte
+2. Backend verifica caché en Redis (key: cache:reportes:{tipo}:{periodo})
+3. Si existe: retorna datos (10ms)
+4. Si no existe: ejecuta query SQL, guarda en Redis con TTL 5min, retorna datos (500ms)
+
+
+Endpoints API Principales
+
+Autenticación (6 endpoints):
+- POST /api/v1/auth/login
+- GET /api/v1/auth/me
+- POST /api/v1/auth/change-password
+- POST /api/v1/auth/logout
+
+Gestión de Usuarios (8 endpoints):
+- GET /api/v1/usuarios (lista con paginación)
+- POST /api/v1/usuarios (crear)
+- PUT /api/v1/usuarios/{id} (actualizar)
+- DELETE /api/v1/usuarios/{id} (soft delete)
+
+Auditoría (6 endpoints):
+- GET /api/v1/auditoria (con filtros)
+- GET /api/v1/auditoria/usuario/{id}
+
+Reportes (10 endpoints):
+- GET /api/v1/reportes/usuarios/resumen
+- GET /api/v1/reportes/accesos/resumen
+- GET /api/v1/reportes/estadisticas
+
+
+INSTALACIÓN Y DESPLIEGUE
+
+Requisitos del Sistema
+- Hardware: 4+ cores CPU, 8 GB RAM, 20 GB storage
+- Software: Docker 20.10+, Docker Compose 2.0+, Python 3.11+, Node.js 18+
+
+Instalación Local con Docker Compose
+
+1. Clonar repositorio:
+```
+git clone https://github.com/tu-org/Sacra360.git
+cd Sacra360/BACKEND
+```
+
+2. Configurar variables de entorno (.env):
+```
+JWT_SECRET_KEY=tu_clave_secreta
+POSTGRES_PASSWORD=tu_password
+```
+
+3. Iniciar servicios:
+```
+docker-compose up -d postgres redis minio auth-service
+```
+
+4. Inicializar BD:
+```
+docker exec -i postgres psql -U postgres sacra360 < sql/Database.sql
+docker exec -i postgres psql -U postgres sacra360 < sql/Create_Users_All_Roles.sql
+```
+
+5. Acceder: http://localhost:8001/docs
+
+Frontend
+
+1. Instalar dependencias:
+```
+cd frontend
+npm install
+```
+
+2. Configurar .env:
+```
+VITE_AUTH_API_URL=http://localhost:8001
+```
+
+3. Ejecutar:
+```
+npm run dev
+```
+
+Despliegue en Producción (Kubernetes)
+
+1. Crear namespace y secrets:
+```
+kubectl create namespace sacra360
+kubectl create secret generic postgres-credentials --from-literal=password=tu_password -n sacra360
+kubectl create secret generic jwt-secret --from-literal=key=tu_jwt_key -n sacra360
+```
+
+2. Aplicar manifiestos:
+```
+kubectl apply -f k8s/postgres.yaml
+kubectl apply -f k8s/redis.yaml
+kubectl apply -f k8s/auth-service.yaml
+kubectl apply -f k8s/ingress.yaml
+```
+
+
+PRUEBAS Y SEGURIDAD
+
+Pruebas Unitarias
+```
+cd BACKEND
+pytest tests/ -v --cov=app --cov-report=html
+```
+
+Variables de Entorno Críticas
+```
+JWT_SECRET_KEY=minimo_32_caracteres
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+POSTGRES_PASSWORD=minimo_16_caracteres
+ALLOWED_ORIGINS=https://sacra360.com
+```
+
+Recomendaciones de Seguridad
+- Nunca commitear .env al repositorio
+- Usar Kubernetes Secrets en producción
+- Rotar JWT_SECRET_KEY cada 90 días
+- Habilitar HTTPS obligatorio (HSTS)
+- Backup diario de PostgreSQL
+- Auditar logs regularmente
+
+
+RESOLUCIÓN DE PROBLEMAS
+
+Error 401 Unauthorized: Token expirado, hacer logout/login
+Error 403 Forbidden: Usuario sin permisos, verificar rol
+BD no conecta: Verificar docker ps y credenciales en .env
+Reportes lentos: Verificar conexión Redis
+Frontend no conecta: Verificar VITE_AUTH_API_URL en .env
+2. Usuarios activos en los últimos N días
+3. Accesos por día (gráfico de líneas)
+4. Horas pico de acceso (gráfico de barras)
+5. Actividad por usuario individual
+6. Estadísticas generales del sistema
+
+2.6. Endpoints API (Referencia Rápida)
+
+### A. Autenticación (6 endpoints)
+
+| Método | Endpoint | Autenticación | Descripción |
+|--------|----------|---------------|-------------|
+| POST | `/api/v1/auth/login` | No | Autenticación con email/password, retorna JWT |
+| POST | `/api/v1/auth/logout` | Sí (JWT) | Cierra sesión y registra en auditoría |
+| GET | `/api/v1/auth/me` | Sí (JWT) | Obtiene información del usuario actual |
+| POST | `/api/v1/auth/change-password` | Sí (JWT) | Cambio de contraseña personal con validación |
+| GET | `/api/v1/auth/roles` | Sí (JWT) | Lista todos los roles disponibles |
+| POST | `/api/v1/auth/refresh` | Sí (Refresh Token) | Renueva el access token (futuro) |
+
+**Ejemplo de Request:**
+```bash
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@sacra360.com",
+  "password": "SecurePass123"
+}
+
+# Response 200 OK:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id_usuario": 1,
+    "nombre": "Juan",
+    "email": "admin@sacra360.com",
+    "rol": "Administrador"
+  },
+  "permissions": {
+    "usuarios": {"create": true, "read": true, "update": true, "delete": true},
+    "dashboard": {"read": true},
+    ...
+  }
+}
+```
+
+### B. Gestión de Usuarios (8 endpoints)
+
+| Método | Endpoint | Permisos Requeridos | Descripción |
+|--------|----------|---------------------|-------------|
+| GET | `/api/v1/usuarios` | `usuarios.read` | Lista todos los usuarios con paginación |
+| GET | `/api/v1/usuarios/{id}` | `usuarios.read` | Obtiene un usuario por ID |
+| POST | `/api/v1/usuarios` | `usuarios.create` | Crea nuevo usuario (hash automático de password) |
+| PUT | `/api/v1/usuarios/{id}` | `usuarios.update` | Actualiza datos de usuario |
+| DELETE | `/api/v1/usuarios/{id}` | `usuarios.delete` | Desactiva usuario (soft delete, activo=false) |
+| PATCH | `/api/v1/usuarios/{id}/activar` | `usuarios.update` | Reactiva usuario desactivado |
+| GET | `/api/v1/usuarios/buscar` | `usuarios.read` | Búsqueda por nombre o email |
+| GET | `/api/v1/usuarios/estadisticas` | `usuarios.read` | Estadísticas rápidas de usuarios |
+
+**Ejemplo de Request:**
+```bash
+POST /api/v1/usuarios
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "nombre": "María",
+  "apellido_paterno": "González",
+  "apellido_materno": "López",
+  "email": "maria.gonzalez@sacra360.com",
+  "contrasenia": "TempPass2024",
+  "rol_id": 2  // Digitalizador
+}
+
+# Response 201 Created:
+{
+  "id_usuario": 15,
+  "nombre": "María",
+  "email": "maria.gonzalez@sacra360.com",
+  "rol": "Digitalizador",
+  "activo": true,
+  "fecha_creacion": "2024-12-12"
+}
+```
+
+### C. Auditoría (6 endpoints)
+
+| Método | Endpoint | Permisos Requeridos | Descripción |
+|--------|----------|---------------------|-------------|
+| GET | `/api/v1/auditoria` | `auditoria.read` | Lista logs con paginación y filtros |
+| GET | `/api/v1/auditoria/{id}` | `auditoria.read` | Obtiene detalle de un log específico |
+| GET | `/api/v1/auditoria/usuario/{id}` | `auditoria.read` | Logs de un usuario específico |
+| GET | `/api/v1/auditoria/acciones` | `auditoria.read` | Lista todas las acciones registradas (distinct) |
+| GET | `/api/v1/auditoria/estadisticas` | `auditoria.read` | Estadísticas de auditoría (top usuarios, acciones) |
+| DELETE | `/api/v1/auditoria/limpiar` | `auditoria.delete` | Elimina logs anteriores a N días (admin only) |
+
+**Filtros disponibles:**
+- `usuario_id`: Filtra por usuario
+- `accion`: Filtra por tipo de acción (LOGIN, CREAR_USUARIO, etc.)
+- `fecha_desde` / `fecha_hasta`: Rango de fechas
+- `page` / `limit`: Paginación
+
+**Ejemplo de Request:**
+```bash
+GET /api/v1/auditoria?accion=LOGIN&fecha_desde=2024-12-01&page=1&limit=20
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Response 200 OK:
+{
+  "total": 156,
+  "page": 1,
+  "limit": 20,
+  "total_pages": 8,
+  "logs": [
+    {
+      "id_auditoria": 1245,
+      "usuario": "Juan Pérez",
+      "accion": "LOGIN",
+      "fecha": "2024-12-12T08:15:30",
+      "registro_afectado": "usuarios",
+      "Id_registro": 1
+    },
+    ...
+  ]
+}
+```
+
+### D. Reportes y Estadísticas (10 endpoints)
+
+| Método | Endpoint | Permisos Requeridos | Descripción |
+|--------|----------|---------------------|-------------|
+| GET | `/api/v1/reportes/usuarios/resumen` | `reportes.read` | Total usuarios, activos, inactivos, por rol |
+| GET | `/api/v1/reportes/usuarios/por-rol` | `reportes.read` | Distribución de usuarios por rol |
+| GET | `/api/v1/reportes/usuarios/activos` | `reportes.read` | Usuarios que accedieron en últimos N días |
+| GET | `/api/v1/reportes/accesos/resumen` | `reportes.read` | Total accesos, promedio diario, horas pico |
+| GET | `/api/v1/reportes/accesos/por-dia` | `reportes.read` | Gráfico de accesos por día (serie temporal) |
+| GET | `/api/v1/reportes/accesos/por-usuario` | `reportes.read` | Ranking de usuarios más activos |
+| GET | `/api/v1/reportes/accesos/ultimos` | `reportes.read` | Últimos 50 accesos al sistema |
+| GET | `/api/v1/reportes/estadisticas/generales` | `reportes.read` | Dashboard completo (combina múltiples reportes) |
+| GET | `/api/v1/reportes/actividad/{usuario_id}` | `reportes.read` | Actividad detallada de un usuario específico |
+| POST | `/api/v1/reportes/exportar` | `reportes.read` | Exporta reporte a CSV/Excel (futuro) |
+
+**Parámetros comunes:**
+- `dias`: Periodo del reporte (7, 30, 90, 365)
+- `format`: Formato de respuesta (json, csv)
+
+**Ejemplo de Request:**
+```bash
+GET /api/v1/reportes/accesos/por-dia?dias=30
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Response 200 OK (con caché):
+{
+  "from_cache": true,
+  "cache_ttl": 285,
+  "data": [
+    {"fecha": "2024-11-12", "logins": 45, "logouts": 42},
+    {"fecha": "2024-11-13", "logins": 52, "logouts": 50},
+    ...
+  ],
+  "resumen": {
+    "total_accesos": 1234,
+    "promedio_diario": 41.1,
+    "dia_mas_activo": "2024-11-20",
+    "hora_pico": "09:00-10:00"
+  }
+}
+```
+
+
+
+
+
+
+3. Guía de Despliegue y Operaciones - Módulo de Usuarios
+Este capítulo describe cómo desplegar el módulo AuthProfiles (gestión de usuarios) en diferentes entornos (Local, Staging, Producción), detallando la configuración de contenedores, variables de entorno críticas y procedimientos de mantenimiento.
+
+3.1. Esquema de Despliegue (Diagrama)
+El servicio AuthProfiles se despliega como un contenedor independiente dentro de la red privada del sistema Sacra360, comunicándose con PostgreSQL y Redis.
+
+**[IMAGEN: Diagrama de Despliegue Docker - Módulo AuthProfiles]**
+*Descripción del diagrama:*
+```
+┌─────────────────────────────────────────────────────────┐
+│          Docker Host (sacra360_network)                 │
+│                                                         │
+│  ┌──────────────┐      ┌─────────────────────┐        │
+│  │   Frontend   │──────→│    API Gateway      │        │
+│  │   (React)    │      │    :8000            │        │
+│  │   :5173      │      └──────────┬──────────┘        │
+│  └──────────────┘                 │                    │
+│                                    │                    │
+│                    ┌───────────────┴──────────────┐    │
+│                    │                               │    │
+│           ┌────────▼─────────┐         ┌──────────▼───┐│
+│           │ AuthProfiles     │         │   Documents  ││
+│           │ Service :8001    │         │   Service    ││
+│           │                  │         │   :8002      ││
+│           │ - JWT Auth       │         └──────────────┘│
+│           │ - RBAC           │                         │
+│           │ - Auditoría      │                         │
+│           │ - Reportes       │                         │
+│           └────────┬─────────┘                         │
+│                    │                                    │
+│         ┌──────────┼──────────┐                        │
+│         │          │          │                        │
+│    ┌────▼───┐  ┌──▼──────┐ ┌─▼────────┐              │
+│    │ Postgres│ │  Redis  │ │  MinIO   │              │
+│    │ :5432  │  │  :6379  │ │  :9000   │              │
+│    │        │  │         │ │          │              │
+│    │ Volumen│  │ Volumen │ │ Volumen  │              │
+│    └────────┘  └─────────┘ └──────────┘              │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+3.2. Configuración de Variables de Entorno
+
+### A. AuthProfiles-Service (Servicio de Seguridad)
+
+| Variable | Descripción | Ejemplo | Requerido |
+|----------|-------------|---------|-----------|
+| `POSTGRES_URL` | Cadena de conexión a PostgreSQL | `postgresql://postgres:lolsito101@postgres:5432/sacra360` | ✅ Sí |
+| `REDIS_URL` | URL de conexión a Redis | `redis://redis:6379` | ✅ Sí |
+| `JWT_SECRET_KEY` | Clave secreta para firmar tokens JWT (mín. 32 chars) | `tu-clave-super-secreta-de-produccion-cambiar` | ✅ Sí |
+| `JWT_ALGORITHM` | Algoritmo de cifrado JWT | `HS256` | ✅ Sí |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Tiempo de expiración del token JWT | `30` | No (default: 30) |
+| `ALLOWED_ORIGINS` | Orígenes CORS permitidos (separados por coma) | `http://localhost:5173,http://localhost:3000` | ✅ Sí |
+| `RATE_LIMIT_PER_MINUTE` | Límite de requests por IP por minuto | `100` | No (default: 100) |
+| `LOG_LEVEL` | Nivel de logging | `INFO` | No (default: INFO) |
+| `ENVIRONMENT` | Entorno de ejecución | `development` / `production` | No |
+
+**⚠️ IMPORTANTE - Seguridad:**
+- **NUNCA** subir `JWT_SECRET_KEY` al repositorio
+- En producción usar gestores de secretos (Kubernetes Secrets, Vault, AWS Secrets Manager)
+- Cambiar `JWT_SECRET_KEY` invalida TODOS los tokens activos (usuarios deben re-autenticarse)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### B. Frontend (React + Vite)
+
+Variables de entorno del frontend (`frontend/.env`):
+
+| Variable | Descripción | Ejemplo | Requerido |
+|----------|-------------|---------|-----------|
+| `VITE_API_BASE_URL` | URL base del backend | `http://localhost:8001` | ✅ Sí |
+| `VITE_APP_NAME` | Nombre de la aplicación | `Sacra360` | No |
+| `VITE_ENABLE_ANALYTICS` | Habilitar Google Analytics | `false` | No |
+
+**Ejemplo de archivo `.env` para desarrollo:**
+```bash
+# Frontend .env
+VITE_API_BASE_URL=http://localhost:8001
+VITE_APP_NAME=Sacra360
+VITE_ENABLE_ANALYTICS=false
+```
+
+### C. Bases de Datos (PostgreSQL & Redis)
+
+**PostgreSQL** (`BACKEND/docker-compose.yml`):
+| Variable | Descripción | Valor |
+|----------|-------------|-------|
+| `POSTGRES_DB` | Nombre de la base de datos | `sacra360` |
+| `POSTGRES_USER` | Usuario administrador | `postgres` |
+| `POSTGRES_PASSWORD` | Contraseña del admin | `lolsito101` |
+| `POSTGRES_PORT` | Puerto expuesto | `5432` |
+
+**Redis** (sin autenticación en desarrollo):
+| Variable | Descripción | Valor |
+|----------|-------------|-------|
+| `REDIS_PORT` | Puerto expuesto | `6379` |
+| `REDIS_MAXMEMORY` | Memoria máxima | `512mb` |
+| `REDIS_MAXMEMORY_POLICY` | Política de evicción | `allkeys-lru` |
+3.3. Despliegue Local (Desarrollo)
+
+Para entornos de desarrollo, se utiliza Docker Compose para levantar toda la pila en una sola máquina.
+
+**Paso 1: Clonar el repositorio**
+```bash
+git clone https://github.com/tuUsuario/Sacra360.git
+cd Sacra360
+git checkout Diego  # O la rama que corresponda
+```
+
+**Paso 2: Configurar variables de entorno**
+```bash
+# Crear archivo .env en BACKEND/
+cd BACKEND
+cp .env.example .env
+nano .env  # O usar tu editor favorito
+```
+
+**Contenido del archivo `BACKEND/.env`:**
+```bash
+# === PostgreSQL ===
+POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+
+# === Redis ===
+REDIS_URL=redis://redis:6379
+
+# === JWT Configuration ===
+JWT_SECRET_KEY=clave-secreta-de-desarrollo-cambiar-en-produccion-32-chars
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# === CORS ===
+ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+# === Rate Limiting ===
+RATE_LIMIT_PER_MINUTE=100
+```
+
+**Paso 3: Inicializar la base de datos**
+```bash
+# Aplicar el script de creación de BD
+cd BACKEND
+docker-compose up -d postgres
+sleep 5  # Esperar que PostgreSQL esté listo
+docker exec -i sacra360-postgres psql -U postgres -d sacra360 < sql/Database.sql
+```
+
+**[IMAGEN: Captura de Terminal - Output de Creación de BD]**
+*Descripción: Terminal mostrando la salida exitosa del script Database.sql con mensajes "CREATE TABLE usuarios", "CREATE INDEX idx_usuarios_email", etc.*
+
+**Paso 4: Levantar los servicios**
+```bash
+# Desde BACKEND/
+docker-compose up -d auth-service redis
+
+# Verificar que están corriendo
+docker ps
+```
+
+**Salida esperada de `docker ps`:**
+```
+CONTAINER ID   IMAGE                           PORTS                    STATUS
+abc123def456   auth-service:latest            0.0.0.0:8001->8001/tcp   Up 30 seconds
+789ghi012jkl   postgres:15                    0.0.0.0:5432->5432/tcp   Up 2 minutes
+mno345pqr678   redis:7-alpine                 0.0.0.0:6379->6379/tcp   Up 30 seconds
+```
+
+**Paso 5: Levantar el frontend**
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+
+**[IMAGEN: Captura de Terminal - Vite Dev Server Running]**
+*Descripción: Terminal mostrando "VITE v5.0.0 ready in 1234 ms", "➜ Local: http://localhost:5173/", "➜ Network: use --host to expose"*
+
+**Validación de servicios (Health Checks):**
+
+| Servicio | URL | Esperado |
+|----------|-----|----------|
+| **Frontend** | http://localhost:5173 | Pantalla de login |
+| **AuthProfiles API** | http://localhost:8001/docs | Documentación Swagger |
+| **Health Check** | http://localhost:8001/health | `{"status": "healthy"}` |
+| **PostgreSQL** | `psql -h localhost -U postgres -d sacra360` | Conexión exitosa |
+| **Redis** | `redis-cli -h localhost ping` | `PONG` |
+
+**[IMAGEN: Captura de Navegador - Swagger UI AuthProfiles]**
+*Descripción: Interfaz de Swagger mostrando los 30 endpoints documentados, agrupados en secciones: Auth (6), Usuarios (8), Auditoría (6), Reportes (10).*
+
+**Persistencia Local:**
+Se configuran volúmenes Docker para evitar pérdida de datos al reiniciar contenedores:
+```yaml
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+```
+
+**Logs en tiempo real:**
+```bash
+# Ver logs del servicio de autenticación
+docker logs -f sacra360_auth_service
+
+# Ver logs de PostgreSQL
+docker logs -f sacra360-postgres
+```
+3.4. Despliegue en Producción (Kubernetes)
+
+Para entornos productivos (Staging/Producción), se recomienda un clúster de Kubernetes (K8s) para garantizar alta disponibilidad y escalado automático del servicio AuthProfiles.
+
+### Componentes Clave
+
+**1. Deployment (auth-service)**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: sacra360
+spec:
+  replicas: 3  # 3 instancias para alta disponibilidad
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        image: miregistry.azurecr.io/auth-service:v1.2.0
+        ports:
+        - containerPort: 8001
+        env:
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: connection-string
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: secret-key
+        - name: REDIS_URL
+          value: redis://redis-service:6379
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+```
+
+**2. Service (Interno)**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: sacra360
+spec:
+  type: ClusterIP
+  selector:
+    app: auth-service
+  ports:
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+```
+
+**3. Ingress Controller (Exposición HTTPS)**
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sacra360-ingress
+  namespace: sacra360
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  tls:
+  - hosts:
+    - api.sacra360.com
+    secretName: sacra360-tls
+  rules:
+  - host: api.sacra360.com
+    http:
+      paths:
+      - path: /api/v1/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 8001
+      - path: /api/v1/usuarios
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 8001
+```
+
+**4. HorizontalPodAutoscaler (Escalado Automático)**
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service-hpa
+  namespace: sacra360
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+```
+
+**5. Secrets (Gestión de Credenciales)**
+```bash
+# Crear secret para JWT
+kubectl create secret generic jwt-secret \
+  --from-literal=secret-key='tu-clave-super-secreta-de-produccion-32-caracteres-minimo' \
+  -n sacra360
+
+# Crear secret para base de datos
+kubectl create secret generic db-credentials \
+  --from-literal=connection-string='postgresql://usuario:password@postgres-service:5432/sacra360' \
+  -n sacra360
+```
+
+**[IMAGEN: Diagrama de Arquitectura Kubernetes]**
+*Descripción: Diagrama mostrando: Internet → Ingress Controller (HTTPS) → Load Balancer → 3 Pods de auth-service → PostgreSQL RDS y Redis ElastiCache (AWS) o equivalentes en Azure/GCP.*
+
+### PersistentVolumeClaims (PVC)
+Si no se usa una base de datos gestionada (RDS, Azure Database), configurar PVC para PostgreSQL:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: sacra360
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd
+```
+3.5. Estrategias de Respaldo y Seguridad
+
+### A. Backups (Copias de Seguridad)
+
+**1. Base de Datos PostgreSQL**
+Configurar un CronJob en Kubernetes que ejecute `pg_dump` diariamente y suba el archivo a un bucket S3.
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: sacra360
+spec:
+  schedule: "0 2 * * *"  # Todos los días a las 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: postgres:15
+            command:
+            - /bin/bash
+            - -c
+            - |
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              pg_dump -h postgres-service -U postgres -d sacra360 > /backup/sacra360_${TIMESTAMP}.sql
+              aws s3 cp /backup/sacra360_${TIMESTAMP}.sql s3://sacra360-backups/db/
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: password
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            emptyDir: {}
+          restartPolicy: OnFailure
+```
+
+**Retención de backups:** 
+- Diarios: 7 días
+- Semanales: 4 semanas
+- Mensuales: 12 meses
+
+**2. Tabla de Auditoría**
+Implementar archivado de logs antiguos (> 90 días) a tabla `auditoria_historico` o exportar a data warehouse.
+
+```sql
+-- Script de archivado mensual
+INSERT INTO auditoria_historico SELECT * FROM Auditoria WHERE fecha < NOW() - INTERVAL '90 days';
+DELETE FROM Auditoria WHERE fecha < NOW() - INTERVAL '90 days';
+```
+
+### B. Seguridad Avanzada
+
+**1. Gestión de Secretos**
+- ✅ **Usar HashiCorp Vault o AWS Secrets Manager** en producción
+- ✅ **Rotación automática** de `JWT_SECRET_KEY` cada 90 días (con periodo de gracia de 7 días para tokens antiguos)
+- ❌ **NUNCA** hardcodear secretos en el código fuente
+- ❌ **NUNCA** subir `.env` al repositorio (usar `.env.example` como plantilla)
+
+**Ejemplo de integración con Vault:**
+```python
+# app/core/config.py
+import hvac
+
+client = hvac.Client(url='https://vault.sacra360.com')
+client.auth.kubernetes.login(role='auth-service', jwt=SERVICE_ACCOUNT_TOKEN)
+JWT_SECRET_KEY = client.secrets.kv.v2.read_secret_version(path='jwt-secret')['data']['data']['key']
+```
+
+**2. Network Policies (Aislamiento de Red)**
+Limitar la comunicación entre pods solo a lo estrictamente necesario:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: auth-service-netpol
+  namespace: sacra360
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - protocol: TCP
+      port: 8001
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+```
+
+**[IMAGEN: Diagrama de Network Policies]**
+*Descripción: Diagrama mostrando pods aislados con flechas indicando comunicación permitida: Gateway → AuthProfiles → PostgreSQL/Redis. Otras comunicaciones bloqueadas en rojo.*
+
+**3. Security Headers (Ya implementado en código)**
+El middleware `SecurityHeadersMiddleware` ya agrega los siguientes headers:
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `X-XSS-Protection: 1; mode=block`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- `Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'`
+
+**4. Rate Limiting por IP**
+Implementado en middleware con límite de 100 requests/minuto. En producción con múltiples pods, usar Redis para compartir contadores:
+
+```python
+# Configuración de rate limiting distribuido
+RATE_LIMITER_BACKEND = "redis://redis-service:6379/1"
+```
+
+**5. Auditoría de Seguridad**
+- **Logs centralizados:** Enviar logs a ELK Stack (Elasticsearch, Logstash, Kibana) o Datadog
+- **Alertas:** Configurar alertas para:
+  - Múltiples intentos fallidos de login (>5 en 5 minutos)
+  - Acceso a endpoints administrativos
+  - Cambios en usuarios con rol Administrador
+  - Errores 401/403 repetidos desde la misma IP
+3.6. Checklist de Verificación de Despliegue
+
+Antes de dar el visto bueno a una instalación del módulo AuthProfiles, ejecute las siguientes pruebas:
+
+### ✅ Verificaciones de Infraestructura
+
+- [ ] **PostgreSQL accesible:** 
+  ```bash
+  psql -h <postgres-host> -U postgres -d sacra360 -c "SELECT COUNT(*) FROM usuarios;"
+  ```
+  Esperado: Retorna número de usuarios (mínimo 1 admin inicial)
+
+- [ ] **Redis accesible:**
+  ```bash
+  redis-cli -h <redis-host> ping
+  ```
+  Esperado: `PONG`
+
+- [ ] **Tablas necesarias existen:**
+  ```bash
+  psql -h <postgres-host> -U postgres -d sacra360 -c "\dt"
+  ```
+  Esperado: Listar `Roles`, `usuarios`, `Auditoria`
+
+- [ ] **Índices creados:**
+  ```bash
+  psql -h <postgres-host> -U postgres -d sacra360 -c "\di"
+  ```
+  Esperado: Listar `idx_usuarios_email`, `idx_auditoria_fecha`, etc.
+
+### ✅ Pruebas de Humo (Smoke Tests)
+
+**1. Health Check del Servicio**
+```bash
+curl -X GET http://<auth-service-url>:8001/health
+```
+**Esperado:**
+```json
+{
+  "status": "healthy",
+  "service": "AuthProfiles",
+  "version": "1.0.0",
+  "database": "connected",
+  "redis": "connected"
+}
+```
+
+**[IMAGEN: Captura de Postman - Health Check Exitoso]**
+*Descripción: Interfaz de Postman mostrando la respuesta 200 OK del endpoint /health con todos los servicios conectados.*
+
+**2. Login Exitoso**
+```bash
+curl -X POST http://<auth-service-url>:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@sacra360.com",
+    "password": "Admin123"
+  }'
+```
+**Esperado:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id_usuario": 1,
+    "nombre": "Administrador",
+    "email": "admin@sacra360.com",
+    "rol": "Administrador"
+  },
+  "permissions": {...}
+}
+```
+
+**3. Validación de Token JWT**
+```bash
+TOKEN="<token-obtenido>"
+curl -X GET http://<auth-service-url>:8001/api/v1/auth/me \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+**Esperado:**
+```json
+{
+  "id_usuario": 1,
+  "nombre": "Administrador",
+  "email": "admin@sacra360.com",
+  "rol": "Administrador",
+  "activo": true
+}
+```
+
+**4. CRUD de Usuario (Creación)**
+```bash
+curl -X POST http://<auth-service-url>:8001/api/v1/usuarios \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Test",
+    "apellido_paterno": "Usuario",
+    "apellido_materno": "Prueba",
+    "email": "test@sacra360.com",
+    "contrasenia": "TestPass123",
+    "rol_id": 4
+  }'
+```
+**Esperado:** `201 Created` con datos del usuario creado
+
+**5. Auditoría Registrada**
+```bash
+curl -X GET "http://<auth-service-url>:8001/api/v1/auditoria?accion=LOGIN&limit=5" \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+**Esperado:** Lista de logs de tipo `LOGIN` con timestamps recientes
+
+**6. Reporte de Usuarios**
+```bash
+curl -X GET http://<auth-service-url>:8001/api/v1/reportes/usuarios/resumen \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+**Esperado:**
+```json
+{
+  "total_usuarios": 2,
+  "usuarios_activos": 2,
+  "usuarios_inactivos": 0,
+  "por_rol": {
+    "Administrador": 1,
+    "Consultor": 1
+  }
+}
+```
+
+### ✅ Verificación de Logs
+
+- [ ] **No hay errores de conexión a BD:**
+  ```bash
+  docker logs sacra360_auth_service 2>&1 | grep -i "error"
+  ```
+  Esperado: Sin errores de tipo `Connection refused` o `Authentication failed`
+
+- [ ] **JWT se genera correctamente:**
+  ```bash
+  docker logs sacra360_auth_service 2>&1 | grep -i "JWT"
+  ```
+  Esperado: Mensajes de tokens generados, no errores de firma
+
+- [ ] **Middleware de seguridad activo:**
+  ```bash
+  curl -I http://<auth-service-url>:8001/api/v1/auth/me
+  ```
+  Esperado: Headers `X-Frame-Options`, `X-Content-Type-Options`, etc.
+
+### ✅ Verificación de Seguridad
+
+- [ ] **Rate limiting funciona:**
+  ```bash
+  # Hacer 101 requests rápidos
+  for i in {1..101}; do curl http://<auth-service-url>:8001/health; done
+  ```
+  Esperado: Los últimos requests retornan `429 Too Many Requests`
+
+- [ ] **CORS configurado correctamente:**
+  ```bash
+  curl -H "Origin: http://localhost:5173" -I http://<auth-service-url>:8001/api/v1/auth/login
+  ```
+  Esperado: Header `Access-Control-Allow-Origin: http://localhost:5173`
+
+- [ ] **Endpoints protegidos requieren JWT:**
+  ```bash
+  curl -X GET http://<auth-service-url>:8001/api/v1/usuarios
+  ```
+  Esperado: `401 Unauthorized` sin token
+
+### ✅ Verificación de Frontend
+
+- [ ] **Login desde UI funciona:**
+  1. Abrir http://localhost:5173
+  2. Ingresar credenciales válidas
+  3. Verificar redirección a Dashboard
+  4. Confirmar que se muestra información del usuario
+
+- [ ] **Token se guarda en localStorage:**
+  Abrir DevTools → Application → Local Storage → Verificar clave `token`
+
+- [ ] **Navegación funciona según permisos:**
+  Login como Consultor → Verificar que NO aparece opción "Usuarios"
+
+**[IMAGEN: Captura de DevTools - localStorage con Token]**
+*Descripción: DevTools mostrando el panel de Application con localStorage abierto, clave "token" visible con valor del JWT truncado.*
+3.7. Observabilidad y Troubleshooting
+
+### Árbol de Decisión para Resolución de Problemas
+
+**Problema 1: No puedo hacer login (401 Unauthorized)**
+
+**Posibles causas:**
+1. ✅ **Credenciales incorrectas**
+   - Verificar: Confirmar email y contraseña en la tabla `usuarios`
+   - Solución: Resetear contraseña desde la BD:
+     ```sql
+     UPDATE usuarios SET contrasenia = '<hash-bcrypt>' WHERE email = 'usuario@example.com';
+     ```
+
+2. ✅ **Usuario desactivado**
+   - Verificar: `SELECT activo FROM usuarios WHERE email = 'usuario@example.com';`
+   - Solución: Activar usuario:
+     ```sql
+     UPDATE usuarios SET activo = true WHERE email = 'usuario@example.com';
+     ```
+
+3. ✅ **Servicio AuthProfiles caído**
+   - Verificar: `docker ps | grep auth-service` o `kubectl get pods -n sacra360`
+   - Logs: `docker logs sacra360_auth_service --tail 50`
+   - Solución: Reiniciar servicio:
+     ```bash
+     docker restart sacra360_auth_service
+     # O en K8s:
+     kubectl rollout restart deployment/auth-service -n sacra360
+     ```
+
+**[IMAGEN: Captura de Logs - Error de Autenticación]**
+*Descripción: Terminal mostrando logs con línea resaltada: "ERROR - Authentication failed for user: admin@sacra360.com - Invalid password"*
+
+---
+
+**Problema 2: Token expirado (401 Unauthorized en requests protegidos)**
+
+**Causa:** Token JWT expiró (default: 30 minutos)
+
+**Síntomas:**
+- Request funciona al principio, luego falla con `401`
+- Mensaje de error: `"detail": "Token has expired"`
+
+**Solución:**
+1. Frontend debe detectar 401 y redirigir a login
+2. Implementar refresh token (futuro) o aumentar `ACCESS_TOKEN_EXPIRE_MINUTES`
+
+**Código de detección en frontend:**
+```javascript
+// axios interceptor
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+---
+
+**Problema 3: No tengo permisos (403 Forbidden)**
+
+**Causa:** Usuario no tiene el permiso RBAC necesario para el módulo/acción
+
+**Verificar permisos del rol:**
+```python
+# En el código: middleware/permissions.py
+PERMISSIONS = {
+    1: {  # Administrador - FULL ACCESS
+        "usuarios": {"create": True, "read": True, "update": True, "delete": True},
+        ...
+    },
+    4: {  # Consultor - READ ONLY
+        "usuarios": {"create": False, "read": False, "update": False, "delete": False},
+        ...
+    }
+}
+```
+
+**Solución:**
+1. Cambiar rol del usuario a uno con más permisos (si aplica)
+2. Modificar matriz de permisos en el código y redesplegar
+
+---
+
+**Problema 4: Base de datos no conecta**
+
+**Síntomas:**
+- Error en logs: `psycopg2.OperationalError: could not connect to server`
+- Health check retorna `"database": "disconnected"`
+
+**Verificar:**
+```bash
+# 1. PostgreSQL está corriendo
+docker ps | grep postgres
+kubectl get pods -l app=postgres -n sacra360
+
+# 2. Puerto accesible
+telnet <postgres-host> 5432
+nc -zv <postgres-host> 5432
+
+# 3. Credenciales correctas
+psql -h <postgres-host> -U postgres -d sacra360
+```
+
+**Solución:**
+- Verificar `POSTGRES_URL` en `.env` o Secrets
+- Confirmar que la red Docker/K8s permite la comunicación
+- Revisar NetworkPolicies en K8s
+
+---
+
+**Problema 5: Redis caché no funciona (reportes lentos)**
+
+**Síntomas:**
+- Reportes siempre retornan `"from_cache": false`
+- Tiempo de respuesta siempre >500ms
+
+**Verificar:**
+```bash
+# 1. Redis está corriendo
+docker ps | grep redis
+redis-cli -h <redis-host> ping
+
+# 2. Datos en caché
+redis-cli -h <redis-host> KEYS "cache:reportes:*"
+redis-cli -h <redis-host> GET "cache:reportes:usuarios:30d"
+
+# 3. TTL configurado
+redis-cli -h <redis-host> TTL "cache:reportes:usuarios:30d"
+```
+
+**Solución:**
+- Verificar `REDIS_URL` en configuración
+- Confirmar que la red permite acceso al puerto 6379
+- Aumentar `maxmemory` si Redis está evictando claves prematuramente
+
+---
+
+**Problema 6: Rate limiting bloquea usuarios legítimos**
+
+**Síntomas:**
+- Error: `429 Too Many Requests`
+- Usuario reporta que no puede hacer login después de varios intentos
+
+**Solución temporal:**
+```bash
+# Limpiar contadores de rate limiting en Redis
+redis-cli -h <redis-host> KEYS "rate_limit:*" | xargs redis-cli DEL
+```
+
+**Solución permanente:**
+- Aumentar límite en `.env`: `RATE_LIMIT_PER_MINUTE=200`
+- Implementar rate limiting por usuario autenticado (no solo IP)
+
+---
+
+**Problema 7: CORS bloqueando requests desde frontend**
+
+**Síntomas:**
+- Error en navegador: `Access to XMLHttpRequest blocked by CORS policy`
+- Request funciona en Postman pero no desde navegador
+
+**Verificar CORS:**
+```bash
+curl -H "Origin: http://localhost:5173" -I http://localhost:8001/api/v1/auth/login
+```
+
+**Solución:**
+- Agregar origen del frontend a `ALLOWED_ORIGINS` en `.env`:
+  ```bash
+  ALLOWED_ORIGINS=http://localhost:5173,https://sacra360.com
+  ```
+- Reiniciar servicio auth-service
+
+**[IMAGEN: Captura de DevTools - Error CORS]**
+*Descripción: Consola del navegador mostrando error en rojo: "Access to XMLHttpRequest at 'http://localhost:8001/api/v1/auth/login' from origin 'http://localhost:5173' has been blocked by CORS policy"*
+
+---
+
+**Problema 8: Memory leak / Servicio consume cada vez más RAM**
+
+**Síntomas:**
+- Memoria del contenedor crece constantemente
+- OOMKilled después de horas/días de ejecución
+
+**Diagnosticar:**
+```bash
+# Monitorear uso de memoria
+docker stats sacra360_auth_service
+kubectl top pod auth-service-xxx -n sacra360
+```
+
+**Solución:**
+1. Aumentar límite de memoria en deployment (solución temporal)
+2. Identificar leak con profiler (memory_profiler en Python)
+3. Revisar logs de Auditoría (podría estar creciendo sin límite)
+4. Implementar limpieza automática de logs antiguos
+
+---
+
+### Comandos Útiles de Debug
+
+```bash
+# Ver últimos 100 logs con timestamps
+docker logs sacra360_auth_service --tail 100 --timestamps
+
+# Seguir logs en tiempo real
+docker logs -f sacra360_auth_service
+
+# Entrar al contenedor para debug
+docker exec -it sacra360_auth_service /bin/bash
+
+# Ver variables de entorno del contenedor
+docker exec sacra360_auth_service env | grep POSTGRES
+
+# Ejecutar query SQL directamente
+docker exec -it sacra360-postgres psql -U postgres -d sacra360 -c "SELECT COUNT(*) FROM Auditoria;"
+
+# Ver estado de Redis
+docker exec sacra360_redis redis-cli INFO stats
+```
+3.8. Guía de Configuración y Despliegue Paso a Paso (Runbook)
+
+**Objetivo:** Guía unificada para desplegar AuthProfiles-service, PostgreSQL, Redis y Frontend desde entorno local hasta producción.
+
+### 3.8.1. Pre-requisitos
+
+**Infraestructura:**
+- Desarrollo: Servidor con Docker Compose (4 cores, 8 GB RAM mínimo)
+- Staging/Prod: Cluster Kubernetes (16 cores, 32 GB RAM recomendado)
+
+**Software:**
+| Herramienta | Versión Mínima | Propósito |
+|-------------|----------------|-----------|
+| Docker | 24.0+ | Contenedores |
+| Docker Compose | 2.20+ | Orquestación local |
+| kubectl | 1.28+ | Gestión de K8s (prod) |
+| Node.js | 18.0+ | Build de frontend |
+| Python | 3.11+ | Desarrollo local |
+
+**Accesos:**
+- Registro de imágenes: Docker Hub, ACR, GHCR o ECR
+- Gestor de secretos: Vault, AWS Secrets Manager o K8s Secrets
+- Backup storage: S3, Azure Blob o GCS
+
+**Seguridad:**
+- Dominio con certificado TLS válido (Let's Encrypt/cert-manager para K8s)
+- `JWT_SECRET_KEY` generada criptográficamente (mínimo 32 caracteres)
+
+### 3.8.2. Preparación del Entorno
+
+**Paso 1: Secretos y Variables**
+
+```bash
+# Generar JWT_SECRET_KEY segura
+openssl rand -hex 32
+# Output: a1b2c3d4e5f6...
+
+# Almacenar en gestor de secretos (ejemplo K8s)
+kubectl create secret generic jwt-secret \
+  --from-literal=secret-key='a1b2c3d4e5f6...' \
+  -n sacra360
+```
+
+**Variables de entorno críticas:**
+- `JWT_SECRET_KEY` - Clave para firmar tokens (SECRETO)
+- `POSTGRES_PASSWORD` - Password de BD (SECRETO)
+- `POSTGRES_URL` - Connection string completa
+- `ALLOWED_ORIGINS` - Lista de orígenes CORS permitidos
+- `ENVIRONMENT` - `development` / `staging` / `production`
+
+**[IMAGEN: Captura de K8s Secrets]**
+*Descripción: Output de `kubectl get secrets -n sacra360` mostrando jwt-secret, db-credentials con tipo Opaque y edad de creación.*
+
+**Paso 2: Base de Datos**
+
+```bash
+# 1. Aplicar DDL (crear tablas)
+psql -h <postgres-host> -U postgres -d sacra360 < BACKEND/sql/Database.sql
+
+# 2. Verificar tablas creadas
+psql -h <postgres-host> -U postgres -d sacra360 -c "\dt"
+
+# 3. Cargar datos maestros (roles)
+psql -h <postgres-host> -U postgres -d sacra360 <<EOF
+INSERT INTO Roles (id_rol, nombre, descripcion) VALUES
+  (1, 'Administrador', 'Acceso total al sistema'),
+  (2, 'Digitalizador', 'Subir y procesar documentos'),
+  (3, 'Validador', 'Validar OCR y corregir datos'),
+  (4, 'Consultor', 'Solo lectura')
+ON CONFLICT DO NOTHING;
+EOF
+
+# 4. Crear usuario administrador inicial
+psql -h <postgres-host> -U postgres -d sacra360 <<EOF
+INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasenia, rol_id, activo, fecha_creacion)
+VALUES (
+  'Admin',
+  'Sistema',
+  'Sacra360',
+  'admin@sacra360.com',
+  '\$2b\$12\$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYqGOXp7v8K',  -- Hash de "Admin123"
+  1,
+  true,
+  CURRENT_DATE
+)
+ON CONFLICT DO NOTHING;
+EOF
+```
+
+**[IMAGEN: Captura de Terminal - Tablas Creadas]**
+*Descripción: Output de psql mostrando lista de tablas: Roles, usuarios, Auditoria con sus schemas y owners.*
+
+**Paso 3: Redis**
+
+```bash
+# Levantar Redis (desarrollo)
+docker run -d \
+  --name sacra360_redis \
+  --network sacra360_network \
+  -p 6379:6379 \
+  -v redis_data:/data \
+  redis:7-alpine redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+# Verificar
+docker exec sacra360_redis redis-cli ping
+# Esperado: PONG
+```
+
+### 3.8.3. Construcción de Artefactos (Build)
+
+**Backend (AuthProfiles-service):**
+```bash
+cd BACKEND/server-sacra360/AuthProfiles-service
+
+# Build de imagen Docker
+docker build -t miregistry/auth-service:v1.0 .
+
+# Push al registry
+docker push miregistry/auth-service:v1.0
+```
+
+**Dockerfile optimizado:**
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalar dependencias
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar código
+COPY app/ ./app/
+
+# Usuario no-root
+RUN adduser --disabled-password --gecos '' appuser
+USER appuser
+
+EXPOSE 8001
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+```
+
+**Frontend (React):**
+```bash
+cd frontend
+
+# Configurar variables de producción
+cat > .env.production <<EOF
+VITE_API_BASE_URL=https://api.sacra360.com
+VITE_APP_NAME=Sacra360
+EOF
+
+# Build de producción
+npm run build
+
+# El output está en dist/
+ls -lh dist/
+
+# Servir con nginx (Dockerfile)
+FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+```
+
+**[IMAGEN: Captura de Terminal - Build Exitoso]**
+*Descripción: Output de npm run build mostrando "✓ built in 5.32s", tamaño de chunks generados, y mensaje de éxito.*
+
+### 3.8.4. Despliegue Rápido (Docker Compose - Local)
+
+```bash
+cd BACKEND
+
+# Archivo docker-compose.yml (extracto)
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: sacra360
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lolsito101
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/Database.sql:/docker-entrypoint-initdb.d/Database.sql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  auth-service:
+    build: ./server-sacra360/AuthProfiles-service
+    environment:
+      - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ALLOWED_ORIGINS=http://localhost:5173
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - redis
+
+# Levantar servicios
+docker-compose up -d postgres redis auth-service
+
+# Verificar
+docker ps
+docker logs auth-service --tail 20
+```
+
+**Verificación inmediata:**
+- PostgreSQL: `psql -h localhost -U postgres -d sacra360`
+- Redis: `redis-cli -h localhost ping`
+- Auth API: http://localhost:8001/docs
+- Health: http://localhost:8001/health
+
+### 3.8.5. Despliegue en Kubernetes (Staging/Prod)
+
+**Orden de aplicación de manifiestos:**
+
+```bash
+# 1. Namespace
+kubectl create namespace sacra360
+
+# 2. Secrets
+kubectl apply -f k8s/secrets/jwt-secret.yaml
+kubectl apply -f k8s/secrets/db-credentials.yaml
+
+# 3. ConfigMaps
+kubectl apply -f k8s/configmaps/app-config.yaml
+
+# 4. Persistencia (si aplica)
+kubectl apply -f k8s/storage/postgres-pvc.yaml
+
+# 5. Base de Datos
+kubectl apply -f k8s/postgres/deployment.yaml
+kubectl apply -f k8s/postgres/service.yaml
+
+# 6. Redis
+kubectl apply -f k8s/redis/deployment.yaml
+kubectl apply -f k8s/redis/service.yaml
+
+# 7. AuthProfiles Service
+kubectl apply -f k8s/auth-service/deployment.yaml
+kubectl apply -f k8s/auth-service/service.yaml
+kubectl apply -f k8s/auth-service/hpa.yaml
+
+# 8. Ingress (exposición HTTPS)
+kubectl apply -f k8s/ingress/ingress.yaml
+
+# Verificar estado
+kubectl get pods -n sacra360
+kubectl get svc -n sacra360
+kubectl get ingress -n sacra360
+```
+
+**[IMAGEN: Captura de kubectl get pods]**
+*Descripción: Output mostrando pods corriendo: auth-service-xxx-yyy (3 replicas) READY 1/1 STATUS Running, postgres-xxx READY 1/1, redis-xxx READY 1/1.*
+
+### 3.8.6. Pruebas Post-Despliegue (Smoke Tests)
+
+```bash
+# Script de smoke tests
+#!/bin/bash
+set -e
+
+API_URL="https://api.sacra360.com"
+
+echo "1. Health Check..."
+curl -f ${API_URL}/health || exit 1
+
+echo "2. Login..."
+TOKEN=$(curl -X POST ${API_URL}/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@sacra360.com","password":"Admin123"}' \
+  | jq -r '.token')
+
+echo "3. Get Current User..."
+curl -f -H "Authorization: Bearer ${TOKEN}" ${API_URL}/api/v1/auth/me || exit 1
+
+echo "4. List Users..."
+curl -f -H "Authorization: Bearer ${TOKEN}" ${API_URL}/api/v1/usuarios || exit 1
+
+echo "5. Get Reports..."
+curl -f -H "Authorization: Bearer ${TOKEN}" "${API_URL}/api/v1/reportes/usuarios/resumen" || exit 1
+
+echo "✅ All smoke tests passed!"
+```
+
+### 3.8.7. CI/CD y Automatización
+
+**Pipeline recomendado (GitHub Actions / GitLab CI):**
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy AuthProfiles
+
+on:
+  push:
+    branches: [main, staging]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Unit Tests
+        run: |
+          cd BACKEND/server-sacra360/AuthProfiles-service
+          pip install -r requirements.txt
+          pytest tests/
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './BACKEND'
+
+  build-and-push:
+    needs: [test, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.REGISTRY }}/auth-service:${{ github.sha }} .
+          docker push ${{ secrets.REGISTRY }}/auth-service:${{ github.sha }}
+
+  deploy-staging:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Staging
+        run: |
+          kubectl set image deployment/auth-service \
+            auth-service=${{ secrets.REGISTRY }}/auth-service:${{ github.sha }} \
+            -n sacra360-staging
+
+  smoke-tests:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Smoke Tests
+        run: |
+          ./scripts/smoke-tests.sh https://staging-api.sacra360.com
+
+  deploy-production:
+    needs: smoke-tests
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy to Production
+        run: |
+          kubectl set image deployment/auth-service \
+            auth-service=${{ secrets.REGISTRY }}/auth-service:${{ github.sha }} \
+            -n sacra360
+```
+
+**[IMAGEN: Captura de GitHub Actions - Pipeline Exitoso]**
+*Descripción: Interfaz de GitHub Actions mostrando workflow completo en verde: Test ✓, Security Scan ✓, Build ✓, Deploy Staging ✓, Smoke Tests ✓, Deploy Production ✓.*
+
+**Monitoreo post-despliegue:**
+- Grafana dashboards: Métricas de requests/sec, latencia p95, tasa de errores
+- Sentry: Tracking de errores en producción
+- Alertas: PagerDuty/Slack para incidentes críticos

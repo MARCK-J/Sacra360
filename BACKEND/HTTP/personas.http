@@ -1,0 +1,268 @@
+### ===================================
+### DOCUMENTOS SERVICE - PERSONAS API
+### Puerto: 8002
+### ===================================
+
+@baseUrl = http://localhost:8002/api/v1
+
+### -----------------------------------
+### 1. HEALTH CHECK
+### -----------------------------------
+GET {{baseUrl}}/../../health
+Content-Type: application/json
+
+### -----------------------------------
+### 2. INFO DEL SERVICIO
+### -----------------------------------
+GET http://localhost:8002/
+Content-Type: application/json
+
+### -----------------------------------
+### 3. CREAR PERSONA
+### -----------------------------------
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Juan Carlos",
+  "apellidos": "García López",
+  "fecha_nacimiento": "1990-05-15",
+  "lugar_nacimiento": "Ciudad de México",
+  "estado_civil": "soltero",
+  "ocupacion": "Ingeniero"
+}
+
+### -----------------------------------
+### 4. CREAR PERSONA SIN CAMPOS OPCIONALES
+### -----------------------------------
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "María Elena",
+  "apellidos": "Rodríguez Martínez",
+  "fecha_nacimiento": "1985-08-22",
+  "estado_civil": "casado"
+}
+
+### -----------------------------------
+### 5. CREAR PERSONA CON VALIDACIÓN ERROR (nombres con números)
+### -----------------------------------
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Juan123",
+  "apellidos": "García López",
+  "fecha_nacimiento": "1990-05-15",
+  "estado_civil": "soltero"
+}
+
+### -----------------------------------
+### 6. CREAR PERSONA CON FECHA FUTURA (debe fallar)
+### -----------------------------------
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Pedro",
+  "apellidos": "Sánchez",
+  "fecha_nacimiento": "2030-01-01",
+  "estado_civil": "soltero"
+}
+
+### -----------------------------------
+### 7. OBTENER PERSONA POR ID
+### -----------------------------------
+GET {{baseUrl}}/personas/1
+Content-Type: application/json
+
+### -----------------------------------
+### 8. OBTENER PERSONA INEXISTENTE
+### -----------------------------------
+GET {{baseUrl}}/personas/999
+Content-Type: application/json
+
+### -----------------------------------
+### 9. LISTAR TODAS LAS PERSONAS (primera página)
+### -----------------------------------
+GET http://localhost:8002/api/v1/personas
+Content-Type: application/json
+
+### -----------------------------------
+### 10. LISTAR PERSONAS CON PAGINACIÓN
+### -----------------------------------
+GET {{baseUrl}}/personas/?skip=0&limit=5
+Content-Type: application/json
+
+### -----------------------------------
+### 11. LISTAR PERSONAS INCLUYENDO INACTIVAS
+### -----------------------------------
+GET {{baseUrl}}/personas/?solo_activos=false
+Content-Type: application/json
+
+### -----------------------------------
+### 12. FILTRAR POR NOMBRES
+### -----------------------------------
+GET {{baseUrl}}/personas/?nombres=Juan
+Content-Type: application/json
+
+### -----------------------------------
+### 13. FILTRAR POR APELLIDOS
+### -----------------------------------
+GET {{baseUrl}}/personas/?apellidos=García
+Content-Type: application/json
+
+### -----------------------------------
+### 14. FILTRAR POR ESTADO CIVIL
+### -----------------------------------
+GET {{baseUrl}}/personas/?estado_civil=soltero
+Content-Type: application/json
+
+### -----------------------------------
+### 15. FILTRAR POR RANGO DE FECHAS
+### -----------------------------------
+GET {{baseUrl}}/personas/?fecha_desde=1980-01-01&fecha_hasta=1995-12-31
+Content-Type: application/json
+
+### -----------------------------------
+### 16. FILTROS COMBINADOS
+### -----------------------------------
+GET {{baseUrl}}/personas/?nombres=Juan&estado_civil=soltero&limit=10
+Content-Type: application/json
+
+### -----------------------------------
+### 17. CONTAR PERSONAS TOTAL
+### -----------------------------------
+GET {{baseUrl}}/personas/count/total
+Content-Type: application/json
+
+### -----------------------------------
+### 18. CONTAR PERSONAS CON FILTROS
+### -----------------------------------
+GET {{baseUrl}}/personas/count/total?estado_civil=casado&solo_activos=true
+Content-Type: application/json
+
+### -----------------------------------
+### 19. BUSCAR POR NOMBRE ESPECÍFICO
+### -----------------------------------
+GET {{baseUrl}}/personas/search/by-name?nombres=Juan
+Content-Type: application/json
+
+### -----------------------------------
+### 20. BUSCAR POR NOMBRES Y APELLIDOS
+### -----------------------------------
+GET {{baseUrl}}/personas/search/by-name?nombres=María&apellidos=Rodríguez
+Content-Type: application/json
+
+### -----------------------------------
+### 21. FILTRAR POR ESTADO CIVIL ESPECÍFICO
+### -----------------------------------
+GET {{baseUrl}}/personas/filter/estado-civil/casado
+Content-Type: application/json
+
+### -----------------------------------
+### 22. ACTUALIZAR PERSONA COMPLETA
+### -----------------------------------
+PUT {{baseUrl}}/personas/1
+Content-Type: application/json
+
+{
+  "nombres": "Juan Carlos Actualizado",
+  "apellidos": "García López",
+  "fecha_nacimiento": "1990-05-15",
+  "lugar_nacimiento": "Guadalajara, México",
+  "estado_civil": "casado",
+  "ocupacion": "Ingeniero Senior"
+}
+
+### -----------------------------------
+### 23. ACTUALIZAR PERSONA PARCIAL
+### -----------------------------------
+PUT {{baseUrl}}/personas/1
+Content-Type: application/json
+
+{
+  "estado_civil": "divorciado",
+  "ocupacion": "Consultor"
+}
+
+### -----------------------------------
+### 24. ACTUALIZAR PERSONA INEXISTENTE
+### -----------------------------------
+PUT {{baseUrl}}/personas/999
+Content-Type: application/json
+
+{
+  "nombres": "No Existe"
+}
+
+### -----------------------------------
+### 25. DESACTIVAR PERSONA (SOFT DELETE)
+### -----------------------------------
+DELETE {{baseUrl}}/personas/1
+Content-Type: application/json
+
+### -----------------------------------
+### 26. INTENTAR DESACTIVAR PERSONA INEXISTENTE
+### -----------------------------------
+DELETE {{baseUrl}}/personas/999
+Content-Type: application/json
+
+### -----------------------------------
+### 27. VERIFICAR PERSONA DESACTIVADA
+### -----------------------------------
+GET {{baseUrl}}/personas/1
+Content-Type: application/json
+
+### -----------------------------------
+### 28. LISTAR INCLUYENDO DESACTIVADAS
+### -----------------------------------
+GET {{baseUrl}}/personas/?solo_activos=false
+Content-Type: application/json
+
+### -----------------------------------
+### CASOS EXTREMOS Y VALIDACIONES
+### -----------------------------------
+
+### 29. NOMBRES MUY LARGOS (debe fallar)
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Juan Carlos Extraordinariamente Largo Que Supera Los Cien Caracteres Permitidos En El Campo De Nombres",
+  "apellidos": "García",
+  "fecha_nacimiento": "1990-01-01",
+  "estado_civil": "soltero"
+}
+
+### 30. ESTADO CIVIL INVÁLIDO (debe fallar)
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Pedro",
+  "apellidos": "Sánchez",
+  "fecha_nacimiento": "1985-01-01",
+  "estado_civil": "estado_inexistente"
+}
+
+### 31. FECHA EN FORMATO INCORRECTO (debe fallar)
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Ana",
+  "apellidos": "Martínez",
+  "fecha_nacimiento": "15/05/1990",
+  "estado_civil": "soltero"
+}
+
+### 32. CAMPOS REQUERIDOS FALTANTES (debe fallar)
+POST {{baseUrl}}/personas/
+Content-Type: application/json
+
+{
+  "nombres": "Sin Apellidos",
+  "fecha_nacimiento": "1990-01-01"
+}
