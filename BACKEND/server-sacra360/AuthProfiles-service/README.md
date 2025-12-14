@@ -11,7 +11,7 @@ Microservicio de autenticación, autorización y gestión de perfiles de usuario
 
 El servicio **AuthProfiles** es el núcleo de seguridad del sistema Sacra360. Implementa un sistema completo de autenticación JWT, control de acceso basado en roles (RBAC), auditoría de accesos, generación de reportes analíticos y administración de usuarios.
 
-**Puerto:** `8004` | **Contenedor:** `sacra360_authprofiles_service`
+**Puerto:** `8001` | **Contenedor:** `sacra360_auth_service`
 
 ## 🏗️ Arquitectura
 
@@ -258,18 +258,18 @@ python update_passwords.py
 #### 4. Ejecutar el servicio
 ```bash
 # Con auto-reload (desarrollo)
-uvicorn app.main:app --reload --port 8004 --host 0.0.0.0
+uvicorn app.main:app --reload --port 8001 --host 0.0.0.0
 
 # Sin auto-reload (producción)
-uvicorn app.main:app --port 8004 --host 0.0.0.0 --workers 4
+uvicorn app.main:app --port 8001 --host 0.0.0.0 --workers 4
 ```
 
 ### URLs de Acceso
-- **API:** http://localhost:8004
-- **Health Check:** http://localhost:8004/health
-- **Swagger UI:** http://localhost:8004/docs
-- **ReDoc:** http://localhost:8004/redoc
-- **OpenAPI JSON:** http://localhost:8004/openapi.json
+- **API:** http://localhost:8001
+- **Health Check:** http://localhost:8001/health
+- **Swagger UI:** http://localhost:8001/docs
+- **ReDoc:** http://localhost:8001/redoc
+- **OpenAPI JSON:** http://localhost:8001/openapi.json
 
 ## 🔐 Seguridad
 
@@ -342,7 +342,7 @@ Los usuarios por defecto se crean con el script `sql/Create_Users_All_Roles.sql`
 
 ### Ejemplo de Login
 ```bash
-curl -X POST http://localhost:8004/api/v1/auth/login \
+curl -X POST http://localhost:8001/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@sacra360.com",
@@ -369,7 +369,7 @@ curl -X POST http://localhost:8004/api/v1/auth/login \
 
 ### Health Check
 ```bash
-curl http://localhost:8004/health
+curl http://localhost:8001/health
 ```
 
 ### Logs del Servicio
@@ -384,7 +384,7 @@ El servicio utiliza `logging` de Python. Los logs incluyen:
 El frontend React se conecta al servicio usando:
 ```javascript
 // frontend/.env
-VITE_AUTH_API_URL=http://localhost:8004
+VITE_AUTH_API_URL=http://localhost:8001
 
 // Ejemplo de login
 const response = await axios.post(
@@ -599,24 +599,24 @@ app.add_middleware(
 ### Tests Manuales con curl
 ```bash
 # Health check
-curl http://localhost:8004/health
+curl http://localhost:8001/health
 
 # Login
-curl -X POST http://localhost:8004/api/v1/auth/login \
+curl -X POST http://localhost:8001/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@sacra360.com","contrasenia":"Admin123!"}'
 
 # Obtener perfil (requiere token)
 TOKEN="tu_token_aqui"
-curl http://localhost:8004/api/v1/auth/me \
+curl http://localhost:8001/api/v1/auth/me \
   -H "Authorization: Bearer $TOKEN"
 
 # Listar usuarios (solo admin)
-curl http://localhost:8004/api/v1/usuarios \
+curl http://localhost:8001/api/v1/usuarios \
   -H "Authorization: Bearer $TOKEN"
 
 # Reporte de usuarios
-curl http://localhost:8004/api/v1/reportes/usuarios?dias=30 \
+curl http://localhost:8001/api/v1/reportes/usuarios?dias=30 \
   -H "Authorization: Bearer $TOKEN"
 ```
 

@@ -25,10 +25,10 @@ RUN addgroup --system --gid 1001 appgroup && \
 
 USER appuser
 
-EXPOSE 8004
+EXPOSE 8001
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
