@@ -11,8 +11,10 @@ import RevisionOCR from './pages/RevisionOCR'
 import Libros from './pages/Libros'
 import Usuarios from './pages/Usuarios'
 import Reportes from './pages/Reportes'
+import Estadisticas from './pages/Estadisticas'
 import Certificados from './pages/Certificados'
 import Sacramentos from './pages/Sacramentos'
+import Perfil from './pages/Perfil'
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/libros" element={<Libros />} />
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/reportes" element={<Reportes />} />
+          <Route path="/estadisticas" element={<Estadisticas />} />
+          <Route path="/perfil" element={<Perfil />} />
           <Route path="/certificados" element={<Certificados />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
