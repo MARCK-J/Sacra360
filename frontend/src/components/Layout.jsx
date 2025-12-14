@@ -13,6 +13,7 @@ const navItems = [
   { to: '/usuarios', label: 'Usuarios', icon: 'manage_accounts' },
   { to: '/auditoria', label: 'Auditoría', icon: 'history' },
   { to: '/reportes', label: 'Reportes', icon: 'bar_chart' },
+  { to: '/estadisticas', label: 'Estadísticas', icon: 'analytics' },
 ]
 
 export default function Layout({ title, children }) {
