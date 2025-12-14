@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -18,6 +19,7 @@ const navItems = [
 
 export default function Layout({ title, children }) {
   const location = useLocation()
+  const { user, logout } = useAuth()
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-foreground-light dark:text-foreground-dark min-h-screen">
       <div className="flex min-h-screen">
@@ -49,6 +51,39 @@ export default function Layout({ title, children }) {
                   )
             })}
           </nav>
+
+          {/* Usuario logueado */}
+          <div className="p-4 border-t border-border-light dark:border-border-dark">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
+                {user?.nombre?.charAt(0) || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">
+                  {user?.nombre} {user?.apellido_paterno}
+                </p>
+                <p className="text-xs text-muted-light dark:text-muted-dark truncate">
+                  {user?.nombre_rol || 'Usuario'}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Link
+                to="/perfil"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">person</span>
+                <span>Mi Perfil</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">logout</span>
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          </div>
         </aside>
         <main className="flex-1">
           <header className="h-16 bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-6">
@@ -66,10 +101,12 @@ export default function Layout({ title, children }) {
                 </span>
               </button>
               <div className="flex items-center gap-3">
-                <img alt="Avatar" className="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMk_WnYIase354r69oXFK_iITqvn5ay8pAjZj3vmZ-1_vF4_alZOUC2Vic0_EIp_fJyv8OO9Dq6tYxhz6mbKO-chpL61q3_KVXoq7MbMttyd6d0j3H-eVLBGOr1zfmFBOkFB4x8e2Jl_K0srV7poc-C5Mi3PerstL85S7_IKUSZ3YPx6MINDsNonTnIEpu3YdSnN2EySd55GOspBjmnzBoNbtCevPovWpOZNw3pjrritTlrNaGOh07rbFbBiQmUy7KgZ0k6yANP-8" />
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">
+                  {user?.nombre?.charAt(0) || 'U'}
+                </div>
                 <div>
-                  <p className="font-semibold text-sm">Admin</p>
-                  <p className="text-xs text-muted-light dark:text-muted-dark">Administrador</p>
+                  <p className="font-semibold text-sm">{user?.nombre || 'Usuario'}</p>
+                  <p className="text-xs text-muted-light dark:text-muted-dark">{user?.nombre_rol || 'Rol'}</p>
                 </div>
               </div>
             </div>

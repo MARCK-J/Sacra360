@@ -83,7 +83,7 @@ export default function Estadisticas() {
   }
 
   return (
-    <Layout title="Reportes y Estad├¡sticas">
+    <Layout title="Reportes y Estadísticas">
       {/* Filtro de período */}
       <div className="mb-6 flex items-center gap-4">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
