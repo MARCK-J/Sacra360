@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import { OcrProgressProvider } from './context/OcrProgressContext'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -15,22 +16,24 @@ import Sacramentos from './pages/Sacramentos'
 
 export default function App() {
   return (
-    <OcrProgressProvider>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/sacramento" element={<Sacramento />} />
-        <Route path="/sacramentos" element={<Sacramentos />} />
-        <Route path="/personas" element={<Personas />} />
-        <Route path="/auditoria" element={<Auditoria />} />
-        <Route path="/digitalizacion" element={<Digitalizacion />} />
-        <Route path="/revision-ocr" element={<RevisionOCR />} />
-        <Route path="/libros" element={<Libros />} />
-        <Route path="/usuarios" element={<Usuarios />} />
-        <Route path="/reportes" element={<Reportes />} />
-        <Route path="/certificados" element={<Certificados />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </OcrProgressProvider>
+    <AuthProvider>
+      <OcrProgressProvider>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/sacramento" element={<Sacramento />} />
+          <Route path="/sacramentos" element={<Sacramentos />} />
+          <Route path="/personas" element={<Personas />} />
+          <Route path="/auditoria" element={<Auditoria />} />
+          <Route path="/digitalizacion" element={<Digitalizacion />} />
+          <Route path="/revision-ocr" element={<RevisionOCR />} />
+          <Route path="/libros" element={<Libros />} />
+          <Route path="/usuarios" element={<Usuarios />} />
+          <Route path="/reportes" element={<Reportes />} />
+          <Route path="/certificados" element={<Certificados />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </OcrProgressProvider>
+    </AuthProvider>
   )
 }

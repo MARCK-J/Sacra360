@@ -109,10 +109,10 @@ def require_permission(modulo: str, accion: str):
                 )
             
             # Verificar permisos
-            if not has_permission(current_user.rol_id, modulo, accion):
+            if not has_permission(current_user.get('rol_id') if isinstance(current_user, dict) else current_user.rol_id, modulo, accion):
                 logger.warning(
-                    f"Acceso denegado: usuario={current_user.email}, "
-                    f"rol={current_user.rol_id}, modulo={modulo}, accion={accion}"
+                    f"Acceso denegado: usuario={current_user.get('email', current_user.get('sub', 'unknown'))}, "
+                    f"rol={current_user.get('rol_id') if isinstance(current_user, dict) else current_user.rol_id}, modulo={modulo}, accion={accion}"
                 )
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,

@@ -57,9 +57,11 @@ def registrar_auditoria(
         db.rollback()
 
 
-def verificar_es_admin(usuario_actual: Usuario):
+def verificar_es_admin(usuario_actual: dict):
     """Verificar que el usuario actual sea administrador"""
-    if usuario_actual.rol_id != 1:  # 1 = Administrador
+    # usuario_actual es un dict/payload del JWT que contiene rol_id o id_usuario
+    rol_id = usuario_actual.get("rol_id")
+    if rol_id != 1:  # 1 = Administrador
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para realizar esta acci├│n. Se requiere rol de Administrador."
@@ -115,7 +117,7 @@ async def listar_usuarios(
     rol_id: Optional[int] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Listar todos los usuarios del sistema
@@ -167,7 +169,7 @@ async def listar_usuarios(
                 fecha_creacion=usuario.fecha_creacion
             ))
         
-        logger.info(f"Usuarios listados por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Usuarios listados por admin ID: {usuario_actual['id_usuario']}")
         return response
         
     except HTTPException:
@@ -184,7 +186,7 @@ async def listar_usuarios(
 async def obtener_usuario(
     usuario_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Obtener detalles de un usuario espec├¡fico
@@ -221,7 +223,7 @@ async def obtener_usuario(
 async def crear_usuario(
     data: UsuarioCreate,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Crear un nuevo usuario
@@ -268,12 +270,12 @@ async def crear_usuario(
         # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
-            usuario_id=usuario_actual.id_usuario,
+            usuario_id=usuario_actual['id_usuario'],
             accion="CREAR_USUARIO",
             detalles=f"Usuario creado: {nuevo_usuario.email} (ID: {nuevo_usuario.id_usuario})"
         )
         
-        logger.info(f"Usuario creado: {nuevo_usuario.email} por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Usuario creado: {nuevo_usuario.email} por admin ID: {usuario_actual['id_usuario']}")
         
         return UsuarioResponse(
             id_usuario=nuevo_usuario.id_usuario,
@@ -303,7 +305,7 @@ async def actualizar_usuario(
     usuario_id: int,
     data: UsuarioUpdate,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Actualizar informaci├│n de un usuario
@@ -364,12 +366,12 @@ async def actualizar_usuario(
         # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
-            usuario_id=usuario_actual.id_usuario,
+            usuario_id=usuario_actual['id_usuario'],
             accion="ACTUALIZAR_USUARIO",
             detalles=f"Usuario actualizado: {usuario.email} (ID: {usuario.id_usuario})"
         )
         
-        logger.info(f"Usuario {usuario_id} actualizado por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Usuario {usuario_id} actualizado por admin ID: {usuario_actual['id_usuario']}")
         
         # Obtener nombre del rol
         rol = db.query(Rol).filter(Rol.id_rol == usuario.rol_id).first()
@@ -403,7 +405,7 @@ async def cambiar_contrasenia(
     usuario_id: int,
     data: UsuarioUpdatePassword,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Cambiar contrase├▒a de un usuario
@@ -427,12 +429,12 @@ async def cambiar_contrasenia(
         # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
-            usuario_id=usuario_actual.id_usuario,
+            usuario_id=usuario_actual['id_usuario'],
             accion="CAMBIAR_CONTRASENIA",
             detalles=f"Contrase├▒a cambiada para usuario: {usuario.email} (ID: {usuario.id_usuario})"
         )
         
-        logger.info(f"Contrase├▒a cambiada para usuario {usuario_id} por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Contrase├▒a cambiada para usuario {usuario_id} por admin ID: {usuario_actual['id_usuario']}")
         
         return {"message": "Contrase├▒a actualizada exitosamente"}
         
@@ -451,7 +453,7 @@ async def cambiar_contrasenia(
 async def eliminar_usuario(
     usuario_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Eliminar (desactivar) un usuario
@@ -470,7 +472,7 @@ async def eliminar_usuario(
             )
         
         # No permitir eliminar al propio administrador
-        if usuario.id_usuario == usuario_actual.id_usuario:
+        if usuario.id_usuario == usuario_actual['id_usuario']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No puedes desactivar tu propia cuenta"
@@ -483,12 +485,12 @@ async def eliminar_usuario(
         # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
-            usuario_id=usuario_actual.id_usuario,
+            usuario_id=usuario_actual['id_usuario'],
             accion="ELIMINAR_USUARIO",
             detalles=f"Usuario desactivado: {usuario.email} (ID: {usuario.id_usuario})"
         )
         
-        logger.info(f"Usuario {usuario_id} desactivado por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Usuario {usuario_id} desactivado por admin ID: {usuario_actual['id_usuario']}")
         
         return {"message": f"Usuario {usuario.email} desactivado exitosamente"}
         
@@ -507,7 +509,7 @@ async def eliminar_usuario(
 async def activar_usuario(
     usuario_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Reactivar un usuario desactivado
@@ -538,12 +540,12 @@ async def activar_usuario(
         # Registrar auditor├¡a
         registrar_auditoria(
             db=db,
-            usuario_id=usuario_actual.id_usuario,
+            usuario_id=usuario_actual['id_usuario'],
             accion="ACTIVAR_USUARIO",
             detalles=f"Usuario reactivado: {usuario.email} (ID: {usuario.id_usuario})"
         )
         
-        logger.info(f"Usuario {usuario_id} reactivado por admin ID: {usuario_actual.id_usuario}")
+        logger.info(f"Usuario {usuario_id} reactivado por admin ID: {usuario_actual['id_usuario']}")
         
         return {"message": f"Usuario {usuario.email} reactivado exitosamente"}
         
@@ -561,7 +563,7 @@ async def activar_usuario(
 @router.get("/roles/listar")
 async def listar_roles(
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: Usuario = Depends(get_current_user())
 ):
     """
     Listar todos los roles disponibles

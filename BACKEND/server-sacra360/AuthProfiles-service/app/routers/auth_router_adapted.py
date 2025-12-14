@@ -262,7 +262,7 @@ async def register(
 
 @router.get("/me", response_model=UsuarioResponse)
 async def get_current_user_info(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -311,7 +311,7 @@ async def get_current_user_info(
 @router.post("/change-password")
 async def change_password(
     data: ChangePasswordRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -376,7 +376,7 @@ async def change_password(
 
 @router.post("/logout")
 async def logout(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -411,7 +411,7 @@ async def logout(
 
 @router.get("/roles")
 async def get_roles(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -421,7 +421,7 @@ async def get_roles(
         Lista de roles
     """
     try:
-        roles = db.query(Rol).filter(Rol.activo == True).all()
+        roles = db.query(Rol).all()
         
         return {
             "roles": [

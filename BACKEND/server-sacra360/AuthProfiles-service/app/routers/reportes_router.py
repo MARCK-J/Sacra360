@@ -82,7 +82,7 @@ class EstadisticasGeneralesResponse(BaseModel):
 @router.get("/usuarios", response_model=ReporteUsuariosResponse)
 @require_permission("reportes", "read")
 async def reporte_usuarios(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -129,7 +129,7 @@ async def reporte_usuarios(
 async def reporte_accesos(
     fecha_inicio: Optional[date] = Query(None, description="Fecha inicio del reporte"),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin del reporte"),
-    current_user: Usuario = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -250,7 +250,7 @@ async def reporte_actividad_usuario(
     usuario_id: int,
     fecha_inicio: Optional[date] = Query(None),
     fecha_fin: Optional[date] = Query(None),
-    current_user: Usuario = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -329,7 +329,7 @@ async def reporte_actividad_usuario(
 @require_permission("reportes", "read")
 async def estadisticas_generales(
     dias: int = Query(30, description="Número de días hacia atrás"),
-    current_user: Usuario = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """
@@ -391,7 +391,7 @@ async def estadisticas_generales(
 @require_permission("reportes", "read")
 async def obtener_permisos_usuario(
     usuario_id: int,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user()),
     db: Session = Depends(get_db)
 ):
     """

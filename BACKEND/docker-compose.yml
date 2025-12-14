@@ -90,6 +90,11 @@ services:
     container_name: sacra360_auth_service
     environment:
       - POSTGRES_URL=postgresql://postgres:lolsito101@postgres:5432/sacra360
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=lolsito101
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=sacra360
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
@@ -99,6 +104,12 @@ services:
     depends_on:
       - postgres
       - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - sacra360_network
 

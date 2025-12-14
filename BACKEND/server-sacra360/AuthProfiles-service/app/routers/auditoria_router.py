@@ -36,9 +36,9 @@ class AuditoriaResponse(BaseModel):
 
 # ===================== FUNCIONES AUXILIARES =====================
 
-def verificar_es_admin(usuario_actual: Usuario):
+def verificar_es_admin(usuario_actual: dict):
     """Verificar que el usuario actual es administrador"""
-    if usuario_actual.rol_id != 1:
+    if usuario_actual.get('rol_id') != 1:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder a los logs de auditor├¡a"
@@ -57,7 +57,7 @@ async def listar_auditoria(
     skip: int = Query(0, ge=0, description="Registros a saltar para paginación"),
     limit: int = Query(50, ge=1, le=500, description="Límite de registros a retornar"),
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: dict = Depends(get_current_user())
 ):
     """
     Listar logs de auditoría de accesos con filtros
@@ -128,7 +128,7 @@ async def listar_auditoria(
 async def obtener_auditoria(
     log_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: dict = Depends(get_current_user())
 ):
     """
     Obtener un log de auditor├¡a espec├¡fico por ID
@@ -167,7 +167,7 @@ async def obtener_auditoria_por_usuario(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: dict = Depends(get_current_user())
 ):
     """
     Obtener logs de auditor├¡a de un usuario espec├¡fico
@@ -211,7 +211,7 @@ async def obtener_estadisticas(
     fecha_inicio: Optional[date] = Query(None),
     fecha_fin: Optional[date] = Query(None),
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(get_current_user)
+    usuario_actual: dict = Depends(get_current_user())
 ):
     """
     Obtener estad├¡sticas de auditor├¡a (resumen)

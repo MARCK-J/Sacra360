@@ -1,11 +1,10 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8004';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     contrasenia: ''
@@ -27,25 +26,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/api/v1/auth/login`, formData);
+      const result = await login(formData.email, formData.contrasenia);
       
-      // Guardar token y usuario
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
-      
-      // Redirigir al dashboard
-      navigate('/dashboard');
+      if (result.success) {
+        // Redirigir al dashboard
+        navigate('/dashboard');
+      } else {
+        setError(result.error);
+      }
       
     } catch (err) {
       console.error('Error en login:', err);
-      
-      if (err.response) {
-        setError(err.response.data.detail || 'Error al iniciar sesión');
-      } else if (err.request) {
-        setError('No se pudo conectar con el servidor');
-      } else {
-        setError('Error al iniciar sesión');
-      }
+      setError('Error al iniciar sesi├│n');
     } finally {
       setLoading(false);
     }
@@ -115,7 +107,7 @@ export default function Login() {
                     required
                     value={formData.contrasenia}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder="*******"
                     disabled={loading}
                     className="form-input block w-full rounded border-border-light dark:border-border-dark bg-background-light dark:bg-gray-800 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm h-12 px-4"
                   />
@@ -149,11 +141,7 @@ export default function Login() {
               </div>
             </form>
 
-            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Credenciales de prueba: admin@sacra360.com
-              </p>
-            </div>
+            
           </div>
         </div>
       </main>

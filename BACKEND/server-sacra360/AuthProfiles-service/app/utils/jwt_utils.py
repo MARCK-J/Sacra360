@@ -86,14 +86,17 @@ async def get_current_user(
     token = credentials.credentials
     payload = decode_token(token)
     
-    if payload.get("type") != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tipo de token inválido",
-        )
+    # No verificar el tipo "access" porque auth_router_adapted no lo incluye
+    # if payload.get("type") != "access":
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Tipo de token inválido",
+    #     )
     
     username: str = payload.get("sub")
-    user_id: int = payload.get("user_id")
+    # Soportar tanto "user_id" como "id_usuario" para compatibilidad
+    user_id: int = payload.get("id_usuario") if payload.get("id_usuario") is not None else payload.get("user_id")
+    rol_id: int = payload.get("rol_id")
     rol: str = payload.get("rol")
     
     if username is None or user_id is None:
@@ -105,6 +108,7 @@ async def get_current_user(
     return {
         "username": username,
         "user_id": user_id,
+        "rol_id": rol_id,
         "rol": rol
     }
 
