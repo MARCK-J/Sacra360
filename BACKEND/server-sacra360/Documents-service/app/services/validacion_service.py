@@ -8,6 +8,7 @@ from sqlalchemy import and_, func, desc, text
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import logging
+import calendar
 
 from app.models.documento_model import DocumentoDigitalizado
 from app.models.ocr_model import OCRResultado
@@ -577,6 +578,62 @@ class ValidacionService:
             return f"{base_msg}. Siguiente tupla #{siguiente_tupla} disponible."
         else:
             return f"{base_msg}. No hay más tuplas pendientes."
+
+    def _build_iso_date_safe(self, dia_raw: Optional[str], mes_raw: Optional[str], ano_raw: Optional[str]) -> str:
+        """
+        Construye una fecha ISO segura a partir de cadenas OCR potencialmente erróneas.
+        Reglas:
+        - Elimina caracteres no numéricos.
+        - Si el año tiene 2 dígitos, lo interpreta como:
+            - <= current_year % 100 -> 2000+yy
+            - else -> 1900+yy
+        - Meses/diás fuera de rango se ajustan al rango válido (mes 1-12, día 1-max_days).
+        - Si no se puede interpretar, devuelve '2000-01-01'.
+        """
+        try:
+            def only_digits(s):
+                if s is None:
+                    return ''
+                return ''.join(ch for ch in str(s) if ch.isdigit())
+
+            d = only_digits(dia_raw) or '1'
+            m = only_digits(mes_raw) or '1'
+            y = only_digits(ano_raw) or ''
+
+            day = int(d)
+            month = int(m)
+
+            # Year handling
+            current_year = datetime.utcnow().year
+            if y == '':
+                year = current_year if current_year <= 9999 else 2000
+            else:
+                year_int = int(y)
+                if year_int <= 99:
+                    cutoff = current_year % 100
+                    if year_int <= cutoff:
+                        year = 2000 + year_int
+                    else:
+                        year = 1900 + year_int
+                else:
+                    year = year_int
+
+            # Clamp month
+            if month < 1:
+                month = 1
+            if month > 12:
+                month = 12
+
+            # Adjust day to valid range for month/year
+            max_day = calendar.monthrange(year, month)[1]
+            if day < 1:
+                day = 1
+            if day > max_day:
+                day = max_day
+
+            return f"{year:04d}-{month:02d}-{day:02d}"
+        except Exception:
+            return "2000-01-01"
     
     def _calcular_estado_general(self, pendientes: int, validadas: int, total: int) -> str:
         """Calcula el estado general del documento"""
@@ -712,38 +769,45 @@ class ValidacionService:
             
             # 2. Parsear nombre completo desde campos normalizados
             nombre_completo = campos_normalizados.get("nombre_confirmando", "").strip()
-            partes = nombre_completo.split()
-            
-            if len(partes) >= 3:
-                apellido_paterno = partes[0]
-                apellido_materno = partes[1]
-                nombres = " ".join(partes[2:])
-            elif len(partes) == 2:
-                apellido_paterno = partes[0]
+            tokens = nombre_completo.split()
+
+            # Nueva regla: si vienen al menos 4 tokens
+            # - primeros 2 tokens => `nombres`
+            # - token 3 => `apellido_paterno`
+            # - token 4 => `apellido_materno`
+            # Ej: "PABLO ANDRES MENA MEJIA" -> nombres: "PABLO ANDRES", apellido_paterno: "MENA", apellido_materno: "MEJIA"
+            if len(tokens) >= 4:
+                nombres = " ".join(tokens[0:2])
+                apellido_paterno = tokens[2]
+                apellido_materno = tokens[3]
+            elif len(tokens) == 3:
+                # Fallback razonable: primer token nombre, 2do paterno, 3ro materno
+                nombres = tokens[0]
+                apellido_paterno = tokens[1]
+                apellido_materno = tokens[2]
+            elif len(tokens) == 2:
+                # Nombre y apellido paterno
+                nombres = tokens[0]
+                apellido_paterno = tokens[1]
                 apellido_materno = ""
-                nombres = partes[1]
             else:
                 nombres = nombre_completo
                 apellido_paterno = ""
                 apellido_materno = ""
             
-            # 3. Construir fecha de nacimiento
-            try:
-                dia_nac = int(campos_normalizados.get("dia_nacimiento", 1))
-                mes_nac = int(campos_normalizados.get("mes_nacimiento", 1))
-                ano_nac = int(campos_normalizados.get("ano_nacimiento", 2000))
-                fecha_nacimiento = f"{ano_nac:04d}-{mes_nac:02d}-{dia_nac:02d}"
-            except:
-                fecha_nacimiento = "2000-01-01"
-            
-            # 4. Construir fecha del sacramento
-            try:
-                dia_baut = int(campos_normalizados.get("dia_bautismo", 1))
-                mes_baut = int(campos_normalizados.get("mes_bautismo", 1))
-                ano_baut = int(campos_normalizados.get("ano_bautismo", 2000))
-                fecha_sacramento = f"{ano_baut:04d}-{mes_baut:02d}-{dia_baut:02d}"
-            except:
-                fecha_sacramento = "2000-01-01"
+            # 3. Construir fecha de nacimiento (uso de función segura para entradas OCR)
+            fecha_nacimiento = self._build_iso_date_safe(
+                campos_normalizados.get("dia_nacimiento"),
+                campos_normalizados.get("mes_nacimiento"),
+                campos_normalizados.get("ano_nacimiento")
+            )
+
+            # 4. Construir fecha del sacramento (uso de función segura para entradas OCR)
+            fecha_sacramento = self._build_iso_date_safe(
+                campos_normalizados.get("dia_bautismo"),
+                campos_normalizados.get("mes_bautismo"),
+                campos_normalizados.get("ano_bautismo")
+            )
             
             # 5. Procesar nombres de padres y padrinos
             padres_texto = campos_normalizados.get("padres", "No especificado")

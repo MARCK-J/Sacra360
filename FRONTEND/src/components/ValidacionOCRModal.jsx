@@ -229,11 +229,44 @@ const ValidacionOCRModal = ({
     const fechaNacimiento = `${datosValidados.ano_nacimiento}-${String(datosValidados.mes_nacimiento).padStart(2, '0')}-${String(datosValidados.dia_nacimiento).padStart(2, '0')}`;
     const fechaBautismo = `${datosValidados.ano_bautismo}-${String(datosValidados.mes_bautismo).padStart(2, '0')}-${String(datosValidados.dia_bautismo).padStart(2, '0')}`;
 
-    // Parsear nombre_confirmando (formato: "Nombres - Apellido Paterno - Apellido Materno")
-    const nombrePartes = datosValidados.nombre_confirmando?.split('-').map(p => p.trim()) || [];
-    const nombres = nombrePartes[0] || '';
-    const apellidoPaterno = nombrePartes[1] || '';
-    const apellidoMaterno = nombrePartes[2] || '';
+    // Parsear nombre_confirmando.
+    // Soporta dos formatos:
+    // 1) Con guiones: "Nombres - Apellido Paterno - Apellido Materno"
+    // 2) Sin guiones (OCR típico): "Nombres1 Nombres2 ApellidoPaterno ApellidoMaterno"
+    const rawNombre = datosValidados.nombre_confirmando || '';
+    let nombres = '';
+    let apellidoPaterno = '';
+    let apellidoMaterno = '';
+
+    if (rawNombre.includes('-')) {
+      const nombrePartes = rawNombre.split('-').map(p => p.trim());
+      nombres = nombrePartes[0] || '';
+      apellidoPaterno = nombrePartes[1] || '';
+      apellidoMaterno = nombrePartes[2] || '';
+    } else {
+      const tokens = rawNombre.split(/\s+/).filter(Boolean);
+      if (tokens.length >= 4) {
+        // Primeros 2 tokens => nombres, 3ro => apellido paterno, 4to => apellido materno
+        nombres = tokens.slice(0, 2).join(' ');
+        apellidoPaterno = tokens[2] || '';
+        apellidoMaterno = tokens[3] || '';
+      } else if (tokens.length === 3) {
+        // 2 tokens nombres, 3ro apellido paterno
+        nombres = tokens.slice(0, 2).join(' ');
+        apellidoPaterno = tokens[2] || '';
+        apellidoMaterno = '';
+      } else if (tokens.length === 2) {
+        // 1 token nombre, 2do apellido paterno
+        nombres = tokens[0] || '';
+        apellidoPaterno = tokens[1] || '';
+        apellidoMaterno = '';
+      } else {
+        // fallback
+        nombres = rawNombre;
+        apellidoPaterno = '';
+        apellidoMaterno = '';
+      }
+    }
 
     // Buscar si ya existe persona con mismo nombre, fecha_nacimiento y fecha_bautismo
     try {
