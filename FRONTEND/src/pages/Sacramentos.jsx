@@ -13,6 +13,9 @@ export default function Sacramentos() {
     fecha_desde: '',
     fecha_hasta: ''
   })
+  const [selected, setSelected] = useState(null)
+  const [isEdit, setIsEdit] = useState(false)
+  const [localCompleted, setLocalCompleted] = useState(new Set())
 
   useEffect(() => {
     cargarSacramentos()
@@ -153,6 +156,12 @@ export default function Sacramentos() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Fecha Registro
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -183,6 +192,86 @@ export default function Sacramentos() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {sacramento.fecha_registro ? new Date(sacramento.fecha_registro).toLocaleDateString() : 'N/A'}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        { (localCompleted.has(sacramento.id_sacramento) || sacramento.completado || sacramento.validado)
+                          ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              Completado
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                              Pendiente
+                            </span>
+                          )}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { setSelected(sacramento); setIsEdit(false) }}
+                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
+                          >Ver</button>
+
+                          <button
+                            onClick={() => { setSelected(sacramento); setIsEdit(true) }}
+                            className="px-2 py-1 bg-indigo-600 text-white rounded text-xs"
+                          >Editar</button>
+
+                          <button
+                            onClick={async () => {
+                              const id = sacramento.id_sacramento
+                              try {
+                                // intentar llamar endpoint de confirmación/validación
+                                let res = await fetch(`${API_URL}/sacramentos/${id}/confirm`, { method: 'POST' })
+                                if (!res.ok) {
+                                  res = await fetch(`${API_URL}/sacramentos/${id}/validate`, { method: 'POST' })
+                                }
+                                if (!res.ok) {
+                                  // fallback local
+                                  const next = new Set(localCompleted)
+                                  next.add(id)
+                                  setLocalCompleted(next)
+                                  alert('Marca como completado (persistencia no disponible en backend).')
+                                } else {
+                                  const next = new Set(localCompleted)
+                                  next.add(id)
+                                  setLocalCompleted(next)
+                                  alert('Confirmación realizada correctamente')
+                                }
+                              } catch (err) {
+                                const next = new Set(localCompleted)
+                                next.add(id)
+                                setLocalCompleted(next)
+                                console.error(err)
+                                alert('Error al confirmar en backend; marcado localmente como completado.')
+                              }
+                            }}
+                            className="px-2 py-1 bg-green-600 text-white rounded text-xs"
+                          >Confirmar</button>
+
+                          <button
+                            onClick={async () => {
+                              if (!confirm('¿Eliminar (baja lógica) este sacramento?')) return
+                              const id = sacramento.id_sacramento
+                              try {
+                                let res = await fetch(`${API_URL}/sacramentos/${id}`, { method: 'DELETE' })
+                                if (!res.ok) {
+                                  // intentar endpoint alternativo de baja lógica
+                                  res = await fetch(`${API_URL}/sacramentos/${id}/deactivate`, { method: 'POST' })
+                                }
+                                if (!res.ok) throw new Error('Error en backend')
+                                // quitar localmente
+                                setSacramentos(prev => prev.filter(s => s.id_sacramento !== id))
+                                alert('Sacramento eliminado')
+                              } catch (err) {
+                                console.error(err)
+                                alert('No fue posible eliminar en backend; operación cancelada')
+                              }
+                            }}
+                            className="px-2 py-1 bg-red-600 text-white rounded text-xs"
+                          >Borrar</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -195,6 +284,93 @@ export default function Sacramentos() {
           )}
         </div>
       </div>
+
+        {/* Modal view / edit */}
+        {selected && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white dark:bg-gray-900 rounded-lg w-11/12 md:w-2/3 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">{isEdit ? 'Editar Sacramento' : 'Detalle de Sacramento'}</h3>
+                <button onClick={() => setSelected(null)} className="text-gray-500">Cerrar</button>
+              </div>
+
+              {!isEdit ? (
+                <div>
+                  <p><strong>ID:</strong> {selected.id_sacramento}</p>
+                  <p><strong>Persona:</strong> {selected.persona?.nombre_completo || 'N/A'}</p>
+                  <p><strong>Tipo:</strong> {selected.tipo?.nombre || 'N/A'}</p>
+                  <p><strong>Institución:</strong> {selected.institucion?.nombre || 'N/A'}</p>
+                  <p><strong>Fecha sacramento:</strong> {selected.fecha_sacramento || 'N/A'}</p>
+                  <p><strong>Fecha registro:</strong> {selected.fecha_registro || 'N/A'}</p>
+                </div>
+              ) : (
+                <EditForm
+                  sacramento={selected}
+                  onCancel={() => setSelected(null)}
+                  onSaved={(updated) => {
+                    setSacramentos(prev => prev.map(s => s.id_sacramento === updated.id_sacramento ? updated : s))
+                    const next = new Set(localCompleted)
+                    next.add(updated.id_sacramento)
+                    setLocalCompleted(next)
+                    setSelected(null)
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
     </Layout>
   )
 }
+
+
+  function EditForm({ sacramento, onCancel, onSaved }) {
+    const [tipo, setTipo] = useState(sacramento.tipo?.nombre || '')
+    const [institucion, setInstitucion] = useState(sacramento.institucion?.nombre || '')
+    const [fecha, setFecha] = useState(sacramento.fecha_sacramento || '')
+
+    const handleSave = async () => {
+      const payload = {
+        tipo: tipo,
+        institucion: institucion,
+        fecha_sacramento: fecha
+      }
+      try {
+        const res = await fetch(`${API_URL}/sacramentos/${sacramento.id_sacramento}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error('error')
+        const updated = await res.json()
+        onSaved(updated)
+        alert('Guardado correctamente')
+      } catch (err) {
+        console.error(err)
+        alert('No se pudo guardar en backend; cambios no persistidos')
+      }
+    }
+
+    return (
+      <div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm">Tipo</label>
+            <input value={tipo} onChange={e => setTipo(e.target.value)} className="w-full px-2 py-1 border" />
+          </div>
+          <div>
+            <label className="block text-sm">Institución</label>
+            <input value={institucion} onChange={e => setInstitucion(e.target.value)} className="w-full px-2 py-1 border" />
+          </div>
+          <div>
+            <label className="block text-sm">Fecha Sacramento</label>
+            <input type="date" value={fecha ? fecha.split('T')[0] : ''} onChange={e => setFecha(e.target.value)} className="w-full px-2 py-1 border" />
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
+          <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+        </div>
+      </div>
+    )
+  }
