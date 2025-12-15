@@ -23,6 +23,7 @@ from app.controllers.sacramento_controller import router as sacramento_router
 from app.controllers.reportes_controller import router as reportes_router
 from app.controllers.bautizo_controller import router as bautizo_router
 from app.controllers.matrimonio_controller import router as matrimonio_router
+from app.controllers.sacramento_admin_controller import router as sacramento_admin_router
 
 # Importar configuración de base de datos y modelos
 from app.database import engine, Base
@@ -107,6 +108,7 @@ app.include_router(validacion_router, prefix="/api/v1/validacion", tags=["valida
 app.include_router(reportes_router, prefix="/api/v1")
 app.include_router(bautizo_router, prefix="/api/v1")
 app.include_router(matrimonio_router, prefix="/api/v1")
+app.include_router(sacramento_admin_router, prefix="/api/v1")
 
 # Manejador de errores global
 @app.exception_handler(Exception)

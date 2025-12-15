@@ -274,14 +274,38 @@ export default function Sacramentos() {
 
 
   function EditForm({ sacramento, onCancel, onSaved }) {
-    const [tipo, setTipo] = useState(sacramento.tipo?.nombre || '')
-    const [institucion, setInstitucion] = useState(sacramento.institucion?.nombre || '')
+    const [tipo, setTipo] = useState((sacramento.tipo?.id_tipo ?? sacramento.tipo?.nombre) || '')
+    const [institucion, setInstitucion] = useState((sacramento.institucion?.id_institucion ?? sacramento.institucion?.nombre) || '')
     const [fecha, setFecha] = useState(sacramento.fecha_sacramento || '')
     const [nombres, setNombres] = useState(sacramento.persona?.nombres || '')
     const [apellidoPaterno, setApellidoPaterno] = useState(sacramento.persona?.apellido_paterno || '')
     const [apellidoMaterno, setApellidoMaterno] = useState(sacramento.persona?.apellido_materno || '')
     const [fechaNacimiento, setFechaNacimiento] = useState(sacramento.persona?.fecha_nacimiento ? (sacramento.persona.fecha_nacimiento.split('T')[0] || sacramento.persona.fecha_nacimiento) : '')
     const [lugarNacimiento, setLugarNacimiento] = useState(sacramento.persona?.lugar_nacimiento || '')
+    const [tiposOptions, setTiposOptions] = useState([])
+    const [institucionesOptions, setInstitucionesOptions] = useState([])
+
+    useEffect(() => {
+      // cargar tipos e instituciones para los combo boxes
+      const load = async () => {
+        try {
+          const tRes = await fetch(`${API_URL}/tipos-sacramentos?limit=50`)
+          if (tRes.ok) {
+            const tJson = await tRes.json()
+            // estructura: { tipos_sacramentos: [...], total }
+            setTiposOptions(tJson.tipos_sacramentos || [])
+          }
+          const iRes = await fetch(`${API_URL}/instituciones`)
+          if (iRes.ok) {
+            const iJson = await iRes.json()
+            setInstitucionesOptions(iJson || [])
+          }
+        } catch (err) {
+          console.error('No se pudieron cargar catálogos para edición', err)
+        }
+      }
+      load()
+    }, [])
 
     const handleSave = async () => {
       const payload = {
@@ -293,8 +317,9 @@ export default function Sacramentos() {
           lugar_nacimiento: lugarNacimiento
         },
         sacramento: {
-          tipo: tipo,
-          institucion: institucion,
+          // enviar ids si están disponibles, sino enviar nombres
+          tipo: (typeof tipo === 'number' || String(tipo).match(/^\d+$/)) ? Number(tipo) : tipo,
+          institucion: (typeof institucion === 'number' || String(institucion).match(/^\d+$/)) ? Number(institucion) : institucion,
           fecha_sacramento: fecha
         }
       }
@@ -335,11 +360,21 @@ export default function Sacramentos() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm">Tipo</label>
-            <input value={tipo} onChange={e => setTipo(e.target.value)} className="w-full px-2 py-1 border" />
+            <select value={tipo} onChange={e => setTipo(e.target.value)} className="w-full px-2 py-1 border">
+              <option value="">Seleccione...</option>
+              {tiposOptions.map(t => (
+                <option key={t.id_tipo} value={t.id_tipo}>{t.nombre}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm">Institución</label>
-            <input value={institucion} onChange={e => setInstitucion(e.target.value)} className="w-full px-2 py-1 border" />
+            <select value={institucion} onChange={e => setInstitucion(e.target.value)} className="w-full px-2 py-1 border">
+              <option value="">Seleccione...</option>
+              {institucionesOptions.map(i => (
+                <option key={i.id_institucion} value={i.id_institucion}>{i.nombre}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm">Fecha Sacramento</label>
