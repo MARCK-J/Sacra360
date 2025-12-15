@@ -15,7 +15,6 @@ export default function Sacramentos() {
   })
   const [selected, setSelected] = useState(null)
   const [isEdit, setIsEdit] = useState(false)
-  const [localCompleted, setLocalCompleted] = useState(new Set())
 
   useEffect(() => {
     cargarSacramentos()
@@ -157,9 +156,6 @@ export default function Sacramentos() {
                       Fecha Registro
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Acciones
                     </th>
                   </tr>
@@ -193,19 +189,6 @@ export default function Sacramentos() {
                         {sacramento.fecha_registro ? new Date(sacramento.fecha_registro).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        { (localCompleted.has(sacramento.id_sacramento) || sacramento.completado || sacramento.validado)
-                          ? (
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              Completado
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                              Pendiente
-                            </span>
-                          )}
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <div className="flex gap-2">
                           <button
                             onClick={() => { setSelected(sacramento); setIsEdit(false) }}
@@ -219,41 +202,10 @@ export default function Sacramentos() {
 
                           <button
                             onClick={async () => {
-                              const id = sacramento.id_sacramento
-                              try {
-                                // intentar llamar endpoint de confirmación/validación
-                                let res = await fetch(`${API_URL}/sacramentos/${id}/confirm`, { method: 'POST' })
-                                if (!res.ok) {
-                                  res = await fetch(`${API_URL}/sacramentos/${id}/validate`, { method: 'POST' })
-                                }
-                                if (!res.ok) {
-                                  // fallback local
-                                  const next = new Set(localCompleted)
-                                  next.add(id)
-                                  setLocalCompleted(next)
-                                  alert('Marca como completado (persistencia no disponible en backend).')
-                                } else {
-                                  const next = new Set(localCompleted)
-                                  next.add(id)
-                                  setLocalCompleted(next)
-                                  alert('Confirmación realizada correctamente')
-                                }
-                              } catch (err) {
-                                const next = new Set(localCompleted)
-                                next.add(id)
-                                setLocalCompleted(next)
-                                console.error(err)
-                                alert('Error al confirmar en backend; marcado localmente como completado.')
-                              }
-                            }}
-                            className="px-2 py-1 bg-green-600 text-white rounded text-xs"
-                          >Confirmar</button>
-
-                          <button
-                            onClick={async () => {
                               if (!confirm('¿Eliminar (baja lógica) este sacramento?')) return
                               const id = sacramento.id_sacramento
                               try {
+                                // intentar eliminar vía API
                                 let res = await fetch(`${API_URL}/sacramentos/${id}`, { method: 'DELETE' })
                                 if (!res.ok) {
                                   // intentar endpoint alternativo de baja lógica
@@ -309,9 +261,6 @@ export default function Sacramentos() {
                   onCancel={() => setSelected(null)}
                   onSaved={(updated) => {
                     setSacramentos(prev => prev.map(s => s.id_sacramento === updated.id_sacramento ? updated : s))
-                    const next = new Set(localCompleted)
-                    next.add(updated.id_sacramento)
-                    setLocalCompleted(next)
                     setSelected(null)
                   }}
                 />
@@ -328,12 +277,26 @@ export default function Sacramentos() {
     const [tipo, setTipo] = useState(sacramento.tipo?.nombre || '')
     const [institucion, setInstitucion] = useState(sacramento.institucion?.nombre || '')
     const [fecha, setFecha] = useState(sacramento.fecha_sacramento || '')
+    const [nombres, setNombres] = useState(sacramento.persona?.nombres || '')
+    const [apellidoPaterno, setApellidoPaterno] = useState(sacramento.persona?.apellido_paterno || '')
+    const [apellidoMaterno, setApellidoMaterno] = useState(sacramento.persona?.apellido_materno || '')
+    const [fechaNacimiento, setFechaNacimiento] = useState(sacramento.persona?.fecha_nacimiento ? (sacramento.persona.fecha_nacimiento.split('T')[0] || sacramento.persona.fecha_nacimiento) : '')
+    const [lugarNacimiento, setLugarNacimiento] = useState(sacramento.persona?.lugar_nacimiento || '')
 
     const handleSave = async () => {
       const payload = {
-        tipo: tipo,
-        institucion: institucion,
-        fecha_sacramento: fecha
+        persona: {
+          nombres,
+          apellido_paterno: apellidoPaterno,
+          apellido_materno: apellidoMaterno,
+          fecha_nacimiento: fechaNacimiento,
+          lugar_nacimiento: lugarNacimiento
+        },
+        sacramento: {
+          tipo: tipo,
+          institucion: institucion,
+          fecha_sacramento: fecha
+        }
       }
       try {
         const res = await fetch(`${API_URL}/sacramentos/${sacramento.id_sacramento}`, {
@@ -347,7 +310,23 @@ export default function Sacramentos() {
         alert('Guardado correctamente')
       } catch (err) {
         console.error(err)
-        alert('No se pudo guardar en backend; cambios no persistidos')
+        // fallback local: aplicar los cambios en el estado local para no romper flujo
+        const updatedLocal = {
+          ...sacramento,
+          persona: {
+            ...sacramento.persona,
+            nombres,
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            fecha_nacimiento: fechaNacimiento,
+            lugar_nacimiento: lugarNacimiento
+          },
+          tipo: { ...sacramento.tipo, nombre: tipo },
+          institucion: { ...sacramento.institucion, nombre: institucion },
+          fecha_sacramento: fecha
+        }
+        onSaved(updatedLocal)
+        alert('Backend no disponible: cambios aplicados localmente')
       }
     }
 
