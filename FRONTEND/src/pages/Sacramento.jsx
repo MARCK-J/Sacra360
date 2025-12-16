@@ -99,12 +99,28 @@ export default function Sacramento() {
       const personas = await res.json()
       
       if (personas && personas.length > 0) {
-        const valoresUnicos = [...new Set(personas.map(p => p[campo]))].filter(v => 
-          v && v.toLowerCase().includes(valor.toLowerCase())
+        // Guardar personas completas con sus datos para autocompletado
+        const personasConDatos = personas.filter(p => 
+          p[campo] && p[campo].toLowerCase().includes(valor.toLowerCase())
         )
         
-        setSugerencias(valoresUnicos.slice(0, 5))
-        setMostrarSugerencias(valoresUnicos.length > 0)
+        // Crear sugerencias únicas con datos completos
+        const sugerenciasUnicas = []
+        const valoresVistos = new Set()
+        
+        for (const p of personasConDatos) {
+          const valorCampo = p[campo]
+          if (!valoresVistos.has(valorCampo)) {
+            valoresVistos.add(valorCampo)
+            sugerenciasUnicas.push({
+              valor: valorCampo,
+              persona: p  // Guardar persona completa
+            })
+          }
+        }
+        
+        setSugerencias(sugerenciasUnicas.slice(0, 5))
+        setMostrarSugerencias(sugerenciasUnicas.length > 0)
       } else {
         setSugerencias([])
         setMostrarSugerencias(false)
@@ -116,9 +132,26 @@ export default function Sacramento() {
     }
   }
   
-  const seleccionarSugerencia = (valor) => {
-    if (campoActivo) {
-      setPersona(prev => ({ ...prev, [campoActivo]: valor }))
+  const seleccionarSugerencia = (sugerencia) => {
+    if (campoActivo && sugerencia.persona) {
+      // Autocompletar todos los campos de la persona
+      setPersona({
+        nombres: sugerencia.persona.nombres || '',
+        apellido_paterno: sugerencia.persona.apellido_paterno || '',
+        apellido_materno: sugerencia.persona.apellido_materno || '',
+        fecha_nacimiento: sugerencia.persona.fecha_nacimiento || '',
+        fecha_bautismo: sugerencia.persona.fecha_bautismo || '',
+        nombre_padre_nombre_madre: sugerencia.persona.nombre_padre_nombre_madre || '',
+        nombre_padrino_nombre_madrina: sugerencia.persona.nombre_padrino_nombre_madrina || '',
+        lugar_nacimiento: sugerencia.persona.lugar_nacimiento || ''
+      })
+      
+      // Para Bautizo (tipo 1): Si la persona ya tiene fecha_bautismo registrada,
+      // usar esa fecha como fecha del sacramento para evitar duplicados
+      if (form.tipo_sacramento === 1 && sugerencia.persona.fecha_bautismo) {
+        setForm(prev => ({ ...prev, fecha_sacramento: sugerencia.persona.fecha_bautismo }))
+      }
+      
       setSugerencias([])
       setMostrarSugerencias(false)
       setCampoActivo(null)
@@ -185,6 +218,7 @@ export default function Sacramento() {
       setForm((s) => ({ ...s, [name]: Number(value) }))
       return
     }
+    
     setForm((s) => ({ ...s, [name]: value }))
   }
 
@@ -366,7 +400,7 @@ export default function Sacramento() {
         apellido_paterno: persona.apellido_paterno,
         apellido_materno: persona.apellido_materno,
         fecha_nacimiento: persona.fecha_nacimiento,
-        fecha_bautismo: persona.fecha_bautismo,
+        fecha_bautismo: form.fecha_sacramento, // La fecha de bautismo es la misma que la del sacramento
         nombre_padre_nombre_madre: persona.nombre_padre_nombre_madre,
         nombre_padrino_nombre_madrina: persona.nombre_padrino_nombre_madrina,
         usuario_id: 4
@@ -579,7 +613,7 @@ export default function Sacramento() {
                         <option value="">Seleccione un libro</option>
                         {libros.map(libro => (
                           <option key={libro.id_libro} value={libro.id_libro}>
-                            Libro {libro.id_libro} ({libro.fecha_inicio} - {libro.fecha_fin})
+                            {libro.nombre} ({libro.fecha_inicio} - {libro.fecha_fin})
                           </option>
                         ))}
                       </select>
@@ -591,7 +625,7 @@ export default function Sacramento() {
                         onChange={(e) => setInstitucionSeleccionada(e.target.value)}
                         required
                         disabled={!libroSeleccionado}
-                        className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       >
                         <option value="">Seleccione una parroquia</option>
                         {instituciones.map(inst => (
@@ -642,8 +676,7 @@ export default function Sacramento() {
                       onChange={handlePersonaChange}
                       onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       placeholder="Ej: Juan Carlos"
                       autoComplete="off"
                     />
@@ -671,8 +704,7 @@ export default function Sacramento() {
                       onChange={handlePersonaChange}
                       onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       placeholder="Ej: García"
                       autoComplete="off"
                     />
@@ -684,7 +716,7 @@ export default function Sacramento() {
                             onClick={() => seleccionarSugerencia(sugerencia)}
                             className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                           >
-                            {sugerencia}
+                            {sugerencia.valor}
                           </div>
                         ))}
                       </div>
@@ -700,8 +732,7 @@ export default function Sacramento() {
                       onChange={handlePersonaChange}
                       onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       placeholder="Ej: Pérez"
                       autoComplete="off"
                     />
@@ -713,7 +744,7 @@ export default function Sacramento() {
                             onClick={() => seleccionarSugerencia(sugerencia)}
                             className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                           >
-                            {sugerencia}
+                            {sugerencia.valor}
                           </div>
                         ))}
                       </div>
@@ -728,8 +759,7 @@ export default function Sacramento() {
                       value={persona.fecha_nacimiento}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
                   
@@ -741,8 +771,7 @@ export default function Sacramento() {
                       value={persona.fecha_bautismo}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
                   
@@ -754,9 +783,8 @@ export default function Sacramento() {
                       value={persona.nombre_padre_nombre_madre}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
                       placeholder="Ej: Juan Pérez García / María López Rodríguez"
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
                   
@@ -768,9 +796,8 @@ export default function Sacramento() {
                       value={persona.nombre_padrino_nombre_madrina}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
                       placeholder="Ej: Carlos Gómez / Ana Fernández"
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
                 </div>
@@ -785,8 +812,7 @@ export default function Sacramento() {
                       onChange={handlePersonaChange}
                       onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       placeholder="Ej: Juan Carlos"
                       autoComplete="off"
                     />
@@ -798,7 +824,7 @@ export default function Sacramento() {
                             onClick={() => seleccionarSugerencia(sugerencia)}
                             className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                           >
-                            {sugerencia}
+                            {sugerencia.valor}
                           </div>
                         ))}
                       </div>
@@ -814,8 +840,7 @@ export default function Sacramento() {
                       onChange={handlePersonaChange}
                       onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       placeholder="Ej: Pérez"
                       autoComplete="off"
                     />
@@ -827,7 +852,7 @@ export default function Sacramento() {
                             onClick={() => seleccionarSugerencia(sugerencia)}
                             className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                           >
-                            {sugerencia}
+                            {sugerencia.valor}
                           </div>
                         ))}
                       </div>
@@ -843,8 +868,7 @@ export default function Sacramento() {
                       onChange={handlePersonaChange}
                       onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                       placeholder="Ej: González"
                       autoComplete="off"
                     />
@@ -856,7 +880,7 @@ export default function Sacramento() {
                             onClick={() => seleccionarSugerencia(sugerencia)}
                             className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                           >
-                            {sugerencia}
+                            {sugerencia.valor}
                           </div>
                         ))}
                       </div>
@@ -871,34 +895,7 @@ export default function Sacramento() {
                       value={persona.fecha_nacimiento}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Lugar de Nacimiento</label>
-                    <input
-                      type="text"
-                      name="lugar_nacimiento"
-                      value={persona.lugar_nacimiento}
-                      onChange={handlePersonaChange}
-                      disabled={!form.fecha_sacramento}
-                      placeholder="Ej: La Paz, Bolivia"
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Bautismo *</label>
-                    <input
-                      type="date"
-                      name="fecha_bautismo"
-                      value={persona.fecha_bautismo}
-                      onChange={handlePersonaChange}
-                      required
-                      disabled={!form.fecha_sacramento}
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
 
@@ -910,9 +907,8 @@ export default function Sacramento() {
                       value={persona.nombre_padre_nombre_madre}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
                       placeholder="Ej: Juan Pérez / María González"
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
 
@@ -924,9 +920,8 @@ export default function Sacramento() {
                       value={persona.nombre_padrino_nombre_madrina}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
                       placeholder="Ej: Carlos Gómez / Ana Fernández"
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
                 </div>
@@ -944,8 +939,7 @@ export default function Sacramento() {
                           value={persona.nombres_esposo || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Juan Carlos"
                         />
                       </div>
@@ -957,8 +951,7 @@ export default function Sacramento() {
                           value={persona.apellido_paterno_esposo || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Pérez"
                         />
                       </div>
@@ -970,8 +963,7 @@ export default function Sacramento() {
                           value={persona.apellido_materno_esposo || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: González"
                         />
                       </div>
@@ -983,8 +975,7 @@ export default function Sacramento() {
                           value={persona.fecha_nacimiento_esposo || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                         />
                       </div>
                       <div>
@@ -995,8 +986,7 @@ export default function Sacramento() {
                           value={persona.fecha_bautismo_esposo || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -1007,9 +997,8 @@ export default function Sacramento() {
                           value={persona.padres_esposo || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
                           placeholder="Ej: Juan Pérez / María González"
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                         />
                       </div>
                     </div>
@@ -1027,8 +1016,7 @@ export default function Sacramento() {
                           value={persona.nombres_esposa || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Ana María"
                         />
                       </div>
@@ -1040,8 +1028,7 @@ export default function Sacramento() {
                           value={persona.apellido_paterno_esposa || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Flores"
                         />
                       </div>
@@ -1053,8 +1040,7 @@ export default function Sacramento() {
                           value={persona.apellido_materno_esposa || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Quispe"
                         />
                       </div>
@@ -1066,8 +1052,7 @@ export default function Sacramento() {
                           value={persona.fecha_nacimiento_esposa || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                         />
                       </div>
                       <div>
@@ -1078,8 +1063,7 @@ export default function Sacramento() {
                           value={persona.fecha_bautismo_esposa || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -1090,9 +1074,8 @@ export default function Sacramento() {
                           value={persona.padres_esposa || ''}
                           onChange={handlePersonaChange}
                           required
-                          disabled={!form.fecha_sacramento}
                           placeholder="Ej: Pedro Flores / Carmen Quispe"
-                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                         />
                       </div>
                     </div>
@@ -1107,9 +1090,8 @@ export default function Sacramento() {
                       value={persona.testigos || ''}
                       onChange={handlePersonaChange}
                       required
-                      disabled={!form.fecha_sacramento}
                       placeholder="Ej: Roberto Sánchez / Laura Martínez"
-                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                     />
                   </div>
                 </div>
@@ -1145,7 +1127,7 @@ export default function Sacramento() {
               <button 
                 type="submit" 
                 disabled={loading || (form.tipo_sacramento === 2 && validacionDuplicado?.error)} 
-                className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 bg-primary text-white gap-2 text-sm font-bold min-w-0 px-6 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 bg-primary text-white gap-2 text-sm font-bold min-w-0 px-6 hover:bg-primary/90"
               >
                 {loading ? 'Guardando...' : 'Guardar Registro'}
               </button>
@@ -1156,3 +1138,4 @@ export default function Sacramento() {
     </Layout>
   )
 }
+
