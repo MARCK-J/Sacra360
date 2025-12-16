@@ -202,19 +202,15 @@ export default function Sacramentos() {
 
                           <button
                             onClick={async () => {
-                              if (!confirm('¿Eliminar (baja lógica) este sacramento?')) return
+                              if (!confirm('¿Eliminar este sacramento permanentemente? Esta acción no es reversible.')) return
                               const id = sacramento.id_sacramento
                               try {
-                                // intentar eliminar vía API
-                                let res = await fetch(`${API_URL}/sacramentos/${id}`, { method: 'DELETE' })
-                                if (!res.ok) {
-                                  // intentar endpoint alternativo de baja lógica
-                                  res = await fetch(`${API_URL}/sacramentos/${id}/deactivate`, { method: 'POST' })
-                                }
-                                if (!res.ok) throw new Error('Error en backend')
+                                // eliminar vía API (elimina físicamente y dependencias)
+                                const res = await fetch(`${API_URL}/sacramentos/${id}`, { method: 'DELETE' })
+                                if (!res.ok) throw new Error('Error en backend al eliminar')
                                 // quitar localmente
                                 setSacramentos(prev => prev.filter(s => s.id_sacramento !== id))
-                                alert('Sacramento eliminado')
+                                alert('Sacramento eliminado definitivamente')
                               } catch (err) {
                                 console.error(err)
                                 alert('No fue posible eliminar en backend; operación cancelada')
@@ -274,8 +270,8 @@ export default function Sacramentos() {
 
 
   function EditForm({ sacramento, onCancel, onSaved }) {
-    const [tipo, setTipo] = useState((sacramento.tipo?.id_tipo ?? sacramento.tipo?.nombre) || '')
-    const [institucion, setInstitucion] = useState((sacramento.institucion?.id_institucion ?? sacramento.institucion?.nombre) || '')
+    const [tipo, setTipo] = useState(sacramento.tipo?.id_tipo ? String(sacramento.tipo.id_tipo) : '')
+    const [institucion, setInstitucion] = useState(sacramento.institucion?.id_institucion ? String(sacramento.institucion.id_institucion) : '')
     const [fecha, setFecha] = useState(sacramento.fecha_sacramento || '')
     const [nombres, setNombres] = useState(sacramento.persona?.nombres || '')
     const [apellidoPaterno, setApellidoPaterno] = useState(sacramento.persona?.apellido_paterno || '')
@@ -289,12 +285,32 @@ export default function Sacramentos() {
       // cargar tipos e instituciones para los combo boxes
       const load = async () => {
         try {
+          // cargar tipos desde backend y filtrar a los tres canónicos
           const tRes = await fetch(`${API_URL}/tipos-sacramentos?limit=50`)
           if (tRes.ok) {
             const tJson = await tRes.json()
-            // estructura: { tipos_sacramentos: [...], total }
-            setTiposOptions(tJson.tipos_sacramentos || [])
+            const allTipos = tJson.tipos_sacramentos || []
+            const wanted = ['bautizo', 'confirmaci', 'confirmación', 'confirmacion', 'matrimonio']
+            const filtered = allTipos.filter(t => {
+              const n = (t.nombre || '').toLowerCase()
+              return wanted.some(w => n.includes(w))
+            })
+            // If backend doesn't contain canonical names, fallback to hardcoded ids/names
+            if (filtered.length === 0) {
+              setTiposOptions([
+                { id_tipo: 1, nombre: 'Bautizo' },
+                { id_tipo: 2, nombre: 'Confirmación' },
+                { id_tipo: 3, nombre: 'Matrimonio' }
+              ])
+            } else {
+              setTiposOptions(filtered)
+              // ensure current selected tipo exists as string id
+              if (!tipo && filtered[0]) {
+                // do nothing; keep existing selection
+              }
+            }
           }
+
           const iRes = await fetch(`${API_URL}/instituciones`)
           if (iRes.ok) {
             const iJson = await iRes.json()
@@ -317,9 +333,8 @@ export default function Sacramentos() {
           lugar_nacimiento: lugarNacimiento
         },
         sacramento: {
-          // enviar ids si están disponibles, sino enviar nombres
-          tipo: (typeof tipo === 'number' || String(tipo).match(/^\d+$/)) ? Number(tipo) : tipo,
-          institucion: (typeof institucion === 'number' || String(institucion).match(/^\d+$/)) ? Number(institucion) : institucion,
+          tipo: tipo ? Number(tipo) : null,
+          institucion: institucion ? Number(institucion) : null,
           fecha_sacramento: fecha
         }
       }

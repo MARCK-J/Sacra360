@@ -145,21 +145,30 @@ def update_sacramento(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.delete("/{sacramento_id}", status_code=status.HTTP_200_OK, summary="Baja lógica de sacramento")
-def deactivate_sacramento(sacramento_id: int, db: Session = Depends(get_db)):
+@router.delete("/{sacramento_id}", status_code=status.HTTP_200_OK, summary="Eliminar sacramento (físico)")
+def delete_sacramento(sacramento_id: int, db: Session = Depends(get_db)):
     """
-    Realiza una baja lógica del sacramento. Añade la columna `activo` si no existe y la marca como FALSE.
-    Esto evita eliminar físicamente el registro y mantiene trazabilidad.
+    Elimina físicamente el sacramento y sus datos dependientes (detalles) de la base de datos.
+    Se borran filas en tablas de detalles relacionadas antes de eliminar el registro principal.
     """
     try:
-        # Asegurar columna activo
-        db.execute(text("ALTER TABLE sacramentos ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true"))
         # Verificar existencia
         sac = db.execute(text("SELECT id_sacramento FROM sacramentos WHERE id_sacramento = :id"), {"id": sacramento_id}).first()
         if not sac:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Sacramento {sacramento_id} no encontrado")
 
-        db.execute(text("UPDATE sacramentos SET activo = false, fecha_actualizacion = now() WHERE id_sacramento = :id"), {"id": sacramento_id})
+        # Eliminar registros dependientes en orden seguro
+        # detalles_bautizo, detalles_confirmacion, detalles_matrimonio, matrimonios, ocr_resultado, validacion_tuplas
+        db.execute(text("DELETE FROM detalles_bautizo WHERE sacramento_id = :id"), {"id": sacramento_id})
+        db.execute(text("DELETE FROM detalles_confirmacion WHERE sacramento_id = :id"), {"id": sacramento_id})
+        db.execute(text("DELETE FROM detalles_matrimonio WHERE sacramento_id = :id"), {"id": sacramento_id})
+        db.execute(text("DELETE FROM matrimonios WHERE sacramento_id = :id"), {"id": sacramento_id})
+        db.execute(text("DELETE FROM ocr_resultado WHERE sacramento_id = :id"), {"id": sacramento_id})
+        db.execute(text("DELETE FROM validacion_tuplas WHERE sacramento_registrado_id = :id"), {"id": sacramento_id})
+
+        # Finalmente eliminar el sacramento
+        db.execute(text("DELETE FROM sacramentos WHERE id_sacramento = :id"), {"id": sacramento_id})
+
         db.commit()
 
         return {"deleted": True, "id_sacramento": sacramento_id}
