@@ -4,7 +4,7 @@ import { OcrProgressProvider } from './context/OcrProgressContext'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Sacramento from './pages/Sacramento'
-import Personas from './pages/Personas'
+// import Personas from './pages/Personas' // Deshabilitado temporalmente
 import Auditoria from './pages/Auditoria'
 import Digitalizacion from './pages/Digitalizacion'
 import RevisionOCR from './pages/RevisionOCR'
@@ -25,7 +25,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/sacramento" element={<Sacramento />} />
           <Route path="/sacramentos" element={<Sacramentos />} />
-          <Route path="/personas" element={<Personas />} />
+          {/* <Route path="/personas" element={<Personas />} /> */} {/* Deshabilitado temporalmente */}
           <Route path="/auditoria" element={<Auditoria />} />
           <Route path="/digitalizacion" element={<Digitalizacion />} />
           <Route path="/revision-ocr" element={<RevisionOCR />} />

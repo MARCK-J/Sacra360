@@ -7,10 +7,10 @@ const navItems = [
   { to: '/revision-ocr', label: 'Revisión OCR', icon: 'document_scanner' },
   { to: '/sacramento', label: 'Registro', icon: 'menu_book' },
   { to: '/sacramentos', label: 'Sacramentos', icon: 'auto_stories' },
-  { to: '/personas', label: 'Personas', icon: 'group' },
+  // { to: '/personas', label: 'Personas', icon: 'group' }, // Deshabilitado temporalmente
   { to: '/libros', label: 'Libros', icon: 'import_contacts' },
   { to: '/certificados', label: 'Certificados', icon: 'workspace_premium' },
-  { to: '#', label: 'Duplicados', icon: 'control_point_duplicate' },
+  // { to: '#', label: 'Duplicados', icon: 'control_point_duplicate' }, // Deshabilitado temporalmente
   { to: '/usuarios', label: 'Usuarios', icon: 'manage_accounts' },
   { to: '/auditoria', label: 'Auditoría', icon: 'history' },
   { to: '/reportes', label: 'Reportes', icon: 'bar_chart' },
