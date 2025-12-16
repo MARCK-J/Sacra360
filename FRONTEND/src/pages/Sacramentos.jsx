@@ -278,6 +278,9 @@ export default function Sacramentos() {
     const [apellidoMaterno, setApellidoMaterno] = useState(sacramento.persona?.apellido_materno || '')
     const [fechaNacimiento, setFechaNacimiento] = useState(sacramento.persona?.fecha_nacimiento ? (sacramento.persona.fecha_nacimiento.split('T')[0] || sacramento.persona.fecha_nacimiento) : '')
     const [lugarNacimiento, setLugarNacimiento] = useState(sacramento.persona?.lugar_nacimiento || '')
+    const [nombrePadre, setNombrePadre] = useState(sacramento.persona?.nombre_padre || '')
+    const [nombreMadre, setNombreMadre] = useState(sacramento.persona?.nombre_madre || '')
+    const [nombrePadrino, setNombrePadrino] = useState(sacramento.persona?.nombre_padrino || '')
     const [tiposOptions, setTiposOptions] = useState([])
     const [institucionesOptions, setInstitucionesOptions] = useState([])
 
@@ -330,7 +333,10 @@ export default function Sacramentos() {
           apellido_paterno: apellidoPaterno,
           apellido_materno: apellidoMaterno,
           fecha_nacimiento: fechaNacimiento,
-          lugar_nacimiento: lugarNacimiento
+          lugar_nacimiento: lugarNacimiento,
+          nombre_padre: nombrePadre,
+          nombre_madre: nombreMadre,
+          nombre_padrino: nombrePadrino
         },
         sacramento: {
           tipo: tipo ? Number(tipo) : null,
@@ -351,6 +357,10 @@ export default function Sacramentos() {
       } catch (err) {
         console.error(err)
         // fallback local: aplicar los cambios en el estado local para no romper flujo
+        // construir objetos tipo/institucion desde las opciones cargadas para no mostrar ids crudos
+        const tipoObj = tiposOptions.find(t => String(t.id_tipo) === String(tipo)) || (sacramento.tipo || null)
+        const institObj = institucionesOptions.find(i => String(i.id_institucion) === String(institucion)) || (sacramento.institucion || null)
+
         const updatedLocal = {
           ...sacramento,
           persona: {
@@ -359,19 +369,26 @@ export default function Sacramentos() {
             apellido_paterno: apellidoPaterno,
             apellido_materno: apellidoMaterno,
             fecha_nacimiento: fechaNacimiento,
-            lugar_nacimiento: lugarNacimiento
+            lugar_nacimiento: lugarNacimiento,
+            nombre_padre: nombrePadre,
+            nombre_madre: nombreMadre,
+            nombre_padrino: nombrePadrino
           },
-          tipo: { ...sacramento.tipo, nombre: tipo },
-          institucion: { ...sacramento.institucion, nombre: institucion },
+          tipo: tipoObj ? { ...tipoObj } : ({ ...sacramento.tipo }),
+          institucion: institObj ? { ...institObj } : ({ ...sacramento.institucion }),
           fecha_sacramento: fecha
         }
         onSaved(updatedLocal)
-        alert('Backend no disponible: cambios aplicados localmente')
+        alert('Backend no disponible: cambios aplicados localmente (modo offline)')
       }
     }
 
     return (
       <div>
+        <div className="mb-4">
+          <p><strong>ID:</strong> {sacramento.id_sacramento}</p>
+          <p><strong>Fecha registro:</strong> {sacramento.fecha_registro || 'N/A'}</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm">Tipo</label>
@@ -394,6 +411,20 @@ export default function Sacramentos() {
           <div>
             <label className="block text-sm">Fecha Sacramento</label>
             <input type="date" value={fecha ? fecha.split('T')[0] : ''} onChange={e => setFecha(e.target.value)} className="w-full px-2 py-1 border" />
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm">Nombre del padre</label>
+            <input type="text" value={nombrePadre} onChange={e => setNombrePadre(e.target.value)} className="w-full px-2 py-1 border" />
+          </div>
+          <div>
+            <label className="block text-sm">Nombre de la madre</label>
+            <input type="text" value={nombreMadre} onChange={e => setNombreMadre(e.target.value)} className="w-full px-2 py-1 border" />
+          </div>
+          <div>
+            <label className="block text-sm">Nombre del padrino/madrina</label>
+            <input type="text" value={nombrePadrino} onChange={e => setNombrePadrino(e.target.value)} className="w-full px-2 py-1 border" />
           </div>
         </div>
         <div className="mt-4 flex gap-2">
