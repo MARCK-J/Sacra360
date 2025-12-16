@@ -278,11 +278,11 @@ export default function Sacramentos() {
     const [apellidoMaterno, setApellidoMaterno] = useState(sacramento.persona?.apellido_materno || '')
     const [fechaNacimiento, setFechaNacimiento] = useState(sacramento.persona?.fecha_nacimiento ? (sacramento.persona.fecha_nacimiento.split('T')[0] || sacramento.persona.fecha_nacimiento) : '')
     const [lugarNacimiento, setLugarNacimiento] = useState(sacramento.persona?.lugar_nacimiento || '')
-    const [nombrePadre, setNombrePadre] = useState(sacramento.persona?.nombre_padre || '')
-    const [nombreMadre, setNombreMadre] = useState(sacramento.persona?.nombre_madre || '')
-    const [nombrePadrino, setNombrePadrino] = useState(sacramento.persona?.nombre_padrino || '')
+    
     const [tiposOptions, setTiposOptions] = useState([])
     const [institucionesOptions, setInstitucionesOptions] = useState([])
+    const [librosOptions, setLibrosOptions] = useState([])
+    const [libro, setLibro] = useState(sacramento.libro?.id_libro ? String(sacramento.libro.id_libro) : (sacramento.libro_id ? String(sacramento.libro_id) : ''))
 
     useEffect(() => {
       // cargar tipos e instituciones para los combo boxes
@@ -319,6 +319,15 @@ export default function Sacramentos() {
             const iJson = await iRes.json()
             setInstitucionesOptions(iJson || [])
           }
+
+          // cargar libros
+          const lRes = await fetch(`${API_URL}/libros`)
+          if (lRes.ok) {
+            const lJson = await lRes.json()
+            // soportar respuestas que envuelvan los libros o entreguen array directo
+            const librosArr = lJson.libros || lJson || []
+            setLibrosOptions(librosArr)
+          }
         } catch (err) {
           console.error('No se pudieron cargar catálogos para edición', err)
         }
@@ -328,19 +337,17 @@ export default function Sacramentos() {
 
     const handleSave = async () => {
       const payload = {
-        persona: {
-          nombres,
-          apellido_paterno: apellidoPaterno,
-          apellido_materno: apellidoMaterno,
-          fecha_nacimiento: fechaNacimiento,
-          lugar_nacimiento: lugarNacimiento,
-          nombre_padre: nombrePadre,
-          nombre_madre: nombreMadre,
-          nombre_padrino: nombrePadrino
-        },
+          persona: {
+            nombres,
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            fecha_nacimiento: fechaNacimiento,
+            lugar_nacimiento: lugarNacimiento
+          },
         sacramento: {
           tipo: tipo ? Number(tipo) : null,
           institucion: institucion ? Number(institucion) : null,
+          libro: libro ? Number(libro) : null,
           fecha_sacramento: fecha
         }
       }
@@ -360,22 +367,21 @@ export default function Sacramentos() {
         // construir objetos tipo/institucion desde las opciones cargadas para no mostrar ids crudos
         const tipoObj = tiposOptions.find(t => String(t.id_tipo) === String(tipo)) || (sacramento.tipo || null)
         const institObj = institucionesOptions.find(i => String(i.id_institucion) === String(institucion)) || (sacramento.institucion || null)
+        const libroObj = librosOptions.find(l => String(l.id_libro) === String(libro)) || (sacramento.libro || null)
 
         const updatedLocal = {
           ...sacramento,
-          persona: {
+            persona: {
             ...sacramento.persona,
             nombres,
             apellido_paterno: apellidoPaterno,
             apellido_materno: apellidoMaterno,
             fecha_nacimiento: fechaNacimiento,
-            lugar_nacimiento: lugarNacimiento,
-            nombre_padre: nombrePadre,
-            nombre_madre: nombreMadre,
-            nombre_padrino: nombrePadrino
+            lugar_nacimiento: lugarNacimiento
           },
           tipo: tipoObj ? { ...tipoObj } : ({ ...sacramento.tipo }),
           institucion: institObj ? { ...institObj } : ({ ...sacramento.institucion }),
+          libro: libroObj ? { ...libroObj } : ({ ...(sacramento.libro || {}) }),
           fecha_sacramento: fecha
         }
         onSaved(updatedLocal)
@@ -409,24 +415,35 @@ export default function Sacramentos() {
             </select>
           </div>
           <div>
+            <label className="block text-sm">Libro</label>
+            <select value={libro} onChange={e => setLibro(e.target.value)} className="w-full px-2 py-1 border">
+              <option value="">Seleccione...</option>
+              {librosOptions.map(l => (
+                <option key={l.id_libro} value={l.id_libro}>{l.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm">Fecha Sacramento</label>
             <input type="date" value={fecha ? fecha.split('T')[0] : ''} onChange={e => setFecha(e.target.value)} className="w-full px-2 py-1 border" />
           </div>
         </div>
+        
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm">Nombre del padre</label>
-            <input type="text" value={nombrePadre} onChange={e => setNombrePadre(e.target.value)} className="w-full px-2 py-1 border" />
+            <label className="block text-sm">Nombres</label>
+            <input type="text" value={nombres} onChange={e => setNombres(e.target.value)} className="w-full px-2 py-1 border" />
           </div>
           <div>
-            <label className="block text-sm">Nombre de la madre</label>
-            <input type="text" value={nombreMadre} onChange={e => setNombreMadre(e.target.value)} className="w-full px-2 py-1 border" />
+            <label className="block text-sm">Apellido paterno</label>
+            <input type="text" value={apellidoPaterno} onChange={e => setApellidoPaterno(e.target.value)} className="w-full px-2 py-1 border" />
           </div>
           <div>
-            <label className="block text-sm">Nombre del padrino/madrina</label>
-            <input type="text" value={nombrePadrino} onChange={e => setNombrePadrino(e.target.value)} className="w-full px-2 py-1 border" />
+            <label className="block text-sm">Apellido materno</label>
+            <input type="text" value={apellidoMaterno} onChange={e => setApellidoMaterno(e.target.value)} className="w-full px-2 py-1 border" />
           </div>
         </div>
+
         <div className="mt-4 flex gap-2">
           <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
           <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>

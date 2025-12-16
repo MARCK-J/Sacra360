@@ -97,6 +97,22 @@ def update_sacramento(
                     sac_updates.append("institucion_id = :institucion_id")
                     sac_params["institucion_id"] = inst_id
 
+            # resolver libro (acepta id o nombre)
+            if "libro" in sacr_payload and sacr_payload["libro"] is not None:
+                libro_val = sacr_payload["libro"]
+                libro_id = None
+                if isinstance(libro_val, int):
+                    libro_id = int(libro_val)
+                else:
+                    row = db.execute(text("SELECT id_libro FROM libros WHERE lower(nombre) = lower(:n)"), {"n": str(libro_val)}).first()
+                    if not row:
+                        row = db.execute(text("SELECT id_libro FROM libros WHERE lower(nombre) LIKE lower(:n)"), {"n": f"%{libro_val}%"}).first()
+                    if row:
+                        libro_id = row.id_libro
+                if libro_id:
+                    sac_updates.append("libro_id = :libro_id")
+                    sac_params["libro_id"] = libro_id
+
             if "fecha_sacramento" in sacr_payload and sacr_payload["fecha_sacramento"] is not None:
                 sac_updates.append("fecha_sacramento = :fecha_sacramento")
                 sac_params["fecha_sacramento"] = sacr_payload["fecha_sacramento"]
@@ -109,10 +125,11 @@ def update_sacramento(
 
         # Reconstruir el recurso actualizado para devolver
         result = db.execute(text(
-            "SELECT s.id_sacramento, s.fecha_sacramento, s.fecha_registro, s.tipo_id, ts.nombre as tipo_nombre, s.institucion_id, ip.nombre as institucion_nombre, p.id_persona, p.nombres, p.apellido_paterno, p.apellido_materno, p.fecha_nacimiento, p.fecha_bautismo, p.nombre_padre_nombre_madre, p.nombre_padrino_nombre_madrina "
+            "SELECT s.id_sacramento, s.fecha_sacramento, s.fecha_registro, s.tipo_id, ts.nombre as tipo_nombre, s.institucion_id, ip.nombre as institucion_nombre, s.libro_id, l.nombre as libro_nombre, p.id_persona, p.nombres, p.apellido_paterno, p.apellido_materno, p.fecha_nacimiento, p.fecha_bautismo, p.nombre_padre_nombre_madre, p.nombre_padrino_nombre_madrina "
             "FROM sacramentos s "
             "LEFT JOIN tipos_sacramentos ts ON ts.id_tipo = s.tipo_id "
             "LEFT JOIN InstitucionesParroquias ip ON ip.id_institucion = s.institucion_id "
+            "LEFT JOIN libros l ON l.id_libro = s.libro_id "
             "LEFT JOIN personas p ON p.id_persona = s.persona_id "
             "WHERE s.id_sacramento = :id"
         ), {"id": sacramento_id}).first()
@@ -126,6 +143,7 @@ def update_sacramento(
             "fecha_registro": str(result.fecha_registro) if result.fecha_registro else None,
             "tipo": {"id_tipo": result.tipo_id, "nombre": result.tipo_nombre} if result.tipo_id else None,
             "institucion": {"id_institucion": result.institucion_id, "nombre": result.institucion_nombre} if result.institucion_id else None,
+            "libro": {"id_libro": result.libro_id, "nombre": result.libro_nombre} if getattr(result, 'libro_id', None) else None,
             "persona": {
                 "id_persona": result.id_persona,
                 "nombres": result.nombres,
