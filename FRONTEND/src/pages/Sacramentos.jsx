@@ -278,9 +278,7 @@ export default function Sacramentos() {
     const [apellidoMaterno, setApellidoMaterno] = useState(sacramento.persona?.apellido_materno || '')
     const [fechaNacimiento, setFechaNacimiento] = useState(sacramento.persona?.fecha_nacimiento ? (sacramento.persona.fecha_nacimiento.split('T')[0] || sacramento.persona.fecha_nacimiento) : '')
     const [lugarNacimiento, setLugarNacimiento] = useState(sacramento.persona?.lugar_nacimiento || '')
-    const [nombrePadre, setNombrePadre] = useState(sacramento.persona?.nombre_padre || '')
-    const [nombreMadre, setNombreMadre] = useState(sacramento.persona?.nombre_madre || '')
-    const [nombrePadrino, setNombrePadrino] = useState(sacramento.persona?.nombre_padrino || '')
+    
     const [tiposOptions, setTiposOptions] = useState([])
     const [institucionesOptions, setInstitucionesOptions] = useState([])
 
@@ -328,16 +326,13 @@ export default function Sacramentos() {
 
     const handleSave = async () => {
       const payload = {
-        persona: {
-          nombres,
-          apellido_paterno: apellidoPaterno,
-          apellido_materno: apellidoMaterno,
-          fecha_nacimiento: fechaNacimiento,
-          lugar_nacimiento: lugarNacimiento,
-          nombre_padre: nombrePadre,
-          nombre_madre: nombreMadre,
-          nombre_padrino: nombrePadrino
-        },
+          persona: {
+            nombres,
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            fecha_nacimiento: fechaNacimiento,
+            lugar_nacimiento: lugarNacimiento
+          },
         sacramento: {
           tipo: tipo ? Number(tipo) : null,
           institucion: institucion ? Number(institucion) : null,
@@ -363,16 +358,13 @@ export default function Sacramentos() {
 
         const updatedLocal = {
           ...sacramento,
-          persona: {
+            persona: {
             ...sacramento.persona,
             nombres,
             apellido_paterno: apellidoPaterno,
             apellido_materno: apellidoMaterno,
             fecha_nacimiento: fechaNacimiento,
-            lugar_nacimiento: lugarNacimiento,
-            nombre_padre: nombrePadre,
-            nombre_madre: nombreMadre,
-            nombre_padrino: nombrePadrino
+            lugar_nacimiento: lugarNacimiento
           },
           tipo: tipoObj ? { ...tipoObj } : ({ ...sacramento.tipo }),
           institucion: institObj ? { ...institObj } : ({ ...sacramento.institucion }),
@@ -413,20 +405,7 @@ export default function Sacramentos() {
             <input type="date" value={fecha ? fecha.split('T')[0] : ''} onChange={e => setFecha(e.target.value)} className="w-full px-2 py-1 border" />
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm">Nombre del padre</label>
-            <input type="text" value={nombrePadre} onChange={e => setNombrePadre(e.target.value)} className="w-full px-2 py-1 border" />
-          </div>
-          <div>
-            <label className="block text-sm">Nombre de la madre</label>
-            <input type="text" value={nombreMadre} onChange={e => setNombreMadre(e.target.value)} className="w-full px-2 py-1 border" />
-          </div>
-          <div>
-            <label className="block text-sm">Nombre del padrino/madrina</label>
-            <input type="text" value={nombrePadrino} onChange={e => setNombrePadrino(e.target.value)} className="w-full px-2 py-1 border" />
-          </div>
-        </div>
+        
         <div className="mt-4 flex gap-2">
           <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
           <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
