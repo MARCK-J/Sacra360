@@ -225,7 +225,12 @@ class ManuscriptOCR:
         except Exception:
             gpu_available = False
 
-        self.reader = easyocr.Reader(['es'], gpu=gpu_available)
+        # Suprimir logs de EasyOCR (descarga de modelos, warnings, etc)
+        import logging
+        easyocr_logger = logging.getLogger('easyocr')
+        easyocr_logger.setLevel(logging.ERROR)
+        
+        self.reader = easyocr.Reader(['es'], gpu=gpu_available, verbose=False)
         self.corrector = BolivianContext()
         self.scale_factor = 2.5 
 

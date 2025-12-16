@@ -181,22 +181,43 @@ async def get_progreso_procesamiento(
             # Leer logs del contenedor (últimas 200 líneas)
             cmd = ["docker", "logs", container_name, "--tail", "200"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-            logs = result.stdout + result.stderr
+            all_logs = result.stdout + result.stderr
             
-            # Parsear logs para extraer progreso
-            estado = "procesando"
-            progreso = 0
-            mensaje = f"Procesando con {modelo_upper}..."
+            # CRÍTICO: Extraer solo las líneas del documento específico
+            # Buscar desde "Procesando documento ... ID=X" hasta el próximo "Procesando documento" o final
+            # Soporta ambos formatos: OCR usa "desde BD: ID=X" y HTR usa "con HTR: ID=X"
+            doc_start_pattern = rf"Procesando documento.+ID={documento_id}\b"
+            lines = all_logs.split('\n')
             
-            # Buscar documento_id en logs
-            doc_pattern = rf"documento.*{documento_id}|ID=?{documento_id}|doc_id.*{documento_id}"
-            if not re.search(doc_pattern, logs, re.IGNORECASE):
+            doc_lines = []
+            capturing = False
+            for line in lines:
+                if re.search(doc_start_pattern, line, re.IGNORECASE):
+                    capturing = True
+                    doc_lines = [line]  # Reiniciar captura
+                elif capturing:
+                    # Detener si empieza otro documento (cualquier ID diferente)
+                    other_doc_match = re.search(r'Procesando documento.+ID=(\d+)', line, re.IGNORECASE)
+                    if other_doc_match and int(other_doc_match.group(1)) != documento_id:
+                        break
+                    doc_lines.append(line)
+            
+            # Si no se encontraron logs del documento, está pendiente
+            if not doc_lines:
                 return {
                     "estado": "pendiente",
                     "progreso": 0,
                     "mensaje": f"Esperando inicio de procesamiento {modelo_upper}...",
                     "etapa": "pendiente"
                 }
+            
+            # Trabajar solo con los logs del documento específico
+            logs = '\n'.join(doc_lines)
+            
+            # Parsear logs para extraer progreso
+            estado = "procesando"
+            progreso = 0
+            mensaje = f"Procesando con {modelo_upper}..."
             
             # Para HTR: buscar filas procesadas
             if modelo == 'htr':
