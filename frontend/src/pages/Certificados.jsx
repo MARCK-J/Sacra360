@@ -289,6 +289,28 @@ export default function Certificados() {
     return [left || '-', right || '-']
   }
 
+  function getParents(item) {
+    if (!item) return '-'
+    if (item.padres && String(item.padres).trim() !== '') return String(item.padres).trim()
+    const padre = item.nombre_padre || item.persona_padre || item.padre || item.father_name || ''
+    const madre = item.nombre_madre || item.persona_madre || item.madre || item.mother_name || ''
+    if (padre || madre) return `${padre || '-'} y ${madre || '-'}`
+    return '-'
+  }
+
+  function getPadrinos(item) {
+    if (!item) return '-'
+    const raw = item.padrinos || item.nombre_padrino || item.nombre_padrinos || item.nombre_padrino_nombre_madrina || item.nombre_padrino_nombre_madrina || item.nombre_padrino || item.nombre_padrino_nombre_madrina
+    if (raw && String(raw).trim() !== '') return String(raw).trim()
+    // check nested persona object
+    const p = item.persona || item.persona_obj
+    if (p && typeof p === 'object') {
+      const padr = p.nombre_padrino || p.nombre_padrinos || p.nombre_padrino_nombre_madrina
+      if (padr && String(padr).trim() !== '') return String(padr).trim()
+    }
+    return '-'
+  }
+
   return (
     <Layout title="Generación de Certificados">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -365,16 +387,15 @@ export default function Certificados() {
                           <p><span className="field-label">Nombre:</span> {getPersonName(selected)}</p>
                         )}
 
-                        <p><span className="field-label">Padres:</span> {
-                          selected.padres
-                          || ((selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name) || (selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name))
-                            ? `${selected.nombre_padre || selected.persona_padre || selected.padre || selected.father_name} y ${selected.nombre_madre || selected.persona_madre || selected.madre || selected.mother_name}`
-                            : '-'
-                        }</p>
+                        <p><span className="field-label">Padres:</span> {getParents(selected)}</p>
 
-                        <p><span className="field-label">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || '-'}</p>
-                        <p><span className="field-label">Ministro:</span> {selected.ministro || selected.sacrament_minister || selected.ministro_confirmacion || selected.ministro_bautizo || '-'}</p>
-                        <p className="book-line"><span className="field-label">Libro / Foja / Nº:</span> {`${selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')} / ${selected.foja || selected.folio || selected.folio_number || '-'} / ${selected.numero_acta || selected.numero || selected.record_number || '-'}`}</p>
+                        <p><span className="field-label">Padrinos:</span> {getPadrinos(selected)}</p>
+
+                        <p><span className="field-label">Lugar:</span> {selected.lugar || selected.lugar_sacramento || selected.lugar_matrimonio || selected.sacramento_lugar || '-'}</p>
+
+                        <p><span className="field-label">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || selected.fecha_registro?.substring(0,10) || '-'}</p>
+
+                        <p className="book-line"><span className="field-label">Libro:</span> {selected.libro_nombre || selected.libro || selected.libro_acta || (selected.libro_id ? `Libro ${selected.libro_id}` : '-')}</p>
 
                         <div className="footer">
                           <div className="issuer">

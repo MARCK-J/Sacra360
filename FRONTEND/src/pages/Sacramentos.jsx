@@ -336,6 +336,13 @@ export default function Sacramentos() {
     }, [])
 
     const handleSave = async () => {
+      // determine target id for PUT
+      const targetId = sacramento?.id_sacramento || sacramento?.id || sacramento?.id_sacramento
+      if (!targetId) {
+        console.error('No id_sacramento available for update', { sacramento })
+        alert('Error: identificador de sacramento no disponible. No se ejecutó la petición al backend.')
+        return
+      }
       const payload = {
           persona: {
             nombres,
@@ -352,7 +359,9 @@ export default function Sacramentos() {
         }
       }
       try {
-        const res = await fetch(`${API_URL}/sacramentos/${sacramento.id_sacramento}`, {
+        const url = `${API_URL}/sacramentos/${targetId}`
+        console.log('PUT URL:', url, 'payload:', payload)
+        const res = await fetch(url, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
