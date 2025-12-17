@@ -41,7 +41,22 @@ export default function Certificados() {
       const data = await res.json()
       const list = Array.isArray(data) ? data : (data.sacramentos || data || [])
       setSacramentos(list)
-      if (list.length > 0 && !selected) setSelected(list[0])
+      if (list.length > 0 && !selected) {
+        const first = list[0]
+        const id = first.id_sacramento || first.id
+        // fetch assembled certificado to get libro_nombre, padres, padrinos
+        try {
+          const r = await fetch(`/api/v1/certificados/${id}`)
+          if (r.ok) {
+            const d = await r.json()
+            setSelected(d)
+          } else {
+            setSelected(first)
+          }
+        } catch (e) {
+          setSelected(first)
+        }
+      }
     } catch (err) {
       setErrorList(String(err))
     } finally {
@@ -468,8 +483,24 @@ export default function Certificados() {
                         <td className="px-6 py-3">{getTipoLabel(r)}</td>
                         <td className="px-6 py-3">{r.fecha_sacramento?.substring(0,10) || r.fecha}</td>
                         <td className="px-6 py-3">
-                          <button onClick={() => setSelected(r)} className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
-                          <button onClick={() => { setSelected(r); handlePrint('certificate-preview') }} className="px-3 py-1 rounded bg-primary text-white hover:bg-primary/90">Reimprimir</button>
+                          <button onClick={async () => {
+                            const id = r.id_sacramento || r.id
+                            try {
+                              const resp = await fetch(`/api/v1/certificados/${id}`)
+                              if (resp.ok) setSelected(await resp.json())
+                              else setSelected(r)
+                            } catch (e) { setSelected(r) }
+                          }} className="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark mr-2">Ver</button>
+                          <button onClick={async () => {
+                            const id = r.id_sacramento || r.id
+                            try {
+                              const resp = await fetch(`/api/v1/certificados/${id}`)
+                              if (resp.ok) setSelected(await resp.json())
+                              else setSelected(r)
+                            } catch (e) { setSelected(r) }
+                            // slight delay to allow preview render
+                            setTimeout(() => handlePrint('certificate-preview'), 200)
+                          }} className="px-3 py-1 rounded bg-primary text-white hover:bg-primary/90">Reimprimir</button>
                         </td>
                       </tr>
                     ))}
