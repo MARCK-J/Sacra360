@@ -45,6 +45,13 @@ def get_certificado_ensamblado(id: int, db: Session = Depends(get_db)) -> Dict[s
         except Exception:
             sac["institucion_nombre"] = None
 
+        # 4b) Libro: obtener nombre legible del libro
+        try:
+            lb = db.execute(text("SELECT nombre FROM libros WHERE id_libro = :id"), {"id": sac.get("libro_id")}).fetchone()
+            sac["libro_nombre"] = lb[0] if lb else None
+        except Exception:
+            sac["libro_nombre"] = None
+
         # 5) Detalles (intentar leer cada tabla; usar COALESCE manual)
         foja = numero = ministro = None
         try:
