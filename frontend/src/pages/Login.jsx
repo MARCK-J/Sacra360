@@ -37,7 +37,7 @@ export default function Login() {
       
     } catch (err) {
       console.error('Error en login:', err);
-      setError('Error al iniciar sesi├│n');
+      setError('Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
