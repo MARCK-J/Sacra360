@@ -77,6 +77,7 @@ export default function Sacramento() {
     const { name, value } = e.target
     setPersona(prev => ({ ...prev, [name]: value }))
     
+    // Para Bautizo y Confirmación: campos nombres, apellido_paterno, apellido_materno
     if (['nombres', 'apellido_paterno', 'apellido_materno'].includes(name)) {
       setCampoActivo(name)
       if (value.length >= 2) {
@@ -86,9 +87,35 @@ export default function Sacramento() {
         setMostrarSugerencias(false)
       }
     }
+    
+    // Para Matrimonio - Esposo: nombres_esposo, apellido_paterno_esposo, apellido_materno_esposo
+    if (['nombres_esposo', 'apellido_paterno_esposo', 'apellido_materno_esposo'].includes(name)) {
+      setCampoActivo(name)
+      if (value.length >= 2) {
+        // Mapear a campo base para búsqueda
+        const campoBase = name.replace('_esposo', '')
+        buscarSugerencias(campoBase, value, 'esposo')
+      } else {
+        setSugerencias([])
+        setMostrarSugerencias(false)
+      }
+    }
+    
+    // Para Matrimonio - Esposa: nombres_esposa, apellido_paterno_esposa, apellido_materno_esposa
+    if (['nombres_esposa', 'apellido_paterno_esposa', 'apellido_materno_esposa'].includes(name)) {
+      setCampoActivo(name)
+      if (value.length >= 2) {
+        // Mapear a campo base para búsqueda
+        const campoBase = name.replace('_esposa', '')
+        buscarSugerencias(campoBase, value, 'esposa')
+      } else {
+        setSugerencias([])
+        setMostrarSugerencias(false)
+      }
+    }
   }
   
-  const buscarSugerencias = async (campo, valor) => {
+  const buscarSugerencias = async (campo, valor, tipoPersona = null) => {
     if (!valor || valor.length < 2) {
       setSugerencias([])
       return
@@ -114,7 +141,8 @@ export default function Sacramento() {
             valoresVistos.add(valorCampo)
             sugerenciasUnicas.push({
               valor: valorCampo,
-              persona: p  // Guardar persona completa
+              persona: p,  // Guardar persona completa
+              tipoPersona: tipoPersona  // 'esposo', 'esposa', o null para bautizo/confirmación
             })
           }
         }
@@ -134,31 +162,60 @@ export default function Sacramento() {
   
   const seleccionarSugerencia = (sugerencia) => {
     if (campoActivo && sugerencia.persona) {
-      // Autocompletar todos los campos personales de la persona
-      setPersona({
-        nombres: sugerencia.persona.nombres || '',
-        apellido_paterno: sugerencia.persona.apellido_paterno || '',
-        apellido_materno: sugerencia.persona.apellido_materno || '',
-        fecha_nacimiento: sugerencia.persona.fecha_nacimiento || '',
-        fecha_bautismo: sugerencia.persona.fecha_bautismo || '',
-        nombre_padre_nombre_madre: sugerencia.persona.nombre_padre_nombre_madre || '',
-        nombre_padrino_nombre_madrina: sugerencia.persona.nombre_padrino_nombre_madrina || '',
-        lugar_nacimiento: sugerencia.persona.lugar_nacimiento || ''
-      })
       
-      // LÓGICA ESPECÍFICA POR TIPO DE SACRAMENTO:
-      
-      // Para Bautizo (tipo 1): Si la persona ya tiene fecha_bautismo registrada,
-      // usar esa fecha como fecha del sacramento para evitar duplicados
-      // (Caso: persona con confirmación registrada, ahora se registra su bautizo)
-      if (form.tipo_sacramento === 1 && sugerencia.persona.fecha_bautismo) {
-        setForm(prev => ({ ...prev, fecha_sacramento: sugerencia.persona.fecha_bautismo }))
+      // LÓGICA PARA MATRIMONIO (tipo 3)
+      if (form.tipo_sacramento === 3) {
+        if (sugerencia.tipoPersona === 'esposo') {
+          // Autocompletar datos del esposo
+          setPersona(prev => ({
+            ...prev,
+            nombres_esposo: sugerencia.persona.nombres || '',
+            apellido_paterno_esposo: sugerencia.persona.apellido_paterno || '',
+            apellido_materno_esposo: sugerencia.persona.apellido_materno || '',
+            fecha_nacimiento_esposo: sugerencia.persona.fecha_nacimiento || '',
+            fecha_bautismo_esposo: sugerencia.persona.fecha_bautismo || '',
+            padres_esposo: sugerencia.persona.nombre_padre_nombre_madre || ''
+          }))
+        } else if (sugerencia.tipoPersona === 'esposa') {
+          // Autocompletar datos de la esposa
+          setPersona(prev => ({
+            ...prev,
+            nombres_esposa: sugerencia.persona.nombres || '',
+            apellido_paterno_esposa: sugerencia.persona.apellido_paterno || '',
+            apellido_materno_esposa: sugerencia.persona.apellido_materno || '',
+            fecha_nacimiento_esposa: sugerencia.persona.fecha_nacimiento || '',
+            fecha_bautismo_esposa: sugerencia.persona.fecha_bautismo || '',
+            padres_esposa: sugerencia.persona.nombre_padre_nombre_madre || ''
+          }))
+        }
+        // Para matrimonio NO autocompletar fecha_sacramento (es la fecha de matrimonio)
+      } 
+      // LÓGICA PARA BAUTIZO Y CONFIRMACIÓN
+      else {
+        // Autocompletar todos los campos personales de la persona
+        setPersona({
+          nombres: sugerencia.persona.nombres || '',
+          apellido_paterno: sugerencia.persona.apellido_paterno || '',
+          apellido_materno: sugerencia.persona.apellido_materno || '',
+          fecha_nacimiento: sugerencia.persona.fecha_nacimiento || '',
+          fecha_bautismo: sugerencia.persona.fecha_bautismo || '',
+          nombre_padre_nombre_madre: sugerencia.persona.nombre_padre_nombre_madre || '',
+          nombre_padrino_nombre_madrina: sugerencia.persona.nombre_padrino_nombre_madrina || '',
+          lugar_nacimiento: sugerencia.persona.lugar_nacimiento || ''
+        })
+        
+        // Para Bautizo (tipo 1): Si la persona ya tiene fecha_bautismo registrada,
+        // usar esa fecha como fecha del sacramento para evitar duplicados
+        // (Caso: persona con confirmación registrada, ahora se registra su bautizo)
+        if (form.tipo_sacramento === 1 && sugerencia.persona.fecha_bautismo) {
+          setForm(prev => ({ ...prev, fecha_sacramento: sugerencia.persona.fecha_bautismo }))
+        }
+        
+        // Para Confirmación (tipo 2): NO autocompletar fecha_sacramento
+        // porque la fecha de confirmación es nueva y diferente a la de bautizo
+        // (Caso: persona con bautizo registrado, ahora se registra su confirmación)
+        // La fecha del sacramento debe ser llenada manualmente por el usuario
       }
-      
-      // Para Confirmación (tipo 2): NO autocompletar fecha_sacramento
-      // porque la fecha de confirmación es nueva y diferente a la de bautizo
-      // (Caso: persona con bautizo registrado, ahora se registra su confirmación)
-      // La fecha del sacramento debe ser llenada manualmente por el usuario
       
       setSugerencias([])
       setMostrarSugerencias(false)
@@ -446,9 +503,13 @@ export default function Sacramento() {
     try {
       // 1. Buscar o crear Esposo
       let esposoId
-      const searchEsposoRes = await fetch(
-        `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres_esposo || '')}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno_esposo || '')}&apellido_materno=${encodeURIComponent(persona.apellido_materno_esposo || '')}`
-      )
+      // Construir URL de búsqueda con fecha_nacimiento si está disponible
+      let searchEsposoUrl = `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres_esposo || '')}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno_esposo || '')}&apellido_materno=${encodeURIComponent(persona.apellido_materno_esposo || '')}`
+      if (persona.fecha_nacimiento_esposo) {
+        searchEsposoUrl += `&fecha_nacimiento=${encodeURIComponent(persona.fecha_nacimiento_esposo)}`
+      }
+      
+      const searchEsposoRes = await fetch(searchEsposoUrl)
       const espososEncontrados = await searchEsposoRes.json()
       
       if (espososEncontrados.length > 0) {
@@ -456,7 +517,7 @@ export default function Sacramento() {
         console.log(`✓ Esposo encontrado (ID: ${esposoId}), reutilizando registro`)
       } else {
         // Crear esposo
-        const createEsposoRes = await fetch(`${API_URL}/personas`, {
+        const createEsposoRes = await fetch(`${API_URL}/personas/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -465,13 +526,14 @@ export default function Sacramento() {
             apellido_materno: persona.apellido_materno_esposo,
             fecha_nacimiento: persona.fecha_nacimiento_esposo,
             fecha_bautismo: persona.fecha_bautismo_esposo,
-            nombre_padre_nombre_madre: persona.padres_esposo || '',
-            nombre_padrino_nombre_madrina: ''
+            nombre_padre_nombre_madre: persona.padres_esposo || 'N/A',
+            nombre_padrino_nombre_madrina: 'N/A'
           })
         })
         
         if (!createEsposoRes.ok) {
-          throw new Error('Error al crear esposo')
+          const errorData = await createEsposoRes.json()
+          throw new Error(errorData.detail || 'Error al crear esposo')
         }
         
         const nuevoEsposo = await createEsposoRes.json()
@@ -481,9 +543,13 @@ export default function Sacramento() {
       
       // 2. Buscar o crear Esposa
       let esposaId
-      const searchEsposaRes = await fetch(
-        `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres_esposa || '')}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno_esposa || '')}&apellido_materno=${encodeURIComponent(persona.apellido_materno_esposa || '')}`
-      )
+      // Construir URL de búsqueda con fecha_nacimiento si está disponible
+      let searchEsposaUrl = `${API_URL}/personas/search?nombres=${encodeURIComponent(persona.nombres_esposa || '')}&apellido_paterno=${encodeURIComponent(persona.apellido_paterno_esposa || '')}&apellido_materno=${encodeURIComponent(persona.apellido_materno_esposa || '')}`
+      if (persona.fecha_nacimiento_esposa) {
+        searchEsposaUrl += `&fecha_nacimiento=${encodeURIComponent(persona.fecha_nacimiento_esposa)}`
+      }
+      
+      const searchEsposaRes = await fetch(searchEsposaUrl)
       const esposasencontradas = await searchEsposaRes.json()
       
       if (esposasencontradas.length > 0) {
@@ -491,7 +557,7 @@ export default function Sacramento() {
         console.log(`✓ Esposa encontrada (ID: ${esposaId}), reutilizando registro`)
       } else {
         // Crear esposa
-        const createEsposaRes = await fetch(`${API_URL}/personas`, {
+        const createEsposaRes = await fetch(`${API_URL}/personas/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -500,13 +566,14 @@ export default function Sacramento() {
             apellido_materno: persona.apellido_materno_esposa,
             fecha_nacimiento: persona.fecha_nacimiento_esposa,
             fecha_bautismo: persona.fecha_bautismo_esposa,
-            nombre_padre_nombre_madre: persona.padres_esposa || '',
-            nombre_padrino_nombre_madrina: ''
+            nombre_padre_nombre_madre: persona.padres_esposa || 'N/A',
+            nombre_padrino_nombre_madrina: 'N/A'
           })
         })
         
         if (!createEsposaRes.ok) {
-          throw new Error('Error al crear esposa')
+          const errorData = await createEsposaRes.json()
+          throw new Error(errorData.detail || 'Error al crear esposa')
         }
         
         const nuevaEsposa = await createEsposaRes.json()
@@ -939,41 +1006,86 @@ export default function Sacramento() {
                   <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-4">
                     <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4">Datos del Esposo</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
+                      <div className="relative">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres *</label>
                         <input
                           type="text"
                           name="nombres_esposo"
                           value={persona.nombres_esposo || ''}
                           onChange={handlePersonaChange}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           required
                           className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Juan Carlos"
+                          autoComplete="off"
                         />
+                        {mostrarSugerencias && campoActivo === 'nombres_esposo' && sugerencias.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {sugerencias.map((sugerencia, index) => (
+                              <div
+                                key={index}
+                                onClick={() => seleccionarSugerencia(sugerencia)}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                              >
+                                {sugerencia.valor}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Paterno *</label>
                         <input
                           type="text"
                           name="apellido_paterno_esposo"
                           value={persona.apellido_paterno_esposo || ''}
                           onChange={handlePersonaChange}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           required
                           className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Pérez"
+                          autoComplete="off"
                         />
+                        {mostrarSugerencias && campoActivo === 'apellido_paterno_esposo' && sugerencias.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {sugerencias.map((sugerencia, index) => (
+                              <div
+                                key={index}
+                                onClick={() => seleccionarSugerencia(sugerencia)}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                              >
+                                {sugerencia.valor}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Materno *</label>
                         <input
                           type="text"
                           name="apellido_materno_esposo"
                           value={persona.apellido_materno_esposo || ''}
                           onChange={handlePersonaChange}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           required
                           className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: González"
+                          autoComplete="off"
                         />
+                        {mostrarSugerencias && campoActivo === 'apellido_materno_esposo' && sugerencias.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {sugerencias.map((sugerencia, index) => (
+                              <div
+                                key={index}
+                                onClick={() => seleccionarSugerencia(sugerencia)}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                              >
+                                {sugerencia.valor}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Nacimiento *</label>
@@ -1016,41 +1128,86 @@ export default function Sacramento() {
                   <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-4">
                     <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4">Datos de la Esposa</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
+                      <div className="relative">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombres *</label>
                         <input
                           type="text"
                           name="nombres_esposa"
                           value={persona.nombres_esposa || ''}
                           onChange={handlePersonaChange}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           required
                           className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Ana María"
+                          autoComplete="off"
                         />
+                        {mostrarSugerencias && campoActivo === 'nombres_esposa' && sugerencias.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {sugerencias.map((sugerencia, index) => (
+                              <div
+                                key={index}
+                                onClick={() => seleccionarSugerencia(sugerencia)}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                              >
+                                {sugerencia.valor}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Paterno *</label>
                         <input
                           type="text"
                           name="apellido_paterno_esposa"
                           value={persona.apellido_paterno_esposa || ''}
                           onChange={handlePersonaChange}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           required
                           className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Flores"
+                          autoComplete="off"
                         />
+                        {mostrarSugerencias && campoActivo === 'apellido_paterno_esposa' && sugerencias.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {sugerencias.map((sugerencia, index) => (
+                              <div
+                                key={index}
+                                onClick={() => seleccionarSugerencia(sugerencia)}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                              >
+                                {sugerencia.valor}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apellido Materno *</label>
                         <input
                           type="text"
                           name="apellido_materno_esposa"
                           value={persona.apellido_materno_esposa || ''}
                           onChange={handlePersonaChange}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           required
                           className="mt-2 form-input rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-primary/50 focus:border-primary/50"
                           placeholder="Ej: Quispe"
+                          autoComplete="off"
                         />
+                        {mostrarSugerencias && campoActivo === 'apellido_materno_esposa' && sugerencias.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {sugerencias.map((sugerencia, index) => (
+                              <div
+                                key={index}
+                                onClick={() => seleccionarSugerencia(sugerencia)}
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                              >
+                                {sugerencia.valor}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Nacimiento *</label>
