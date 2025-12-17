@@ -167,10 +167,10 @@ async def obtener_auditoria_por_usuario(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(get_current_user())
+    usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
-    Obtener logs de auditor├¡a de un usuario espec├¡fico
+    Obtener logs de auditoria de un usuario especifico
     Solo accesible para administradores
     """
     # Verificar que sea admin
@@ -211,7 +211,7 @@ async def obtener_estadisticas(
     fecha_inicio: Optional[date] = Query(None),
     fecha_fin: Optional[date] = Query(None),
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(get_current_user())
+    usuario_actual: Usuario = Depends(get_current_user)
 ):
     """
     Obtener estad├¡sticas de auditor├¡a (resumen)
