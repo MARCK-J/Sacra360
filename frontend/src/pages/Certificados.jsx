@@ -292,22 +292,47 @@ export default function Certificados() {
   function getParents(item) {
     if (!item) return '-'
     if (item.padres && String(item.padres).trim() !== '') return String(item.padres).trim()
-    const padre = item.nombre_padre || item.persona_padre || item.padre || item.father_name || ''
-    const madre = item.nombre_madre || item.persona_madre || item.madre || item.mother_name || ''
+
+    // Check combined stored field (personas.nombre_padre_nombre_madre)
+    if (item.nombre_padre_nombre_madre && String(item.nombre_padre_nombre_madre).trim() !== '') return String(item.nombre_padre_nombre_madre).trim()
+
+    // Check detalles_matrimonio / matrimonios nested object
+    const mat = item.detalles_matrimonio || item.matrimonio || item.matrimonios
+    if (mat && typeof mat === 'object') {
+      const parts = []
+      if (mat.nombre_padre_esposo || mat.nombre_madre_esposo) parts.push(`${mat.nombre_padre_esposo || '-'} y ${mat.nombre_madre_esposo || '-'}`)
+      if (mat.nombre_padre_esposa || mat.nombre_madre_esposa) parts.push(`${mat.nombre_padre_esposa || '-'} y ${mat.nombre_madre_esposa || '-'}`)
+      if (parts.length) return parts.join(' / ')
+    }
+
+    // Fallbacks on top-level and persona nested fields
+    const padre = item.nombre_padre || (item.persona && (item.persona.nombre_padre || item.persona.padre)) || item.persona_padre || item.padre || item.father_name || ''
+    const madre = item.nombre_madre || (item.persona && (item.persona.nombre_madre || item.persona.madre)) || item.persona_madre || item.madre || item.mother_name || ''
     if (padre || madre) return `${padre || '-'} y ${madre || '-'}`
+
     return '-'
   }
 
   function getPadrinos(item) {
     if (!item) return '-'
-    const raw = item.padrinos || item.nombre_padrino || item.nombre_padrinos || item.nombre_padrino_nombre_madrina || item.nombre_padrino_nombre_madrina || item.nombre_padrino || item.nombre_padrino_nombre_madrina
+
+    // Direct fields on sacramento
+    const raw = item.padrinos || item.nombre_padrino || item.nombre_padrinos || item.nombre_padrino_nombre_madrina || item.nombre_padrino_nombre_madrina
     if (raw && String(raw).trim() !== '') return String(raw).trim()
-    // check nested persona object
+
+    // Check detalles_bautizo / detalles_confirmacion nested objects
+    const db = item.detalles_bautizo || item.detalle_bautizo || item.detalles_bautizo_obj
+    if (db && db.padrino && String(db.padrino).trim() !== '') return String(db.padrino).trim()
+    const dc = item.detalles_confirmacion || item.detalle_confirmacion || item.detalles_confirmacion_obj
+    if (dc && dc.padrino && String(dc.padrino).trim() !== '') return String(dc.padrino).trim()
+
+    // Persona-level stored padrinos
     const p = item.persona || item.persona_obj
     if (p && typeof p === 'object') {
-      const padr = p.nombre_padrino || p.nombre_padrinos || p.nombre_padrino_nombre_madrina
+      const padr = p.nombre_padrino_nombre_madrina || p.nombre_padrino || p.nombre_padrinos
       if (padr && String(padr).trim() !== '') return String(padr).trim()
     }
+
     return '-'
   }
 
@@ -390,8 +415,6 @@ export default function Certificados() {
                         <p><span className="field-label">Padres:</span> {getParents(selected)}</p>
 
                         <p><span className="field-label">Padrinos:</span> {getPadrinos(selected)}</p>
-
-                        <p><span className="field-label">Lugar:</span> {selected.lugar || selected.lugar_sacramento || selected.lugar_matrimonio || selected.sacramento_lugar || '-'}</p>
 
                         <p><span className="field-label">Fecha:</span> {selected.fecha_sacramento?.substring(0,10) || selected.fecha || selected.fecha_registro?.substring(0,10) || '-'}</p>
 

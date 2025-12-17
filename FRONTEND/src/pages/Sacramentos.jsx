@@ -56,6 +56,24 @@ export default function Sacramentos() {
 
   const tiposUnicos = [...new Set(sacramentos.map(s => s.tipo?.nombre).filter(Boolean))]
 
+  // Helper: format a date-only string (YYYY-MM-DD) without timezone shifts
+  const formatDateSafe = (dateStr) => {
+    if (!dateStr) return 'N/A'
+    try {
+      // accept either full ISO or date-only
+      const d = String(dateStr).split('T')[0]
+      const parts = d.split('-')
+      if (parts.length < 3) return d
+      const y = parseInt(parts[0], 10)
+      const m = parseInt(parts[1], 10) - 1
+      const day = parseInt(parts[2], 10)
+      const dt = new Date(y, m, day)
+      return dt.toLocaleDateString()
+    } catch (e) {
+      return String(dateStr)
+    }
+  }
+
   return (
     <Layout title="Sacramentos Registrados">
       <div className="bg-white dark:bg-gray-900/50 rounded-lg shadow">
@@ -170,7 +188,7 @@ export default function Sacramentos() {
                         {sacramento.persona?.nombre_completo || 'N/A'}
                         {sacramento.persona?.fecha_nacimiento && (
                           <div className="text-xs text-gray-500">
-                            Nac: {new Date(sacramento.persona.fecha_nacimiento).toLocaleDateString()}
+                            Nac: {formatDateSafe(sacramento.persona.fecha_nacimiento)}
                           </div>
                         )}
                       </td>
@@ -183,10 +201,10 @@ export default function Sacramentos() {
                         {sacramento.institucion?.nombre || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {sacramento.fecha_sacramento ? new Date(sacramento.fecha_sacramento).toLocaleDateString() : 'N/A'}
+                        {sacramento.fecha_sacramento ? formatDateSafe(sacramento.fecha_sacramento) : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {sacramento.fecha_registro ? new Date(sacramento.fecha_registro).toLocaleDateString() : 'N/A'}
+                        {sacramento.fecha_registro ? formatDateSafe(sacramento.fecha_registro) : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <div className="flex gap-2">
@@ -244,12 +262,12 @@ export default function Sacramentos() {
 
               {!isEdit ? (
                 <div>
-                  <p><strong>ID:</strong> {selected.id_sacramento}</p>
-                  <p><strong>Persona:</strong> {selected.persona?.nombre_completo || 'N/A'}</p>
-                  <p><strong>Tipo:</strong> {selected.tipo?.nombre || 'N/A'}</p>
-                  <p><strong>Institución:</strong> {selected.institucion?.nombre || 'N/A'}</p>
-                  <p><strong>Fecha sacramento:</strong> {selected.fecha_sacramento || 'N/A'}</p>
-                  <p><strong>Fecha registro:</strong> {selected.fecha_registro || 'N/A'}</p>
+                      <p><strong>ID:</strong> {selected.id_sacramento}</p>
+                      <p><strong>Persona:</strong> {selected.persona?.nombre_completo || 'N/A'}</p>
+                      <p><strong>Tipo:</strong> {selected.tipo?.nombre || 'N/A'}</p>
+                      <p><strong>Institución:</strong> {selected.institucion?.nombre || 'N/A'}</p>
+                      <p><strong>Fecha sacramento:</strong> {selected.fecha_sacramento ? formatDateSafe(selected.fecha_sacramento) : 'N/A'}</p>
+                      <p><strong>Fecha registro:</strong> {selected.fecha_registro ? formatDateSafe(selected.fecha_registro) : 'N/A'}</p>
                 </div>
               ) : (
                 <EditForm
@@ -306,7 +324,8 @@ export default function Sacramentos() {
                 { id_tipo: 3, nombre: 'Matrimonio' }
               ])
             } else {
-              setTiposOptions(filtered)
+              // normalize to { id_tipo, nombre }
+              setTiposOptions(filtered.map(t => ({ id_tipo: t.id_tipo ?? t.id ?? t.idTipo ?? null, nombre: t.nombre })))
               // ensure current selected tipo exists as string id
               if (!tipo && filtered[0]) {
                 // do nothing; keep existing selection
@@ -317,7 +336,9 @@ export default function Sacramentos() {
           const iRes = await fetch(`${API_URL}/instituciones`)
           if (iRes.ok) {
             const iJson = await iRes.json()
-            setInstitucionesOptions(iJson || [])
+            // normalize instituciones to { id_institucion, nombre }
+            const instArr = (iJson || []).map(i => ({ id_institucion: i.id_institucion ?? i.id ?? null, nombre: i.nombre }))
+            setInstitucionesOptions(instArr)
           }
 
           // cargar libros
@@ -326,7 +347,8 @@ export default function Sacramentos() {
             const lJson = await lRes.json()
             // soportar respuestas que envuelvan los libros o entreguen array directo
             const librosArr = lJson.libros || lJson || []
-            setLibrosOptions(librosArr)
+            // normalize libros to { id_libro, nombre }
+            setLibrosOptions(librosArr.map(l => ({ id_libro: l.id_libro ?? l.id ?? null, nombre: l.nombre })))
           }
         } catch (err) {
           console.error('No se pudieron cargar catálogos para edición', err)
@@ -352,7 +374,12 @@ export default function Sacramentos() {
             lugar_nacimiento: lugarNacimiento
           },
         sacramento: {
-          tipo: tipo ? Number(tipo) : null,
+          // send tipo as name when we have the option object so backend can resolve it reliably
+          tipo: (() => {
+            if (!tipo) return null
+            const t = tiposOptions.find(t => String(t.id_tipo) === String(tipo) || String(t.id) === String(tipo))
+            return t ? t.nombre : Number(tipo)
+          })(),
           institucion: institucion ? Number(institucion) : null,
           libro: libro ? Number(libro) : null,
           fecha_sacramento: fecha
@@ -368,7 +395,62 @@ export default function Sacramentos() {
         })
         if (!res.ok) throw new Error('error')
         const updated = await res.json()
-        onSaved(updated)
+        // Backend may return either the full updated sacramento object or a wrapper { sacramento, persona }
+        let updatedFull = updated
+        if (updated && updated.sacramento) {
+          const sac = updated.sacramento
+          // build nested tipo/institucion/libro objects from loaded options when possible
+          const tipoObj = tiposOptions.find(t => String(t.id_tipo) === String(sac.tipo_id)) || (sacramento.tipo || null)
+          const institObj = institucionesOptions.find(i => String(i.id_institucion) === String(sac.institucion_id)) || (sacramento.institucion || null)
+          const libroObj = librosOptions.find(l => String(l.id_libro) === String(sac.libro_id)) || (sacramento.libro || null)
+
+          // ensure tipo/institucion/libro objects contain nombres when possible
+          const resolveTipoName = () => {
+            // prefer backend returned object
+            if (sac && sac.tipo && typeof sac.tipo === 'object') return { id_tipo: sac.tipo.id_tipo ?? sac.tipo.id, nombre: sac.tipo.nombre }
+            if (tipoObj) return { ...tipoObj }
+            // try to find by alternative id fields
+            const byId = tiposOptions.find(t => String(t.id_tipo) === String(sac.tipo_id) || String(t.id) === String(sac.tipo_id))
+            if (byId) return { ...byId }
+            return { id_tipo: sac.tipo_id, nombre: (sac.tipo_nombre || sacramento.tipo?.nombre || '') }
+          }
+          const resolveInstitName = () => {
+            if (sac && sac.institucion && typeof sac.institucion === 'object') return { id_institucion: sac.institucion.id_institucion ?? sac.institucion.id, nombre: sac.institucion.nombre }
+            if (institObj) return { ...institObj }
+            const byId = institucionesOptions.find(i => String(i.id_institucion) === String(sac.institucion_id) || String(i.id) === String(sac.institucion_id))
+            if (byId) return { ...byId }
+            return { id_institucion: sac.institucion_id, nombre: (sac.institucion_nombre || sacramento.institucion?.nombre || '') }
+          }
+          const resolveLibro = () => {
+            if (sac && sac.libro && typeof sac.libro === 'object') return { id_libro: sac.libro.id_libro ?? sac.libro.id, nombre: sac.libro.nombre }
+            if (libroObj) return { ...libroObj }
+            const byId = librosOptions.find(l => String(l.id_libro) === String(sac.libro_id) || String(l.id) === String(sac.libro_id))
+            if (byId) return { ...byId }
+            return { id_libro: sac.libro_id, nombre: (sac.libro_nombre || sacramento.libro?.nombre || '') }
+          }
+
+          const personaResolved = {
+            ...(sacramento.persona || {}),
+            id_persona: updated.persona?.id_persona || sac.persona_id || (sacramento.persona && sacramento.persona.id_persona),
+            nombres: updated.persona?.nombres ?? sacramento.persona?.nombres,
+            apellido_paterno: updated.persona?.apellido_paterno ?? sacramento.persona?.apellido_paterno,
+            apellido_materno: updated.persona?.apellido_materno ?? sacramento.persona?.apellido_materno,
+            fecha_nacimiento: updated.persona?.fecha_nacimiento ?? sacramento.persona?.fecha_nacimiento
+          }
+          // build nombre_completo for immediate UI display
+          personaResolved.nombre_completo = [personaResolved.nombres, personaResolved.apellido_paterno, personaResolved.apellido_materno].filter(Boolean).join(' ').trim()
+
+          updatedFull = {
+            ...sacramento,
+            id_sacramento: sac.id_sacramento,
+            fecha_sacramento: sac.fecha_sacramento || sacramento.fecha_sacramento,
+            tipo: resolveTipoName(),
+            institucion: resolveInstitName(),
+            libro: resolveLibro(),
+            persona: personaResolved
+          }
+        }
+        onSaved(updatedFull)
         alert('Guardado correctamente')
       } catch (err) {
         console.error(err)
