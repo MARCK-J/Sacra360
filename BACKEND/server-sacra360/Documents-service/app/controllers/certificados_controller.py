@@ -24,13 +24,17 @@ def get_certificado_ensamblado(id: int, db: Session = Depends(get_db)) -> Dict[s
         except Exception:
             sac["tipo_nombre"] = None
 
-        # 3) Persona
+        # 3) Persona (use combined fields present in DB)
         try:
-            p = db.execute(text("SELECT nombres, apellido_paterno, apellido_materno, nombre_padre, nombre_madre FROM personas WHERE id_persona = :id"), {"id": sac.get("persona_id")}).fetchone()
+            p = db.execute(text(
+                "SELECT nombres, apellido_paterno, apellido_materno, nombre_padre_nombre_madre, nombre_padrino_nombre_madrina FROM personas WHERE id_persona = :id"
+            ), {"id": sac.get("persona_id")}).fetchone()
             if p:
                 sac["persona_nombre"] = " ".join([v for v in (p[0], p[1], p[2]) if v])
-                sac["nombre_padre"] = p[3]
-                sac["nombre_madre"] = p[4]
+                # personas.nombre_padre_nombre_madre may store both padres in one string
+                sac["padres"] = p[3] if p[3] else None
+                # persona-level padrinos stored as combined field
+                sac["padrinos_persona"] = p[4] if p[4] else None
         except Exception:
             pass
 
@@ -62,19 +66,39 @@ def get_certificado_ensamblado(id: int, db: Session = Depends(get_db)) -> Dict[s
         except Exception:
             pass
         try:
-            dmt = db.execute(text("SELECT foja, numero, ministro, nombre_esposo, nombre_esposa FROM detalles_matrimonio WHERE sacramento_id = :id LIMIT 1"), {"id": id}).fetchone()
+            dmt = db.execute(text(
+                "SELECT foja, numero, ministro, nombre_esposo, nombre_esposa, nombre_padre_esposo, nombre_madre_esposo, nombre_padre_esposa, nombre_madre_esposa FROM detalles_matrimonio WHERE sacramento_id = :id LIMIT 1"
+            ), {"id": id}).fetchone()
             if dmt:
                 foja = foja or dmt[0]
                 numero = numero or dmt[1]
                 ministro = ministro or dmt[2]
                 sac["nombre_esposo"] = dmt[3]
                 sac["nombre_esposa"] = dmt[4]
+                # combine padres de los contrayentes
+                padre_esposo = dmt[5] or ''
+                madre_esposo = dmt[6] or ''
+                padre_esposa = dmt[7] or ''
+                madre_esposa = dmt[8] or ''
+                partes = []
+                if padre_esposo or madre_esposo:
+                    partes.append(f"{padre_esposo or '-'} y {madre_esposo or '-'}")
+                if padre_esposa or madre_esposa:
+                    partes.append(f"{padre_esposa or '-'} y {madre_esposa or '-'}")
+                if partes:
+                    # prefer existing sac['padres'] from persona if present
+                    if not sac.get("padres"):
+                        sac["padres"] = ' / '.join(partes)
         except Exception:
             pass
 
         sac["foja"] = foja
         sac["numero_acta"] = numero
         sac["ministro"] = ministro
+
+        # Normalize padrinos field: prioritize detalle_* padrinos then persona-level combined field
+        padrinos = sac.get("padrino_bautizo") or sac.get("padrino_confirmacion") or sac.get("padrinos_persona")
+        sac["padrinos"] = padrinos if padrinos else None
 
         return sac
 
