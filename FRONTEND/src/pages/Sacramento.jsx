@@ -134,7 +134,7 @@ export default function Sacramento() {
   
   const seleccionarSugerencia = (sugerencia) => {
     if (campoActivo && sugerencia.persona) {
-      // Autocompletar todos los campos de la persona
+      // Autocompletar todos los campos personales de la persona
       setPersona({
         nombres: sugerencia.persona.nombres || '',
         apellido_paterno: sugerencia.persona.apellido_paterno || '',
@@ -146,11 +146,19 @@ export default function Sacramento() {
         lugar_nacimiento: sugerencia.persona.lugar_nacimiento || ''
       })
       
+      // LÓGICA ESPECÍFICA POR TIPO DE SACRAMENTO:
+      
       // Para Bautizo (tipo 1): Si la persona ya tiene fecha_bautismo registrada,
       // usar esa fecha como fecha del sacramento para evitar duplicados
+      // (Caso: persona con confirmación registrada, ahora se registra su bautizo)
       if (form.tipo_sacramento === 1 && sugerencia.persona.fecha_bautismo) {
         setForm(prev => ({ ...prev, fecha_sacramento: sugerencia.persona.fecha_bautismo }))
       }
+      
+      // Para Confirmación (tipo 2): NO autocompletar fecha_sacramento
+      // porque la fecha de confirmación es nueva y diferente a la de bautizo
+      // (Caso: persona con bautizo registrado, ahora se registra su confirmación)
+      // La fecha del sacramento debe ser llenada manualmente por el usuario
       
       setSugerencias([])
       setMostrarSugerencias(false)
@@ -688,7 +696,7 @@ export default function Sacramento() {
                             onClick={() => seleccionarSugerencia(sugerencia)}
                             className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                           >
-                            {sugerencia}
+                            {sugerencia.valor}
                           </div>
                         ))}
                       </div>
