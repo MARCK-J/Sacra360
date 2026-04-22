@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Layout from '../components/Layout'
+import { AUTH_API_URL } from '../config/api'
 
 export default function Estadisticas() {
   const [loading, setLoading] = useState(true)
@@ -27,7 +28,7 @@ export default function Estadisticas() {
         headers: { Authorization: `Bearer ${token}` }
       }
 
-      const baseUrl = import.meta.env.VITE_AUTH_API_URL
+      const baseUrl = AUTH_API_URL
 
       // Llamadas paralelas a los endpoints
       const [resUsuarios, resAccesos, resEstadisticas] = await Promise.all([

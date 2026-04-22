@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import Layout from '../components/Layout'
+import { apiV1Url } from '../config/api'
 
 export default function Reportes() {
   const [counts, setCounts] = useState([])
@@ -74,7 +75,7 @@ export default function Reportes() {
     setLoadingCounts(true)
     setErrorCounts(null)
     try {
-      const res = await fetch('/api/v1/reportes/count-by-type')
+      const res = await fetch(apiV1Url('/reportes/count-by-type'))
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setCounts(data.counts || [])
@@ -87,7 +88,7 @@ export default function Reportes() {
 
   async function loadTipos() {
     try {
-      const res = await fetch('/api/v1/tipos-sacramentos?skip=0&limit=100')
+      const res = await fetch(apiV1Url('/tipos-sacramentos?skip=0&limit=100'))
       if (!res.ok) return
       const data = await res.json()
       // controller returns { tipos_sacramentos: [...], total }
@@ -198,7 +199,7 @@ export default function Reportes() {
     setErrorList(null)
     try {
       const q = buildQuery()
-      const res = await fetch('/api/v1/reportes/sacramentos?' + q)
+      const res = await fetch(apiV1Url('/reportes/sacramentos?' + q))
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       let data = await res.json()
       // Accept legacy object shape { sacramentos: [...], page, limit }
@@ -214,7 +215,7 @@ export default function Reportes() {
       if (missingPersonaIds.length > 0) {
         await Promise.all(missingPersonaIds.map(async (pid) => {
           try {
-            const pr = await fetch(`/api/v1/personas/${pid}`)
+            const pr = await fetch(apiV1Url(`/personas/${pid}`))
             if (!pr.ok) return
             const pj = await pr.json()
             const full = [pj.nombres, pj.apellido_paterno, pj.apellido_materno].filter(Boolean).join(' ').trim()
@@ -250,10 +251,10 @@ export default function Reportes() {
       if (missingInstitucionIds.length > 0) {
         try {
           // Intentar la ruta correcta del backend (validacion controller)
-          let ir = await fetch('/api/v1/validacion/instituciones')
+          let ir = await fetch(apiV1Url('/validacion/instituciones'))
           if (!ir.ok) {
             // fallback antiguo por compatibilidad
-            ir = await fetch('/api/v1/instituciones')
+            ir = await fetch(apiV1Url('/instituciones'))
           }
           if (ir.ok) {
             const ij = await ir.json()

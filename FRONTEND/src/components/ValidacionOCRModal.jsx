@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, AlertTriangle, RotateCcw, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_V1_URL } from '../config/api';
 
 /**
  * Modal de Validación de OCR
@@ -52,7 +53,7 @@ const ValidacionOCRModal = ({
    */
   const cargarInstituciones = async () => {
     try {
-      const response = await fetch('http://localhost:8002/api/v1/validacion/instituciones');
+      const response = await fetch(`${API_V1_URL}/validacion/instituciones`);
       
       if (!response.ok) {
         throw new Error('Error al cargar instituciones');
@@ -81,7 +82,7 @@ const ValidacionOCRModal = ({
 
     try {
       const response = await fetch(
-        `http://localhost:8002/api/v1/validacion/tuplas-pendientes/${documentoId}`
+        `${API_V1_URL}/validacion/tuplas-pendientes/${documentoId}`
       );
 
       if (!response.ok) {
@@ -275,7 +276,7 @@ const ValidacionOCRModal = ({
     // Buscar si ya existe persona con mismo nombre, fecha_nacimiento y fecha_bautismo
     try {
       const searchRes = await fetch(
-        `http://localhost:8002/api/v1/personas/search?nombres=${encodeURIComponent(nombres)}&apellido_paterno=${encodeURIComponent(apellidoPaterno)}&apellido_materno=${encodeURIComponent(apellidoMaterno)}`
+        `${API_V1_URL}/personas/search?nombres=${encodeURIComponent(nombres)}&apellido_paterno=${encodeURIComponent(apellidoPaterno)}&apellido_materno=${encodeURIComponent(apellidoMaterno)}`
       );
       
       if (searchRes.ok) {
@@ -334,7 +335,7 @@ const ValidacionOCRModal = ({
     console.log('📤 Enviando validación:', datosValidacion);
 
     try {
-      const response = await fetch('http://localhost:8002/api/v1/validacion/validar-tupla', {
+      const response = await fetch(`${API_V1_URL}/validacion/validar-tupla`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

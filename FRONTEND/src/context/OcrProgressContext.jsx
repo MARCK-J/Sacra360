@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { API_V1_URL } from '../config/api'
 
 /**
  * Context para manejar el progreso de OCR de forma centralizada
@@ -55,7 +56,7 @@ export function OcrProgressProvider({ children }) {
     // Ahora consulta Documents-service que redirige a OCR o HTR según el modelo
     const promesas = documentosIds.map(async (docId) => {
       try {
-        const response = await fetch(`http://localhost:8002/api/v1/digitalizacion/progreso/${docId}`)
+        const response = await fetch(`${API_V1_URL}/digitalizacion/progreso/${docId}`)
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)

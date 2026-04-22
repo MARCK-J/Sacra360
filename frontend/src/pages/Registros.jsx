@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
+import { API_V1_URL } from '../config/api'
 
-const API_URL = 'http://localhost:8002/api/v1'
+const API_URL = API_V1_URL
 
 export default function Registros() {
   // Estados para los datos del formulario

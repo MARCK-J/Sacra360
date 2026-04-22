@@ -1,5 +1,6 @@
 import Layout from '../components/Layout'
 import { useCallback, useEffect, useState } from 'react'
+import { apiV1Url } from '../config/api'
 
 export default function Certificados() {
   const [sacramentos, setSacramentos] = useState([])
@@ -17,7 +18,7 @@ export default function Certificados() {
       if (idParam) {
         ;(async () => {
           try {
-            const r = await fetch(`/api/v1/sacramentos/${idParam}`)
+            const r = await fetch(apiV1Url(`/sacramentos/${idParam}`))
             if (r.ok) {
               const d = await r.json()
               setSelected(d)
@@ -36,7 +37,7 @@ export default function Certificados() {
     setErrorList(null)
     try {
       // Use reportes endpoint which returns persona/tipo/institucion details
-      const res = await fetch('/api/v1/reportes/sacramentos?page=1&limit=20')
+      const res = await fetch(apiV1Url('/reportes/sacramentos?page=1&limit=20'))
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const list = Array.isArray(data) ? data : (data.sacramentos || data || [])
@@ -46,7 +47,7 @@ export default function Certificados() {
         const id = first.id_sacramento || first.id
         // fetch assembled certificado to get libro_nombre, padres, padrinos
         try {
-          const r = await fetch(`/api/v1/certificados/${id}`)
+          const r = await fetch(apiV1Url(`/certificados/${id}`))
           if (r.ok) {
             const d = await r.json()
             setSelected(d)
@@ -486,7 +487,7 @@ export default function Certificados() {
                           <button onClick={async () => {
                             const id = r.id_sacramento || r.id
                             try {
-                              const resp = await fetch(`/api/v1/certificados/${id}`)
+                              const resp = await fetch(apiV1Url(`/certificados/${id}`))
                               if (resp.ok) setSelected(await resp.json())
                               else setSelected(r)
                             } catch (e) { setSelected(r) }
@@ -494,7 +495,7 @@ export default function Certificados() {
                           <button onClick={async () => {
                             const id = r.id_sacramento || r.id
                             try {
-                              const resp = await fetch(`/api/v1/certificados/${id}`)
+                              const resp = await fetch(apiV1Url(`/certificados/${id}`))
                               if (resp.ok) setSelected(await resp.json())
                               else setSelected(r)
                             } catch (e) { setSelected(r) }

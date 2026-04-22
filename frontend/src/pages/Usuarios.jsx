@@ -2,6 +2,7 @@
 import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
+import { AUTH_API_URL } from '../config/api'
 
 export default function Usuarios() {
   const { token } = useAuth()
@@ -30,8 +31,6 @@ export default function Usuarios() {
 
   // Estado para fortaleza de contrase├▒a
   const [passwordStrength, setPasswordStrength] = useState({ strength: 0, label: '', color: '' })
-
-  const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8004'
 
   // Funci├│n para calcular fortaleza de contrase├▒a
   const calcularFortalezaPassword = (password) => {

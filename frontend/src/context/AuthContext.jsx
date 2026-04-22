@@ -1,6 +1,7 @@
 ﻿import { createContext, useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { AUTH_API_URL } from '../config/api'
 
 const AuthContext = createContext(null)
 
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_AUTH_API_URL}/api/v1/auth/login`,
+        `${AUTH_API_URL}/api/v1/auth/login`,
         {
           email,
           password: password

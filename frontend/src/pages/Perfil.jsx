@@ -2,8 +2,7 @@
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import axios from 'axios'
-
-const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8004'
+import { AUTH_API_URL } from '../config/api'
 
 export default function Perfil() {
   const { user, token } = useAuth()

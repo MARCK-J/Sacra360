@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import OcrProgressModal from '../components/OcrProgressModal'
 import { useOcrProgress } from '../context/OcrProgressContext'
+import { API_V1_URL } from '../config/api'
 
 export default function Digitalizacion() {
   const navigate = useNavigate()
@@ -34,7 +35,7 @@ export default function Digitalizacion() {
   const fetchLibros = async () => {
     try {
       setLoadingLibros(true)
-      const response = await fetch('http://localhost:8002/api/v1/libros')
+      const response = await fetch(`${API_V1_URL}/libros`)
       if (response.ok) {
         const data = await response.json()
         setLibros(data)
@@ -151,7 +152,7 @@ export default function Digitalizacion() {
         try {
           console.log('📤 Subiendo archivo:', file.name)
           
-          const response = await fetch('http://localhost:8002/api/v1/digitalizacion/upload', {
+          const response = await fetch(`${API_V1_URL}/digitalizacion/upload`, {
             method: 'POST',
             body: uploadData
           })

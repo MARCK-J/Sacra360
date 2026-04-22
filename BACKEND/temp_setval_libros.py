@@ -1,6 +1,10 @@
 ﻿import psycopg2
+import os
 
-DB_URL = "postgresql://postgres.kzgzkhklvemxajgvzgsr:Arzlpz$42026@aws-1-us-east-1.pooler.supabase.com:6543/postgres"
+DB_URL = os.getenv("SUPABASE_DB_URL")
+
+if not DB_URL:
+    raise RuntimeError("Missing SUPABASE_DB_URL environment variable")
 
 conn = psycopg2.connect(DB_URL)
 try:

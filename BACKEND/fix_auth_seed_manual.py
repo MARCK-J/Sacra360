@@ -1,7 +1,11 @@
 import psycopg2
+import os
 
-DB_URL = "postgresql://postgres.kzgzkhklvemxajgvzgsr:Arzlpz$42026@aws-1-us-east-1.pooler.supabase.com:6543/postgres"
+DB_URL = os.getenv("SUPABASE_DB_URL")
 ADMIN_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyJJb3hA7YDe"  # admin123
+
+if not DB_URL:
+    raise RuntimeError("Missing SUPABASE_DB_URL environment variable")
 
 
 def ensure_user(cur, email, rol_id, nombre, ap_paterno, ap_materno):

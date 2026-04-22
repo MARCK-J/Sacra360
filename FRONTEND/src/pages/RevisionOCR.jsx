@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import ValidacionOCRModal from '../components/ValidacionOCRModal'
+import { API_V1_URL } from '../config/api'
 
 export default function RevisionOCR() {
   const navigate = useNavigate()
@@ -22,7 +23,7 @@ export default function RevisionOCR() {
     try {
       setLoading(true)
       // Cargar documentos desde el backend
-      const response = await fetch('http://localhost:8002/api/v1/digitalizacion/documentos-pendientes')
+      const response = await fetch(`${API_V1_URL}/digitalizacion/documentos-pendientes`)
       if (response.ok) {
         const data = await response.json()
         setDocumentos(data)

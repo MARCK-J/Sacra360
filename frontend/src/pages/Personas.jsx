@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import DuplicatesMergeModal from '../components/DuplicatesMergeModal'
+import { API_BASE_URL } from '../config/api'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002'
+const API_URL = API_BASE_URL
 
 export default function Personas() {
   const [mergeOpen, setMergeOpen] = useState(false)

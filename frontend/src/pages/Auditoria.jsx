@@ -2,6 +2,7 @@
 import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
+import { AUTH_API_URL } from '../config/api'
 
 export default function Auditoria() {
   const { token } = useAuth()
@@ -23,8 +24,6 @@ export default function Auditoria() {
   const [limit] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
   const totalPages = Math.ceil(totalCount / limit)
-
-  const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8001'
 
   useEffect(() => {
     if (token) {

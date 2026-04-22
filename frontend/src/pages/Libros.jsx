@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
+import { API_V1_URL } from '../config/api'
 
 export default function Libros() {
   const [libros, setLibros] = useState([])
@@ -16,7 +17,7 @@ export default function Libros() {
   async function fetchLibros() {
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8002/api/v1/libros')
+      const res = await fetch(`${API_V1_URL}/libros`)
       if (!res.ok) throw new Error('Error cargando libros')
       const data = await res.json()
       setLibros(Array.isArray(data) ? data : (data.libros || []))
@@ -50,7 +51,7 @@ export default function Libros() {
     const location = estante && nivel ? `${estante}-${nivel}-${sigla || '000'}` : (sigla || '')
     try {
       const body = { observaciones: location }
-      const res = await fetch(`http://localhost:8002/api/v1/libros/${selectedLibro.id_libro}`, {
+      const res = await fetch(`${API_V1_URL}/libros/${selectedLibro.id_libro}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -74,7 +75,7 @@ export default function Libros() {
     }
     try {
       const body = { observaciones: key }
-      const res = await fetch(`http://localhost:8002/api/v1/libros/${selectedLibro.id_libro}`, {
+      const res = await fetch(`${API_V1_URL}/libros/${selectedLibro.id_libro}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -96,7 +97,7 @@ export default function Libros() {
     const hoy = new Date().toISOString().slice(0,10)
     try {
       const payload = { nombre, fecha_inicio: hoy, fecha_fin: hoy }
-      const res = await fetch('http://localhost:8002/api/v1/libros', {
+      const res = await fetch(`${API_V1_URL}/libros`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
