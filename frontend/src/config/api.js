@@ -8,15 +8,13 @@ const stripQuotes = (value) => {
 
 const trimTrailingSlash = (value) => stripQuotes(value).replace(/\/+$/, '')
 
-const upgradeToHttpsIfPageIsHttps = (value) => {
+const normalizeToHttps = (value) => {
   const normalized = trimTrailingSlash(value)
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    if (normalized.startsWith('http://')) {
-      return `https://${normalized.slice('http://'.length)}`
-    }
-    if (normalized.startsWith('//')) {
-      return `https:${normalized}`
-    }
+  if (normalized.startsWith('http://')) {
+    return `https://${normalized.slice('http://'.length)}`
+  }
+  if (normalized.startsWith('//')) {
+    return `https:${normalized}`
   }
   return normalized
 }
@@ -32,8 +30,8 @@ const RAW_AUTH_API_URL = trimTrailingSlash(
   import.meta.env.VITE_AUTH_API_URL || defaultAuthBase
 )
 
-export const API_BASE_URL = upgradeToHttpsIfPageIsHttps(RAW_API_BASE_URL)
-export const AUTH_API_URL = upgradeToHttpsIfPageIsHttps(RAW_AUTH_API_URL)
+export const API_BASE_URL = normalizeToHttps(RAW_API_BASE_URL)
+export const AUTH_API_URL = normalizeToHttps(RAW_AUTH_API_URL)
 
 export const API_V1_URL = `${API_BASE_URL}/api/v1`
 
