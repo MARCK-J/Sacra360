@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
+import os
 
 from app.routers.auth_router_adapted import router as auth_router
 from app.routers.usuarios_router import router as usuarios_router
@@ -42,9 +43,21 @@ app = FastAPI(
 )
 
 # Configuración CORS
+# Permite definir orígenes por variable de entorno para soportar frontend local y Vercel.
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

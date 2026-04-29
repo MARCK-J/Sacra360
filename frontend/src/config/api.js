@@ -1,15 +1,39 @@
-const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '')
+const stripQuotes = (value) => {
+  const v = String(value || '').trim()
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    return v.slice(1, -1).trim()
+  }
+  return v
+}
+
+const trimTrailingSlash = (value) => stripQuotes(value).replace(/\/+$/, '')
+
+const upgradeToHttpsIfPageIsHttps = (value) => {
+  const normalized = trimTrailingSlash(value)
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    if (normalized.startsWith('http://')) {
+      return `https://${normalized.slice('http://'.length)}`
+    }
+    if (normalized.startsWith('//')) {
+      return `https:${normalized}`
+    }
+  }
+  return normalized
+}
 
 const defaultApiBase = 'http://localhost:8002'
 const defaultAuthBase = 'http://localhost:8001'
 
-export const API_BASE_URL = trimTrailingSlash(
+const RAW_API_BASE_URL = trimTrailingSlash(
   import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || defaultApiBase
 )
 
-export const AUTH_API_URL = trimTrailingSlash(
+const RAW_AUTH_API_URL = trimTrailingSlash(
   import.meta.env.VITE_AUTH_API_URL || defaultAuthBase
 )
+
+export const API_BASE_URL = upgradeToHttpsIfPageIsHttps(RAW_API_BASE_URL)
+export const AUTH_API_URL = upgradeToHttpsIfPageIsHttps(RAW_AUTH_API_URL)
 
 export const API_V1_URL = `${API_BASE_URL}/api/v1`
 
