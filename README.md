@@ -1,6 +1,8 @@
 # Sacra360 - Sistema de Registro de Sacramentos
 
 Sistema integral para digitalización y validación de registros sacramentales con soporte para OCR, HTR (reconocimiento de escritura), generación de certificados y auditoría.
+*Estado del Proyecto:* Desarrollo finalizado. Listo para despliegue.
+*Nota de Infraestructura:* El sistema está construido bajo una arquitectura de microservicios con contenedores. Está a la espera de un equipo físico (PC) o un servidor contratado (VPS).
 
 ## 🚀 Despliegue Rápido
 
